@@ -26,8 +26,6 @@ circuit.make_component(
     "add", "test_add_3", inputs={"a": add_a.output(), "b": add_b.output()}
 )
 
-meta_1 = CallMetaData(
-    own_self_name="__myself", triggered=set(["a"]), call_name="call_a"
-)
+meta_1 = CallMetaData(triggered=set(["a"]), call_name="call_a")
 
 print(generate_circuit_struct(circuit, [meta_1], "test"))

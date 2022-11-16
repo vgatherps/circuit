@@ -17,7 +17,6 @@ def generate_calls_for(meta: CallMetaData, circuit: Circuit) -> str:
 
     return f"""
     void {meta.call_name}() {{
-        auto *__restrict {meta.own_self_name} = this;
         {all_children}
     }}
     """
