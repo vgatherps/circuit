@@ -1,5 +1,6 @@
 from pycircuit.circuit_builder.circuit import Component
 from pycircuit.cpp_codegen.call_metadata import CallMetaData
+from pycircuit.cpp_codegen.generate_struct import get_sorted_inputs
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
@@ -12,7 +13,7 @@ def generate_single_call(meta: CallMetaData, component: Component) -> str:
     # Maybe another todo impermanent (only exist within a single graph) vs stored?
     # TODO How to deal with generics? Can/should just do in order
 
-    sorted_by_idx = sorted(component.inputs.values(), key=lambda x: x.input_idx)
+    sorted_by_idx = get_sorted_inputs(component)
 
     assert list(i.input_idx for i in sorted_by_idx) == list(
         range(0, len(sorted_by_idx))
