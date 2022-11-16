@@ -22,8 +22,14 @@ add_a = circuit.make_component(
 add_b = circuit.make_component(
     "add", "test_add_2", inputs={"a": b.output(), "b": c.output()}
 )
-circuit.make_component(
+add_c = circuit.make_component(
     "add", "test_add_3", inputs={"a": add_a.output(), "b": add_b.output()}
+)
+add_d = circuit.make_component(
+    "add",
+    "test_add_4",
+    inputs={"a": add_a.output(), "b": add_c.output()},
+    force_stored=True,
 )
 
 meta_1 = CallMetaData(triggered=set(["a"]), call_name="call_a")

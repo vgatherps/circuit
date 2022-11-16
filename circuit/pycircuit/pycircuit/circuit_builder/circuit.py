@@ -57,7 +57,11 @@ class Circuit:
         return ext
 
     def make_component(
-        self, definition_name: str, name: str, inputs: Dict[str, ComponentOutput]
+        self,
+        definition_name: str,
+        name: str,
+        inputs: Dict[str, ComponentOutput],
+        force_stored: bool = False,
     ) -> "Component":
         assert name not in self.components
 
@@ -72,7 +76,12 @@ class Circuit:
                 input_idx=definition.inputs[in_name],
             )
 
-        comp = Component(inputs=converted, definition=definition, name=name)
+        comp = Component(
+            inputs=converted,
+            definition=definition,
+            name=name,
+            force_stored=force_stored,
+        )
         self.components[name] = comp
         return comp
 
@@ -82,6 +91,7 @@ class Component:
     inputs: Dict[str, ComponentInput]
     definition: Definition
     name: str
+    force_stored: bool
 
     def output(self, which=None) -> ComponentOutput:
         if which is None:
