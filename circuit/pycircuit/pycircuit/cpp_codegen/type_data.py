@@ -1,10 +1,9 @@
 from typing import List
 
 from pycircuit.circuit_builder.circuit import Component, ComponentInput
-from pycircuit.cpp_codegen.call_metadata import CallMetaData
 
 
-def get_sorted_inputs(component: Component) -> str:
+def get_sorted_inputs(component: Component) -> List[ComponentInput]:
     return sorted(component.inputs.values(), key=lambda x: x.input_idx)
 
 

@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from typing import List
 
 from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentInput
+from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
+from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
+    generate_calls_for,
+)
 from pycircuit.cpp_codegen.type_data import (
     get_output_types_for,
     get_using_declarations_for,
@@ -9,10 +13,6 @@ from pycircuit.cpp_codegen.type_data import (
 
 EXTERNALS_STRUCT_NAME = "externals"
 OUTPUT_STRUCT_NAME = "output"
-
-
-def get_sorted_inputs(component: Component) -> List[ComponentInput]:
-    sorted_by_idx = sorted(component.inputs.values(), key=lambda x: x.input_idx)
 
 
 def generate_externals_struct(circuit: Circuit) -> str:
@@ -51,9 +51,13 @@ def generate_output_substruct(circuit: Circuit) -> str:
     """
 
 
-def generate_circuit_struct(circuit: Circuit, name: str):
+def generate_circuit_struct(
+    circuit: Circuit, call_metas: List[CallMetaData], name: str
+):
     externals = generate_externals_struct(circuit)
     output = generate_output_substruct(circuit)
+
+    calls = "\n".join(generate_calls_for(call, circuit) for call in call_metas)
 
     return f"""
     struct {name} {{
@@ -62,5 +66,7 @@ def generate_circuit_struct(circuit: Circuit, name: str):
 
         {output}
         Outputs outputs;
+
+        {calls}
     }};
     """

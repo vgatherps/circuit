@@ -12,6 +12,12 @@ from pycircuit.circuit_builder.definition import Definition
 # Validate topologically ordered. This itself prevents
 
 
+@dataclass(frozen=True, eq=True)
+class ComponentOutput:
+    parent: str
+    output: str
+
+
 @dataclass
 class ComponentInput:
     parent: str
@@ -19,11 +25,8 @@ class ComponentInput:
     input_name: str
     input_idx: int
 
-
-@dataclass
-class ComponentOutput:
-    parent: str
-    output: str
+    def output(self) -> ComponentOutput:
+        return ComponentOutput(parent=self.parent, output=self.output_name)
 
 
 @dataclass

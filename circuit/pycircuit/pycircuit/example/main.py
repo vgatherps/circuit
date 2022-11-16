@@ -2,6 +2,7 @@ import os
 
 from pycircuit.circuit_builder.circuit import Circuit, Component
 from pycircuit.circuit_builder.definition import Definitions
+from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.generate_struct import generate_circuit_struct
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -16,4 +17,8 @@ b = circuit.get_external("b", "float")
 
 circuit.make_component("add", "test_add", inputs={"a": a.output(), "b": b.output()})
 
-print(generate_circuit_struct(circuit, "test"))
+meta_1 = CallMetaData(
+    own_self_name="__myself", triggered=set(["a"]), call_name="call_a"
+)
+
+print(generate_circuit_struct(circuit, [meta_1], "test"))
