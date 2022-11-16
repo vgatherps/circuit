@@ -82,3 +82,20 @@ class Component:
     inputs: Dict[str, ComponentInput]
     definition: Definition
     name: str
+
+    def output(self, which=None) -> ComponentOutput:
+        if which is None:
+            n_outputs = len(self.definition.output.fields)
+            if n_outputs == 1:
+                which = iter(self.definition.output.fields).__next__()
+            else:
+                raise ValueError(
+                    f"Cannot take default output of component with {n_outputs}"
+                )
+
+        if which not in self.definition.output.fields:
+            raise ValueError(f"Component {self.name} does not have field {which}")
+        return ComponentOutput(
+            parent=self.name,
+            output=which,
+        )

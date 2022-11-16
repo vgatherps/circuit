@@ -14,8 +14,17 @@ circuit = Circuit(definitions=definitions.definitions)
 
 a = circuit.get_external("a", "float")
 b = circuit.get_external("b", "float")
+c = circuit.get_external("c", "float")
 
-circuit.make_component("add", "test_add", inputs={"a": a.output(), "b": b.output()})
+add_a = circuit.make_component(
+    "add", "test_add_1", inputs={"a": a.output(), "b": b.output()}
+)
+add_b = circuit.make_component(
+    "add", "test_add_2", inputs={"a": b.output(), "b": c.output()}
+)
+circuit.make_component(
+    "add", "test_add_3", inputs={"a": add_a.output(), "b": add_b.output()}
+)
 
 meta_1 = CallMetaData(
     own_self_name="__myself", triggered=set(["a"]), call_name="call_a"

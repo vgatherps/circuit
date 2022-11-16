@@ -26,27 +26,28 @@ def generate_externals_struct(circuit: Circuit) -> str:
     """
 
 
-def generate_output_substruct(circuit: Circuit) -> str:
-    # TODO this basic loop more or less skips outputs
-    output_type_declarations_list = sum(
-        [
-            get_using_declarations_for("Outputs", "Externals", c)
-            for c in circuit.components.values()
-        ],
-        [],
+def generate_output_declarations_for_component(component: Component):
+
+    using_declarations = "\n".join(
+        get_using_declarations_for("Outputs", "Externals", component)
     )
+    output_declaration = f"{component.definition.class_name}<{','.join(get_output_types_for(component))}>::Output {component.name};"
 
-    output_type_declarations = "\n".join(output_type_declarations_list)
+    return f"""
+        {using_declarations}
+        {output_declaration}
+    """
 
-    outputs = "\n".join(
-        f"{c.definition.class_name}<{','.join(get_output_types_for(c))}>::Output {name};"
-        for (name, c) in circuit.components.items()
+
+def generate_output_substruct(circuit: Circuit) -> str:
+
+    circuit_declarations = "\n\n".join(
+        map(generate_output_declarations_for_component, circuit.components.values())
     )
 
     return f"""
         struct Outputs {{
-            {output_type_declarations}
-            {outputs}
+            {circuit_declarations}
         }};
     """
 
