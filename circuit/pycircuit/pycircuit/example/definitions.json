@@ -1,0 +1,17 @@
+{
+    "definitions": {
+        "add": {
+            "inputs": {
+                "a": 0,
+                "b": 1
+            },
+            "output": {
+                "fields": [
+                    "out"
+                ]
+            },
+            "class_name": "Adder",
+            "static_call": true
+        }
+    }
+}

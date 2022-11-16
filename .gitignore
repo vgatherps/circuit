@@ -1,0 +1,5 @@
+cppircuit/build
+**/*__pycache__
+**/*.swp
+**/*.vscode
+*.swp
