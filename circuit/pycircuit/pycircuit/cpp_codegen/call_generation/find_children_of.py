@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import List, Set
+from typing import Dict, List, Set
 
 from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentOutput
 
@@ -12,7 +12,7 @@ def find_all_children_of(external_set: Set[str], circuit: Circuit) -> List[Compo
 
     components = list(circuit.components.values())
 
-    called = OrderedDict()
+    called: Dict[str, Component] = OrderedDict()
 
     did_work = True
     while (len(called) < len(components)) and did_work:

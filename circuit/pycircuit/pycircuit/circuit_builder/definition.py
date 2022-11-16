@@ -15,6 +15,7 @@ class Definition(DataClassJsonMixin):
     output: OutputSpec
     class_name: str
     static_call: bool
+    ephemeral: bool
 
     def validate_inputs_indices(self):
         all_idxs = set(self.inputs.values())
