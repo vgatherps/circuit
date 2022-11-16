@@ -23,7 +23,7 @@ def get_parent_name(c: ComponentInput) -> str:
         return f"outputs.{c.parent}.{c.output_name}"
 
 
-def generate_single_call(meta: CallMetaData, component: Component) -> str:
+def generate_single_call(component: Component) -> str:
     # TODO static vs stateful
     # Maybe another todo impermanent (only exist within a single graph) vs stored?
     # TODO How to deal with generics? Can/should just do in order
@@ -39,7 +39,7 @@ def generate_single_call(meta: CallMetaData, component: Component) -> str:
     all_type_names = [get_type_name_for_input(component, c) for c in sorted_by_idx]
 
     all_values = [
-        f"const Outputs::{t_name} &{c.input_name}_v = {name};"
+        f"const {t_name} &{c.input_name}_v = {name};"
         for (t_name, c, name) in zip(all_type_names, sorted_by_idx, input_names)
     ]
 

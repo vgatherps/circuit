@@ -3,9 +3,9 @@ from typing import List
 from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentInput
 
 
-def get_class_declaration_for(component: Component) -> str:
+def get_class_declaration_type_for(component: Component) -> str:
     generics = ",".join(get_output_types_for(component))
-    return f"{component.definition.class_name}<{generics}>::Output {component.name}"
+    return f"{component.definition.class_name}<{generics}>"
 
 
 def get_alias_for(component: Component) -> str:
@@ -21,7 +21,7 @@ def get_type_name_for_input(component: Component, input: ComponentInput):
 
 
 def get_using_declarations_for(component: Component, circuit: Circuit) -> List[str]:
-    class_declaration = get_class_declaration_for(component)
+    class_declaration = get_class_declaration_type_for(component)
     names = []
     for c in component.inputs.values():
         if c.parent == "external":

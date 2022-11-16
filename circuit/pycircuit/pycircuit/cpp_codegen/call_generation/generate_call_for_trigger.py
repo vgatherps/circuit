@@ -12,7 +12,7 @@ def generate_calls_for(meta: CallMetaData, circuit: Circuit) -> str:
 
     children_for_call = find_all_children_of(meta.triggered, circuit)
     all_children = "\n".join(
-        generate_single_call(meta, component) for component in children_for_call
+        generate_single_call(component) for component in children_for_call
     )
 
     return f"""
