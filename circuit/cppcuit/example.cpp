@@ -19,14 +19,14 @@ public:
     // Probably want to do this by taking advantage of the call itself?
     struct Output
     {
-        decltype(get_add_type<A, B>(nullptr, nullptr)) value;
+        decltype(get_add_type<A, B>(nullptr, nullptr)) out;
     };
 
     // stateless type so we don't waste space + padding on it
 
     static void call(const A &a, const B &b, Output &o)
     {
-        o.value = a + b;
+        o.out = a + b;
     }
 };
 

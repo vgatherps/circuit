@@ -33,6 +33,7 @@ class ComponentInput:
 class ExternalInput:
     type: str
     name: str
+    index: int
 
     def output(self) -> ComponentOutput:
         return ComponentOutput(parent="external", output=self.name)
@@ -49,11 +50,13 @@ class Circuit:
         self.components: OrderedDict[str, "Component"] = OrderedDict()
         self.external_inputs: Dict[str, ExternalInput] = {}
         self.running_index = 0
+        self.running_external = 0
 
     def get_external(self, name: str, type: str) -> ExternalInput:
         if name in self.external_inputs:
             return self.external_inputs[name]
-        ext = ExternalInput(type=type, name=name)
+        ext = ExternalInput(type=type, name=name, index=self.running_external)
+        self.running_external += 1
         self.external_inputs[name] = ext
         return ext
 
