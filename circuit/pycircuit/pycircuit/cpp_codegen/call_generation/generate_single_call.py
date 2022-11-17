@@ -1,7 +1,6 @@
 from typing import Set
 
 from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentInput
-from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.ephemeral import is_ephemeral
 from pycircuit.cpp_codegen.type_data import (
     get_alias_for,

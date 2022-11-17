@@ -12,7 +12,7 @@ definitions = Definitions.from_json(definitions_str)
 
 circuit = Circuit(definitions=definitions.definitions)
 
-NUM_OVERALL = 128
+NUM_OVERALL = 1024
 NUM_CALLED = 10
 
 # Check for power of two
@@ -31,7 +31,7 @@ while len(roots) > 1:
         if len(roots) <= 2:
             store = True
         else:
-            store = True
+            store = False
         new_roots.append(
             circuit.make_component(
                 "add",
