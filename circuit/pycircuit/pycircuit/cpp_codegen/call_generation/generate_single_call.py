@@ -2,6 +2,10 @@ from typing import Set
 
 from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentInput
 from pycircuit.cpp_codegen.call_generation.ephemeral import is_ephemeral
+from pycircuit.cpp_codegen.generation_metadata import (
+    AnnotatedComponent,
+    GenerationMetadata,
+)
 from pycircuit.cpp_codegen.type_data import (
     get_alias_for,
     get_sorted_inputs,
@@ -16,15 +20,13 @@ from pycircuit.cpp_codegen.type_data import (
 OUTPUT_NAME = "__output__"
 
 
-def get_parent_name(
-    c: ComponentInput, circuit: Circuit, non_ephemeral_components: Set[str]
-) -> str:
+def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
     if c.parent == "external":
         return f"externals.{c.output_name}"
     else:
-        parent = circuit.components[c.parent]
-        if is_ephemeral(parent, non_ephemeral_components):
-            root_name = f"{parent.name}_EV"
+        parent = meta.annotated_components[c.parent]
+        if meta.annotated_components[c.parent].is_ephemeral:
+            root_name = f"{parent.component.name}_EV"
         else:
             root_name = f"outputs.{c.parent}"
 
@@ -32,16 +34,18 @@ def get_parent_name(
 
 
 def generate_single_call(
-    component: Component, circuit: Circuit, non_ephemeral_components: Set[str]
+    annotated_component: AnnotatedComponent, gen_data: GenerationMetadata
 ) -> str:
     # TODO static vs stateful
     # Maybe another todo impermanent (only exist within a single graph) vs stored?
     # TODO How to deal with generics? Can/should just do in order
 
+    component = annotated_component.component
+
     class_name = get_alias_for(component)
     output_name = f"outputs.{component.name}"
 
-    if is_ephemeral(component, non_ephemeral_components):
+    if annotated_component.is_ephemeral:
         ephemeral_line = f"{class_name}::Output {component.name}_EV;"
         output_line = f"{class_name}::Output& {OUTPUT_NAME} = {component.name}_EV;"
     else:
@@ -54,10 +58,7 @@ def generate_single_call(
         range(0, len(sorted_by_idx))
     )
 
-    input_names = [
-        f"{get_parent_name(c, circuit, non_ephemeral_components)}"
-        for c in sorted_by_idx
-    ]
+    input_names = [f"{get_parent_name(c, gen_data)}" for c in sorted_by_idx]
 
     all_type_names = [get_type_name_for_input(component, c) for c in sorted_by_idx]
 

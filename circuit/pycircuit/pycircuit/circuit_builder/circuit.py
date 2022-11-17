@@ -48,6 +48,7 @@ class Circuit:
         self.definitions = definitions
         self.components: OrderedDict[str, "Component"] = OrderedDict()
         self.external_inputs: Dict[str, ExternalInput] = {}
+        self.running_index = 0
 
     def get_external(self, name: str, type: str) -> ExternalInput:
         if name in self.external_inputs:
@@ -81,8 +82,10 @@ class Circuit:
             definition=definition,
             name=name,
             force_stored=force_stored,
+            index=self.running_index,
         )
         self.components[name] = comp
+        self.running_index += 1
         return comp
 
 
@@ -92,6 +95,7 @@ class Component:
     definition: Definition
     name: str
     force_stored: bool
+    index: int
 
     def output(self, which=None) -> ComponentOutput:
         if which is None:

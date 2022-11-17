@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import List, Set
 
@@ -10,6 +11,10 @@ from pycircuit.cpp_codegen.call_generation.ephemeral import (
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
 from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
     generate_calls_for,
+)
+from pycircuit.cpp_codegen.generation_metadata import (
+    AnnotatedComponent,
+    GenerationMetadata,
 )
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
 
@@ -33,13 +38,13 @@ def generate_output_declarations_for_component(component: Component):
 
 
 def generate_output_substruct(
-    circuit: Circuit, non_ephemeral_components: Set[str]
+    metadata: GenerationMetadata,
 ) -> str:
 
     circuit_declarations = "\n\n".join(
-        generate_output_declarations_for_component(component)
-        for component in circuit.components.values()
-        if not is_ephemeral(component, non_ephemeral_components)
+        generate_output_declarations_for_component(component.component)
+        for component in metadata.annotated_components.values()
+        if not component.is_ephemeral
     )
 
     return f"""
@@ -60,24 +65,41 @@ def generate_usings_for(circuit: Circuit) -> str:
     return "\n".join(using_declarations_list)
 
 
-def generate_circuit_struct(
-    circuit: Circuit, call_metas: List[CallMetaData], name: str
-):
-
+def generate_metadata(
+    circuit: Circuit, call_metas: List[CallMetaData]
+) -> GenerationMetadata:
     all_non_ephemeral_components = set()
 
     for call in call_metas:
         children = find_all_children_of(call.triggered, circuit)
         all_non_ephemeral_components |= find_required_inputs(children)
 
+    annotated_components = OrderedDict()
+
+    for (name, component) in circuit.components.items():
+        annotated_components[name] = AnnotatedComponent(
+            component=component,
+            is_ephemeral=is_ephemeral(component, all_non_ephemeral_components),
+        )
+
+    return GenerationMetadata(
+        non_ephemeral_components=all_non_ephemeral_components,
+        circuit=circuit,
+        annotated_components=annotated_components,
+    )
+
+
+def generate_circuit_struct(
+    circuit: Circuit, call_metas: List[CallMetaData], name: str
+):
+
+    gen_data = generate_metadata(circuit, call_metas)
+
     usings = generate_usings_for(circuit)
     externals = generate_externals_struct(circuit)
-    output = generate_output_substruct(circuit, all_non_ephemeral_components)
+    output = generate_output_substruct(gen_data)
 
-    calls = "\n".join(
-        generate_calls_for(call, circuit, all_non_ephemeral_components)
-        for call in call_metas
-    )
+    calls = "\n".join(generate_calls_for(call, gen_data) for call in call_metas)
 
     return f"""
     struct {name} {{

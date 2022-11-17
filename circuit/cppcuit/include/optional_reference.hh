@@ -14,6 +14,7 @@ public:
 
     optional_reference(T &t) : ref(&t) {}
     optional_reference(T *t) : ref(t) {}
+    optional_reference(T &t, bool is_valid) : ref(is_valid ? &t : nullptr) {}
 
     T *ptr() const
     {
