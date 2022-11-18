@@ -61,13 +61,24 @@ std::uint64_t fast_exp_U[256];
 // With this multiplier, we discretize the output.
 // That gives about 90k values between two integers in the original space
 
-struct FastExpCache {
+// I've spent A LOT of time trying to optimize and/or vectorize this code
+// I don't think it can be made any faster as a scalar computation
+// However a coarser 32-bit one with maybe just one lookup might work?
+// I don't think you can even get away with doing everything inside the registers
+// since eventually you have to pull out to scalar and load
+
+// Vectorization seems nigh impossible since you have to gather scatter,
+// play endless games with the bit shuffling, and that's not fast any any cpus yet.
+struct FastExpCache
+{
     double multiplier;
     std::uint64_t max_bits;
 
-    double compute(double x) {
+    double compute(double x)
+    {
 
-        union Bits {
+        union Bits
+        {
             double d;
             std::uint64_t u;
         };
@@ -75,32 +86,33 @@ struct FastExpCache {
         b.d = x;
         std::uint64_t bits = b.u;
 
-        
         // Fast path back to zero
-        // I'd really low for this to start all computations after and avoid
+        // I'd really love for this to start all computations after and avoid
         // hoisting them to later, but don't know how to do so without
         // causing other compiler problems...
-        if (bits == 0) [[unlikely]] {
+        if (bits == 0) [[unlikely]]
+        {
             return 1.0;
         }
 
-        
-        if (bits <= this->max_bits) [[likely]] {
+        if (bits <= this->max_bits) [[likely]]
+        {
 
             // Project into 2^[1/0x10000] space
             double real_exp = x * this->multiplier;
 
-            struct Splitter {
+            struct Splitter
+            {
                 std::uint8_t lower;
                 std::uint8_t upper;
                 std::int16_t exp;
             };
 
-            union External {
+            union External
+            {
                 std::int32_t as_int;
                 Splitter split;
             };
-
 
             // Discretize to 32 bits
             std::int32_t as_int = real_exp;
@@ -127,8 +139,8 @@ struct FastExpCache {
             return fast_exp_L[lower_index] * back_to_double.d;
         }
 
-
-        if (x <= 0.0) {
+        if (x <= 0.0)
+        {
             return 0.0;
         }
 
@@ -136,6 +148,7 @@ struct FastExpCache {
     }
 };
 
-double do_compute(FastExpCache &a, double d) {
+double do_compute(FastExpCache &a, double d)
+{
     return a.compute(d);
 }
