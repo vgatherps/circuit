@@ -2,16 +2,17 @@ from dataclasses import dataclass
 from typing import Dict, Set
 
 from dataclasses_json import DataClassJsonMixin
+from frozendict import frozendict
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class OutputSpec(DataClassJsonMixin):
-    fields: Set[str]
+    fields: frozenset[str]
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Definition(DataClassJsonMixin):
-    inputs: Dict[str, int]
+    inputs: frozendict[str, int]
     output: OutputSpec
     class_name: str
     static_call: bool

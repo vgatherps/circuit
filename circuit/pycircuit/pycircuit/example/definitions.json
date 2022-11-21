@@ -12,7 +12,8 @@
             },
             "class_name": "Adder",
             "static_call": true,
-            "ephemeral": true
+            "ephemeral": true,
+            "cleanup": false
         }
     }
 }
