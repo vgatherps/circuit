@@ -1,6 +1,6 @@
 from typing import List
 
-from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentInput
+from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentInput
 
 
 def get_class_declaration_type_for(component: Component) -> str:
@@ -20,7 +20,7 @@ def get_type_name_for_input(component: Component, input: ComponentInput):
     return f"{component.name}_{input.input_name}_T"
 
 
-def get_using_declarations_for(component: Component, circuit: Circuit) -> List[str]:
+def get_using_declarations_for(component: Component, circuit: CircuitData) -> List[str]:
     class_declaration = get_class_declaration_type_for(component)
     names = []
     for c in component.inputs.values():

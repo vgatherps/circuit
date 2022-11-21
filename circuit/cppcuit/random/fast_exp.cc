@@ -24,7 +24,7 @@ std::uint64_t fast_exp_U[256];
 //   e. 2^[0x_exp_/0x1] * 2^[0x_upper/0x100] * 2^[0x_lower/0x10000]
 //   e. 2^[0x_exp_/0x1] * 2^[0x_upper/0x100] * 2^[0x_lower/0x10000]
 
-// We now just have to be able to compute the various pwers that we want!
+// We now just have to be able to compute the various powers that we want!
 // Computing outright powers of two is very easy.
 // For the smaller powers, we can use lookup tables since the space is only 256 values
 

@@ -1,13 +1,15 @@
 from collections import OrderedDict
 from typing import Dict, List, Set
 
-from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentOutput
+from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentOutput
 
 
 # This is not fast, but in practice
 # there will only be one iteration of actual work since insertions into the circuit
 # already tend to happen in order
-def find_all_children_of(external_set: Set[str], circuit: Circuit) -> List[Component]:
+def find_all_children_of(
+    external_set: Set[str], circuit: CircuitData
+) -> List[Component]:
     used_outputs = {ComponentOutput(parent="external", output=e) for e in external_set}
 
     components = list(circuit.components.values())

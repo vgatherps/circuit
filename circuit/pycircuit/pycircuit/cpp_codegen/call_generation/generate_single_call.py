@@ -1,6 +1,6 @@
 from typing import Set
 
-from pycircuit.circuit_builder.circuit import Circuit, Component, ComponentInput
+from pycircuit.circuit_builder.circuit import CircuitBuilder, Component, ComponentInput
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,

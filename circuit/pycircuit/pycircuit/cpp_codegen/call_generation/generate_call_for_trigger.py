@@ -8,7 +8,13 @@ from pycircuit.cpp_codegen.call_generation.generate_single_call import (
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
 
-def generate_calls_for(meta: CallMetaData, gen_data: GenerationMetadata) -> str:
+def generate_call_signature(meta: CallMetaData, prefix: str = ""):
+    return f"void {prefix}{meta.call_name}()"
+
+
+def generate_external_call_body_for(
+    meta: CallMetaData, gen_data: GenerationMetadata
+) -> str:
 
     children_for_call = find_all_children_of(meta.triggered, gen_data.circuit)
     all_children = "\n".join(
@@ -19,8 +25,10 @@ def generate_calls_for(meta: CallMetaData, gen_data: GenerationMetadata) -> str:
         for component in children_for_call
     )
 
+    signature = generate_call_signature(meta, prefix=f"{gen_data.struct_name}::")
+
     return f"""
-    void {meta.call_name}() {{
+    {signature} {{
         {all_children}
     }}
     """

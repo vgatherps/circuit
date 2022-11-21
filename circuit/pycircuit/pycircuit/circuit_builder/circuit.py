@@ -76,7 +76,7 @@ class _PartialComponent:
 
 
 @dataclass
-class CallGroups(DataClassJsonMixin):
+class CallGroup(DataClassJsonMixin):
     inputs: Set[str]
 
 
@@ -85,22 +85,24 @@ class _PartialJsonCircuit(DataClassJsonMixin):
     externals: Dict[str, ExternalInput]
     components: Dict[str, _PartialComponent]
     definitions: Dict[str, Definition]
+    call_groups: Dict[str, CallGroup]
 
 
 # TODO going to be A TON of wasted space here
 @dataclass
-class JsonCircuit:
-    externals: Dict[str, ExternalInput]
+class CircuitData:
+    external_inputs: Dict[str, ExternalInput]
     components: Dict[str, Component]
     definitions: Dict[str, Definition]
+    call_groups: Dict[str, CallGroup]
 
     @staticmethod
-    def from_dict(the_json: Dict[str, Any]) -> "JsonCircuit":
+    def from_dict(the_json: Dict[str, Any]) -> "CircuitData":
 
         partial = _PartialJsonCircuit.from_dict(the_json)
 
-        return JsonCircuit(
-            externals=partial.externals,
+        return CircuitData(
+            external_inputs=partial.externals,
             definitions=partial.definitions,
             components={
                 comp_name: Component(
@@ -112,15 +114,17 @@ class JsonCircuit:
                 )
                 for (comp_name, comp) in partial.components.items()
             },
+            call_groups=partial.call_groups,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, call_groups: Dict[str, CallGroup]) -> Dict[str, Any]:
         def_to_name = {
             defin: defin_name for (defin_name, defin) in self.definitions.items()
         }
         partial = _PartialJsonCircuit(
             definitions=self.definitions,
-            externals=self.externals,
+            externals=self.external_inputs,
+            call_groups=call_groups,
             components={
                 comp_name: _PartialComponent(
                     name=comp.name,
@@ -136,20 +140,16 @@ class JsonCircuit:
         return partial.to_dict()
 
 
-class Circuit:
+class CircuitBuilder(CircuitData):
     def __init__(self, definitions: Dict[str, Definition]):
-        self.definitions = definitions
-        self.components: OrderedDict[str, "Component"] = OrderedDict()
-        self.external_inputs: Dict[str, ExternalInput] = {}
+        super().__init__(
+            external_inputs={},
+            components=OrderedDict(),
+            definitions=definitions,
+            call_groups={},
+        )
         self.running_index = 0
         self.running_external = 0
-
-    def to_json(self) -> JsonCircuit:
-        return JsonCircuit(
-            externals=self.external_inputs,
-            components=self.components,
-            definitions=self.definitions,
-        )
 
     def get_external(self, name: str, type: str) -> ExternalInput:
         if name in self.external_inputs:
@@ -158,6 +158,14 @@ class Circuit:
         self.running_external += 1
         self.external_inputs[name] = ext
         return ext
+
+    def add_call_group(self, name: str, group: CallGroup):
+        if name in self.call_groups:
+            raise ValueError(f"Circuit builder already has call group {name}")
+        for ext in group.inputs:
+            if ext not in self.external_inputs:
+                raise ValueError(f"Call group {name} looks for missing input {ext}")
+        self.call_groups[name] = group
 
     def make_component(
         self,

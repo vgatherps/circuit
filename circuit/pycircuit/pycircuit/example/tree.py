@@ -1,6 +1,6 @@
 import os
 
-from pycircuit.circuit_builder.circuit import Circuit
+from pycircuit.circuit_builder.circuit import CircuitBuilder
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.generate_struct import generate_circuit_struct
@@ -10,7 +10,7 @@ definitions_str = open(f"{dir_path}/definitions.json").read()
 
 definitions = Definitions.from_json(definitions_str)
 
-circuit = Circuit(definitions=definitions.definitions)
+circuit = CircuitBuilder(definitions=definitions.definitions)
 
 NUM_OVERALL = 1024
 NUM_CALLED = 10
