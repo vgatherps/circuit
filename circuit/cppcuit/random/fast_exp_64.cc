@@ -55,7 +55,7 @@ std::uint64_t fast_exp_U[256];
 // We certainly want to make this work with an arbitrary base, as 2^1/0x10000 is somewhat useless
 // For some multiplier,
 // base ^ exp == [2^1/0x10000] ^ (multiplier * exp)
-// setting multipler to 0x10000 ln(base) / log(2),
+// setting multipler to 0x10000 * ln(base) / log(2),
 // you can directly compute an equality to base ^ exp
 
 // With this multiplier, we discretize the output.
