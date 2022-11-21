@@ -28,13 +28,16 @@ class AnnotatedComponent:
 
 @dataclass
 class GenerationMetadata:
-    non_ephemeral_components: Set[str]
-    annotated_components: OrderedDict[str, AnnotatedComponent]
     circuit: CircuitData
     struct_name: str
 
+    non_ephemeral_components: Set[str]
+    annotated_components: OrderedDict[str, AnnotatedComponent]
 
-def generate_metadata(
+    call_endpoints: List[CallMetaData]
+
+
+def generate_struct_metadata(
     circuit: CircuitData, call_metas: List[CallMetaData], struct_name: str
 ) -> GenerationMetadata:
     all_non_ephemeral_components = set()
@@ -64,4 +67,5 @@ def generate_metadata(
         circuit=circuit,
         annotated_components=annotated_components,
         struct_name=struct_name,
+        call_endpoints=call_metas,
     )

@@ -7,7 +7,7 @@ from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
 )
 from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
-    generate_metadata,
+    generate_struct_metadata,
 )
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
 
@@ -67,20 +67,18 @@ def generate_usings_for(circuit: CircuitData) -> str:
     return "\n".join(using_declarations_list)
 
 
-def generate_circuit_struct(
-    circuit: CircuitData, call_metas: List[CallMetaData], name: str
-):
-
-    gen_data = generate_metadata(circuit, call_metas, name)
+def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
 
     usings = generate_usings_for(circuit)
     externals = generate_externals_struct(circuit)
     output = generate_output_substruct(gen_data)
 
-    calls = "\n".join(generate_call_signature(call) + ";" for call in call_metas)
+    calls = "\n".join(
+        generate_call_signature(call) + ";" for call in gen_data.call_endpoints
+    )
 
     return f"""
-    struct {name} {{
+    struct {gen_data.struct_name} {{
         {usings}
 
         {externals}
