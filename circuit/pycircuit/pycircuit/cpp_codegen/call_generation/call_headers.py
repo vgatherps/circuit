@@ -1,0 +1,16 @@
+from typing import Set
+
+from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
+from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
+from pycircuit.cpp_codegen.call_generation.generate_single_call import (
+    generate_single_call,
+)
+from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
+
+DEFAULT_HEADERS = ["optional_reference.hh"]
+
+
+def get_headers_for(meta: CallMetaData, gen_data: GenerationMetadata) -> Set[str]:
+
+    children_for_call = find_all_children_of(meta.triggered, gen_data.circuit)
+    return {comp.definition.header for comp in children_for_call}

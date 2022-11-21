@@ -1,9 +1,8 @@
+import json
 import os
 
-from pycircuit.circuit_builder.circuit import CircuitBuilder
+from pycircuit.circuit_builder.circuit import CallGroup, CircuitBuilder
 from pycircuit.circuit_builder.definition import Definitions
-from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
-from pycircuit.cpp_codegen.generate_struct import generate_circuit_struct
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 definitions_str = open(f"{dir_path}/definitions.json").read()
@@ -12,8 +11,8 @@ definitions = Definitions.from_json(definitions_str)
 
 circuit = CircuitBuilder(definitions=definitions.definitions)
 
-NUM_OVERALL = 1024
-NUM_CALLED = 10
+NUM_OVERALL = 16
+NUM_CALLED = 5
 
 # Check for power of two
 assert NUM_OVERALL & (NUM_OVERALL - 1) == 0
@@ -41,11 +40,14 @@ while len(roots) > 1:
             )
         )
         NAME_COUNTER += 1
-    roots = new_roots
+    # mypy: ignore
+    roots = new_roots  # mypy: ignore
 
 
-meta_1 = CallMetaData(
-    triggered=set([f"ext_{i}" for i in range(0, NUM_CALLED)]), call_name="root_call"
-)
+calls = CallGroup(set([f"ext_{i}" for i in range(0, NUM_CALLED)]))
+circuit.add_call_group("root_call", calls)
 
-print(generate_circuit_struct(circuit, [meta_1], "test"))
+
+as_json = circuit.to_dict()
+
+print(json.dumps(as_json, indent=4))

@@ -117,14 +117,14 @@ class CircuitData:
             call_groups=partial.call_groups,
         )
 
-    def to_dict(self, call_groups: Dict[str, CallGroup]) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         def_to_name = {
             defin: defin_name for (defin_name, defin) in self.definitions.items()
         }
         partial = _PartialJsonCircuit(
             definitions=self.definitions,
             externals=self.external_inputs,
-            call_groups=call_groups,
+            call_groups=self.call_groups,
             components={
                 comp_name: _PartialComponent(
                     name=comp.name,
