@@ -37,7 +37,7 @@ class GenerationMetadata:
     call_endpoints: List[CallMetaData]
 
 
-def generate_struct_metadata(
+def generate_global_metadata(
     circuit: CircuitData, call_metas: List[CallMetaData], struct_name: str
 ) -> GenerationMetadata:
     all_non_ephemeral_components = set()

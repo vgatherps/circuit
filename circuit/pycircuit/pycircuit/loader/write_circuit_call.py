@@ -4,15 +4,12 @@ from dataclasses import dataclass
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import CircuitData
-from pycircuit.cpp_codegen.call_generation.call_headers import (
-    DEFAULT_HEADERS,
-    get_headers_for,
-)
+from pycircuit.cpp_codegen.call_generation.call_headers import DEFAULT_HEADERS
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
     generate_external_call_body_for,
 )
-from pycircuit.cpp_codegen.generation_metadata import generate_struct_metadata
+from pycircuit.cpp_codegen.generation_metadata import generate_global_metadata
 from pycircuit.loader.loader_config import CoreLoaderConfig
 
 
@@ -21,8 +18,9 @@ class CallOptions:
     loader_config: str
     circuit_json: str
 
-    call_name: str
     struct_name: str
+    struct_header: str
+    call_name: str
 
 
 def main():
@@ -38,23 +36,19 @@ def main():
     call = circuit.call_groups[args.call_name]
     metadata = CallMetaData(triggered=call.inputs, call_name=args.call_name)
 
-    gen_metadata = generate_struct_metadata(circuit, [metadata], args.struct_name)
+    gen_metadata = generate_global_metadata(circuit, [metadata], args.struct_name)
 
     call = generate_external_call_body_for(metadata, gen_metadata)
-
-    headers = get_headers_for(metadata, gen_metadata)
 
     default_includes = "\n".join(
         f'#include "{config.root_cppcuit_path}/{header}"' for header in DEFAULT_HEADERS
     )
 
-    signal_includes = "\n".join(
-        f'#include "{config.root_signals_path}/{header}"' for header in headers
-    )
+    struct_include = f'#include "{args.struct_header}.hh"'
 
     file = f"""
         {default_includes}
-        {signal_includes}
+        {struct_include}
     
         {call}
     """

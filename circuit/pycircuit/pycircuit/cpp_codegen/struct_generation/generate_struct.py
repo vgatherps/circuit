@@ -7,7 +7,7 @@ from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
 )
 from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
-    generate_struct_metadata,
+    generate_global_metadata,
 )
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
 
