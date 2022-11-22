@@ -1,5 +1,3 @@
-from typing import Set
-
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
 from pycircuit.cpp_codegen.call_generation.generate_single_call import (
@@ -32,4 +30,3 @@ def generate_external_call_body_for(
         {all_children}
     }}
     """
-    pass

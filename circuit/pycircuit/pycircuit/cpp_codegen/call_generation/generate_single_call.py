@@ -1,4 +1,4 @@
-from typing import Set
+from typing import List, Set
 
 from pycircuit.circuit_builder.circuit import CircuitBuilder, Component, ComponentInput
 from pycircuit.cpp_codegen.generation_metadata import (
@@ -48,7 +48,10 @@ def get_valid_path_external(input: ComponentInput, gen_data: GenerationMetadata)
 
 
 def generate_single_call(
-    annotated_component: AnnotatedComponent, gen_data: GenerationMetadata
+    annotated_component: AnnotatedComponent,
+    gen_data: GenerationMetadata,
+    prefix_args: List[str] = [],
+    postfix_args: List[str] = [],
 ) -> str:
     # TODO How to deal with generics? Can/should just do in order
 
@@ -85,7 +88,8 @@ def generate_single_call(
         for (t_name, c, name) in zip(all_type_names, sorted_by_idx, input_names)
     ]
 
-    input_list = ",".join(f"{c.input_name}_v" for c in sorted_by_idx)
+    inputs_from_sorted = [f"{c.input_name}_v" for c in sorted_by_idx]
+    input_list = ",".join(prefix_args + inputs_from_sorted + postfix_args)
 
     call_name = f"{annotated_component.call_path}({input_list}, {OUTPUT_NAME})"
 

@@ -7,11 +7,9 @@ from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentO
 # This is not fast, but in practice
 # there will only be one iteration of actual work since insertions into the circuit
 # already tend to happen in order
-def find_all_children_of(
-    external_set: Set[str], circuit: CircuitData
+def find_all_children_of_from_outputs(
+    circuit: CircuitData, used_outputs: Set[ComponentOutput]
 ) -> List[Component]:
-    used_outputs = {ComponentOutput(parent="external", output=e) for e in external_set}
-
     components = list(circuit.components.values())
 
     called: Dict[str, Component] = OrderedDict()
@@ -34,3 +32,10 @@ def find_all_children_of(
                 called[component.name] = component
 
     return list(called.values())
+
+
+def find_all_children_of(
+    external_set: Set[str], circuit: CircuitData
+) -> List[Component]:
+    used_outputs = {ComponentOutput(parent="external", output=e) for e in external_set}
+    return find_all_children_of_from_outputs(circuit, used_outputs)
