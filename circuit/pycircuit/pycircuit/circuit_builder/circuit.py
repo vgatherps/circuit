@@ -1,9 +1,10 @@
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, Set, Tuple
+from typing import Any, Dict, Set
 
 from dataclasses_json import DataClassJsonMixin
 from pycircuit.circuit_builder.definition import Definition
+from typing_extensions import Protocol
 
 # Validations:
 #
@@ -11,6 +12,11 @@ from pycircuit.circuit_builder.definition import Definition
 # Maybe / maybe not matters? But will definitely prevent a TON of shenanigans
 
 # Validate topologically ordered. This itself prevents
+
+
+class HasOutput(Protocol):
+    def output(self) -> "ComponentOutput":
+        pass
 
 
 @dataclass(frozen=True, eq=True)
