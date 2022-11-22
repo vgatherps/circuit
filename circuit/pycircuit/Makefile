@@ -6,10 +6,10 @@ TREE_NAME = "Tree"
 $(DUMP)/:
 	cd pycircuit && mkdir -p $(DUMP_TAIL)
 
-tree_circuit: $(DUMP)/
+$(DUMP)/circuit.json: $(DUMP)/
 	python3 -m pycircuit.example.tree | python -m json.tool > $(DUMP)/circuit.json
 
-tree_struct: $(DUMP)/circuit.json
+$(DUMP)/tree.hh: $(DUMP)/circuit.json
 	python3 -m pycircuit.loader.write_circuit_struct \
 	--loader-config $(TREE_PATH)/loader.json \
 	--circuit-json $(DUMP)/circuit.json \
@@ -17,7 +17,7 @@ tree_struct: $(DUMP)/circuit.json
 	| clang-format \
 	> $(DUMP)/tree.hh
 
-root_call: $(DUMP)/circuit.json
+$(DUMP)/root_call.cc: $(DUMP)/circuit.json
 	python3 -m pycircuit.loader.write_circuit_call \
 	--loader-config $(TREE_PATH)/loader.json \
 	--circuit-json $(DUMP)/circuit.json \
@@ -27,6 +27,6 @@ root_call: $(DUMP)/circuit.json
 	| clang-format \
 	> $(DUMP)/root_call.cc
         
-
-tree: tree_struct root_call
+.PHONY: tree
+tree: $(DUMP)/tree.hh $(DUMP)/root_call.cc
 	echo

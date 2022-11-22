@@ -87,11 +87,7 @@ def generate_single_call(
 
     input_list = ",".join(f"{c.input_name}_v" for c in sorted_by_idx)
 
-    if component.definition.static_call:
-        call_name = f"{class_name}::call({input_list}, {OUTPUT_NAME});"
-    else:
-        object_name = f"objects.{component.name}"
-        call_name = f"{object_name}.call({input_list}, {OUTPUT_NAME});"
+    call_name = f"{annotated_component.call_path}({input_list}, {OUTPUT_NAME})"
 
     values = "\n".join(all_values)
     return f"""

@@ -9,6 +9,7 @@ from pycircuit.cpp_codegen.call_generation.ephemeral import (
     is_ephemeral,
 )
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
+from pycircuit.cpp_codegen.type_data import get_alias_for
 
 
 @dataclass
@@ -20,6 +21,7 @@ class NonEphemeralData:
 class AnnotatedComponent:
     component: Component
     ephemeral_data: Optional[NonEphemeralData]
+    call_path: str
 
     @property
     def is_ephemeral(self) -> bool:
@@ -58,8 +60,14 @@ def generate_global_metadata(
             ephemeral_data = NonEphemeralData(validity_index=non_ephemeral_count)
             non_ephemeral_count += 1
 
+        if component.definition.static_call:
+            call_path = f"{get_alias_for(component)}::call"
+        else:
+            object_name = f"objects.{component.name}"
+            call_path = f"{object_name}.call"
+
         annotated_components[name] = AnnotatedComponent(
-            component=component, ephemeral_data=ephemeral_data
+            component=component, ephemeral_data=ephemeral_data, call_path=call_path
         )
 
     return GenerationMetadata(
