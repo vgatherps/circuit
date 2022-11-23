@@ -7,7 +7,7 @@ $(DUMP)/:
 	cd pycircuit && mkdir -p $(DUMP_TAIL)
 
 $(DUMP)/circuit.json: $(DUMP)/
-	python3 -m pycircuit.example.tree | python -m json.tool > $(DUMP)/circuit.json
+	python3 -m pycircuit.example.tree | python -m json.tool > $(DUMP)/circuit_temp.json && mv $(DUMP)/circuit_temp.json $(DUMP)/circuit.json
 
 $(DUMP)/tree.hh: $(DUMP)/circuit.json
 	python3 -m pycircuit.loader.write_circuit_struct \
@@ -28,5 +28,5 @@ $(DUMP)/root_call.cc: $(DUMP)/circuit.json
 	> $(DUMP)/root_call.cc
         
 .PHONY: tree
-tree: $(DUMP)/tree.hh $(DUMP)/root_call.cc
+tree: $(DUMP)/tree.hh $(DUMP)/root_call.cc $(DUMP)/circuit.json
 	echo

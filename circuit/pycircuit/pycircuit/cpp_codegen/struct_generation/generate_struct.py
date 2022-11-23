@@ -1,13 +1,12 @@
 from typing import List
 
 from pycircuit.circuit_builder.circuit import CircuitData, Component
-from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
     generate_call_signature,
 )
 from pycircuit.cpp_codegen.generation_metadata import (
+    AnnotatedComponent,
     GenerationMetadata,
-    generate_global_metadata,
 )
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
 
@@ -56,11 +55,13 @@ def generate_output_substruct(
     """
 
 
-def generate_usings_for(circuit: CircuitData) -> str:
+def generate_usings_for(
+    annotated_components: List[AnnotatedComponent], circuit: CircuitData
+) -> str:
     using_declarations_list: List[str] = sum(
         [
             get_using_declarations_for(component, circuit)
-            for component in circuit.components.values()
+            for component in annotated_components
         ],
         [],
     )
@@ -69,7 +70,7 @@ def generate_usings_for(circuit: CircuitData) -> str:
 
 def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
 
-    usings = generate_usings_for(circuit)
+    usings = generate_usings_for(list(gen_data.annotated_components.values()), circuit)
     externals = generate_externals_struct(circuit)
     output = generate_output_substruct(gen_data)
 

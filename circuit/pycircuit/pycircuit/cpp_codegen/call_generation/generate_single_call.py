@@ -17,6 +17,8 @@ from pycircuit.cpp_codegen.type_data import (
 # On the other, it introduces huge room for error esepcially around reference autoconversion
 
 OUTPUT_NAME = "__output__"
+INPUT_STRUCT_NAME = "__INPUT__"
+INPUT_NAME = "__input__"
 
 
 def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
@@ -50,7 +52,6 @@ def get_valid_path_external(input: ComponentInput, gen_data: GenerationMetadata)
 def generate_single_call(
     annotated_component: AnnotatedComponent,
     gen_data: GenerationMetadata,
-    prefix_args: List[str] = [],
     postfix_args: List[str] = [],
 ) -> str:
     # TODO How to deal with generics? Can/should just do in order
@@ -70,35 +71,49 @@ def generate_single_call(
         valid_line = ""
         output_line = f"{class_name}::Output& {OUTPUT_NAME} = {output_name};"
 
-    sorted_by_idx = get_sorted_inputs(component)
+    inputs = list(component.inputs.values())
 
-    assert list(i.input_idx for i in sorted_by_idx) == list(
-        range(0, len(sorted_by_idx))
-    )
+    input_names = [f"{get_parent_name(c, gen_data)}" for c in inputs]
 
-    input_names = [f"{get_parent_name(c, gen_data)}" for c in sorted_by_idx]
-
-    all_type_names = [get_type_name_for_input(component, c) for c in sorted_by_idx]
+    all_type_names = [get_type_name_for_input(component, c) for c in inputs]
 
     all_values = [
         f"""
             bool is_{c.input_name}_v = {get_valid_path_external(c, gen_data)};
             optional_reference<const {t_name}> {c.input_name}_v({name}, is_{c.input_name}_v);
         """
-        for (t_name, c, name) in zip(all_type_names, sorted_by_idx, input_names)
+        for (t_name, c, name) in zip(all_type_names, inputs, input_names)
     ]
 
-    inputs_from_sorted = [f"{c.input_name}_v" for c in sorted_by_idx]
-    input_list = ",".join(prefix_args + inputs_from_sorted + postfix_args)
+    input_struct_fields = "\n".join(
+        f"optional_reference<const {t_name}> {c.input_name};"
+        for (t_name, c) in zip(all_type_names, inputs)
+    )
 
-    call_name = f"{annotated_component.call_path}({input_list}, {OUTPUT_NAME})"
+    input_struct_initializers = "\n".join(
+        f".{c.input_name} = {c.input_name}_v," for c in inputs
+    )
+
+    input_list = ",".join([INPUT_NAME] + postfix_args + [OUTPUT_NAME])
+
+    call_name = f"{annotated_component.call_path}({input_list})"
 
     values = "\n".join(all_values)
     return f"""
     {ephemeral_line}
     {valid_line}
     {{
+
+        struct {INPUT_STRUCT_NAME} {{
+            {input_struct_fields}
+        }};
+
         {values}
+
+        {INPUT_STRUCT_NAME} {INPUT_NAME} = {{
+            {input_struct_initializers}
+        }};
+
         {output_line}
         {own_valid_path} = {call_name}
     }}

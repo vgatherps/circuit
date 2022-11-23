@@ -1,10 +1,10 @@
 {
     "definitions": {
         "add": {
-            "inputs": {
-                "a": 0,
-                "b": 1
-            },
+            "inputs": [
+                "a",
+                "b"
+            ],
             "output": {
                 "fields": [
                     "out"
@@ -13,7 +13,11 @@
             "class_name": "Adder",
             "static_call": true,
             "ephemeral": true,
-            "header": "adder.hh"
+            "header": "adder.hh",
+            "generics_order": {
+                "a": 0,
+                "b": 1
+            }
         }
     }
 }

@@ -1,3 +1,7 @@
+#include <type_traits>
+#include "optional_reference.hh"
+
+#define HAS_OPT_REF(I, T, F) (requires { I::F; } && std::is_same_v<optional_reference<const T>, decltype(I::F)>)
 
 template <class A, class B>
 auto get_add_type(A *a, B *b)
@@ -6,13 +10,12 @@ auto get_add_type(A *a, B *b)
 }
 
 template <typename A, typename B>
-concept Addable = requires(A a, B b)
-{
-    a + b;
-};
+concept Addable = requires(A a, B b) {
+                      a + b;
+                  };
 
 template <class A, class B>
-requires Addable<A, B>
+    requires Addable<A, B>
 class Adder
 {
 public:
@@ -22,11 +25,19 @@ public:
         decltype(get_add_type<A, B>(nullptr, nullptr)) out;
     };
 
-    // stateless type so we don't waste space + padding on it
-
-    static void call(const A &a, const B &b, Output &o)
+    template <class I>
+        requires HAS_OPT_REF(I, A, a) && HAS_OPT_REF(I, B, b)
+    static bool call(I inputs, Output &o)
     {
-        o.out = a + b;
+        if (inputs.a.valid() && inputs.b.valid())
+        {
+            o.out = (*inputs.a + *inputs.b);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 };
 
@@ -38,7 +49,17 @@ struct CircuitStruct
 
     void call_updated_a()
     {
-        Adder<double, double>::call(this->a, this->b, this->c);
+        struct my_input
+        {
+            optional_reference<const double> a;
+            optional_reference<const double> b;
+        };
+
+        my_input input = {
+            .a = optional_reference<const double>(this->a),
+            .b = optional_reference<const double>(this->b)};
+
+        Adder<double, double>::call(input, this->c);
     }
 };
 

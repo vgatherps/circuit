@@ -9,7 +9,7 @@ from pycircuit.cpp_codegen.call_generation.ephemeral import (
     is_ephemeral,
 )
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
-from pycircuit.cpp_codegen.type_data import get_alias_for
+from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 
 
 @dataclass
@@ -22,6 +22,7 @@ class AnnotatedComponent:
     component: Component
     ephemeral_data: Optional[NonEphemeralData]
     call_path: str
+    class_generics: str
 
     @property
     def is_ephemeral(self) -> bool:
@@ -37,6 +38,13 @@ class GenerationMetadata:
     annotated_components: OrderedDict[str, AnnotatedComponent]
 
     call_endpoints: List[CallMetaData]
+
+
+def get_ordered_generic_inputs(component: Component) -> List[str]:
+    return sorted(
+        component.definition.generics_order.keys(),
+        key=lambda x: component.definition.generics_order[x],
+    )
 
 
 def generate_global_metadata(
@@ -66,8 +74,21 @@ def generate_global_metadata(
             object_name = f"objects.{component.name}"
             call_path = f"{object_name}.call"
 
+        if component.definition.generics_order:
+            generic_types = [
+                get_type_name_for_input(component, component.inputs[inp])
+                for inp in get_ordered_generic_inputs(component)
+            ]
+            inner_generics = ",".join(generic_types)
+            generics_str = f"<{inner_generics}>"
+        else:
+            generics_str = ""
+
         annotated_components[name] = AnnotatedComponent(
-            component=component, ephemeral_data=ephemeral_data, call_path=call_path
+            component=component,
+            ephemeral_data=ephemeral_data,
+            call_path=call_path,
+            class_generics=generics_str,
         )
 
     return GenerationMetadata(

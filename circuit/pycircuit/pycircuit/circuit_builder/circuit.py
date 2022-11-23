@@ -30,7 +30,6 @@ class ComponentInput(DataClassJsonMixin):
     parent: str
     output_name: str
     input_name: str
-    input_idx: int
 
     def output(self) -> ComponentOutput:
         return ComponentOutput(parent=self.parent, output=self.output_name)
@@ -190,7 +189,6 @@ class CircuitBuilder(CircuitData):
                 parent=input.parent,
                 output_name=input.output,
                 input_name=in_name,
-                input_idx=definition.inputs[in_name],
             )
 
         comp = Component(
