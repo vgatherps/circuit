@@ -106,6 +106,9 @@ class CircuitData:
 
         partial = _PartialJsonCircuit.from_dict(the_json)
 
+        for defin in partial.definitions.values():
+            defin.validate()
+
         return CircuitData(
             external_inputs=partial.externals,
             definitions=partial.definitions,

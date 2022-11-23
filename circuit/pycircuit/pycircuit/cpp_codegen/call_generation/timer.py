@@ -43,6 +43,7 @@ def generate_timer_call_body_for(
         generate_single_call(
             gen_data.annotated_components[child_component.name],
             gen_data,
+            set(children_for_call),
         )
         for child_component in children_for_call
     )

@@ -1,15 +1,12 @@
-from typing import List, Set
+from typing import Dict, List, Set
 
 from pycircuit.circuit_builder.circuit import CircuitBuilder, Component, ComponentInput
+from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
 )
-from pycircuit.cpp_codegen.type_data import (
-    get_alias_for,
-    get_sorted_inputs,
-    get_type_name_for_input,
-)
+from pycircuit.cpp_codegen.type_data import get_alias_for, get_type_name_for_input
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
@@ -49,12 +46,52 @@ def get_valid_path_external(input: ComponentInput, gen_data: GenerationMetadata)
         return get_valid_path(gen_data.annotated_components[input.parent])
 
 
+def find_writeset_for(
+    component: Component, all_components: Dict[str, Component]
+) -> Set[ComponentInput]:
+
+    possible_callset = None
+    for call_spec in component.definition.callsets:
+        callset_matches = True
+        for requested in call_spec.written_set:
+            the_input = component.inputs[requested]
+
+            if the_input.parent not in all_components:
+                callset_matches = False
+                break
+
+        if callset_matches:
+            if possible_callset is not None:
+                raise ValueError(
+                    f"Component {component.name} had multiple matching callsets: {possible_callset} and {call_spec}"
+                )
+            possible_callset = call_spec
+
+    if possible_callset is None:
+        if component.definition.generic_callback is not None:
+            inputs = set(component.inputs.values())
+        else:
+            raise ValueError(
+                f"Component {component.name} had no matching callset and no generic callset defined"
+            )
+    else:
+        inputs = {
+            component.inputs[name]
+            for name in (possible_callset.observes | possible_callset.written_set)
+        }
+
+    return inputs
+
+
 def generate_single_call(
     annotated_component: AnnotatedComponent,
     gen_data: GenerationMetadata,
+    all_children: Set[Component],
     postfix_args: List[str] = [],
 ) -> str:
     # TODO How to deal with generics? Can/should just do in order
+
+    named_children = {child.name: child for child in all_children}
 
     component = annotated_component.component
 
@@ -71,7 +108,7 @@ def generate_single_call(
         valid_line = ""
         output_line = f"{class_name}::Output& {OUTPUT_NAME} = {output_name};"
 
-    inputs = list(component.inputs.values())
+    inputs = list(find_writeset_for(component, named_children))
 
     input_names = [f"{get_parent_name(c, gen_data)}" for c in inputs]
 

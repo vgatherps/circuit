@@ -25,6 +25,7 @@ class OutputSpec(DataClassJsonMixin):
 class CallSpec(DataClassJsonMixin):
     written_set: frozenset[str]
     observes: frozenset[str]
+    callback: str
 
 
 @dataclass(eq=True, frozen=True)
@@ -41,6 +42,8 @@ class Definition(DataClassJsonMixin):
     # This call is triggered if the written input set does not match
     # any specific triggerset
     generic_callback: Optional[str] = None
+
+    callsets: frozenset[CallSpec] = frozenset()
 
     # On a call, we take the list of written inputs and see if they match against
 
@@ -69,9 +72,23 @@ class Definition(DataClassJsonMixin):
             self.generics_order
         ), "Duplicate generic inputs"
 
+    def validate_callsets(self):
+        for callset in self.callsets:
+            for written in callset.written_set:
+                if written not in self.inputs:
+                    raise ValueError(
+                        f"Written observable {written} in {self.class_name} is not an input"
+                    )
+            for observed in callset.observes:
+                if observed not in self.inputs:
+                    raise ValueError(
+                        f"Observable {observed} in {self.class_name} is not an input"
+                    )
+
     def validate(self):
         self.validate_inputs_indices()
         self.validate_generics()
+        self.validate_callsets()
 
 
 @dataclass
