@@ -2,9 +2,6 @@ from typing import Set
 
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
-from pycircuit.cpp_codegen.call_generation.generate_single_call import (
-    generate_single_call,
-)
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
 DEFAULT_HEADERS = ["optional_reference.hh"]

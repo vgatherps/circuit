@@ -14,7 +14,14 @@
             "static_call": true,
             "ephemeral": true,
             "header": "adder.hh",
-            "generic_callback": "call",
+            "generic_callback": {
+                "written_set": [],
+                "observes": [
+                    "a",
+                    "b"
+                ],
+                "callback": "call"
+            },
             "generics_order": {
                 "a": 0,
                 "b": 1

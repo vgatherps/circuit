@@ -25,16 +25,16 @@ def find_writeset_for(
             possible_callset = call_spec
 
     if possible_callset is None:
-        if component.definition.generic_callback is not None:
-            inputs = set(component.inputs.values())
-        else:
-            raise ValueError(
-                f"Component {component.name} had no matching callset and no generic callset defined"
-            )
-    else:
-        inputs = {
-            component.inputs[name]
-            for name in (possible_callset.observes | possible_callset.written_set)
-        }
+        possible_callset = component.definition.generic_callback
+
+    if possible_callset is None:
+        raise ValueError(
+            f"Component {component.name} had no matching callset and no generic callset defined"
+        )
+
+    inputs = {
+        component.inputs[name]
+        for name in (possible_callset.observes | possible_callset.written_set)
+    }
 
     return inputs

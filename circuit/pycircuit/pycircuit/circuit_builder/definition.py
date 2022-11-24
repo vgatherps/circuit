@@ -41,7 +41,7 @@ class Definition(DataClassJsonMixin):
 
     # This call is triggered if the written input set does not match
     # any specific triggerset
-    generic_callback: Optional[str] = None
+    generic_callback: Optional[CallSpec] = None
 
     callsets: frozenset[CallSpec] = frozenset()
 
