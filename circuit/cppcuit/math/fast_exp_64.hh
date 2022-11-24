@@ -1,8 +1,19 @@
 #include <cstdint>
 #include <cmath>
+#include <stdexcept>
+#include <limits>
 
 double fast_exp_L[256];
 std::uint64_t fast_exp_U[256];
+
+// 0x10000 / ln(2)
+constexpr double MULTIPLIER = 94548.4621996991;
+
+// 1023 * 0x10000
+constexpr double RANGE_LIMIT = 67043328.0;
+
+// 2^(RANGE_LIMIT/0x10000)
+constexpr double MAX_VALUE = 8.98846567431158e307;
 
 // VERY fast way to compute a^b, where 0 <= a <= a, and b >= 0
 //
@@ -26,7 +37,7 @@ std::uint64_t fast_exp_U[256];
 
 // We now just have to be able to compute the various powers that we want!
 // Computing outright powers of two is very easy.
-// For the smaller powers, we can use lookup tables since the space is only 256 values
+// For the smaller powers, we can use lookup tables since the space is only 257 values
 
 // However, how do we quickly convert this back into something useful?
 // Reference: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
@@ -69,12 +80,16 @@ std::uint64_t fast_exp_U[256];
 
 // Vectorization seems nigh impossible since you have to gather scatter,
 // play endless games with the bit shuffling, and that's not fast any any cpus yet.
-struct FastExpCache
+class FastExpCache
 {
     double multiplier;
-    std::uint64_t max_bits;
+    double max_bits_as_double;
 
-    double compute(double x)
+    constexpr FastExpCache(double multiplier, std::uint64_t max_bits_as_double)
+        : multiplier(multiplier), max_bits_as_double(max_bits_as_double) {}
+
+public:
+    double compute(double x) const
     {
 
         union Bits
@@ -83,19 +98,22 @@ struct FastExpCache
             std::uint64_t u;
         };
         Bits b;
-        b.d = x;
-        std::uint64_t bits = b.u;
 
-        // Fast path back to zero
-        // I'd really love for this to start all computations after and avoid
-        // hoisting them to later, but don't know how to do so without
-        // causing other compiler problems...
-        if (bits == 0) [[unlikely]]
-        {
-            return 1.0;
-        }
+        b.d = std::abs(x);
 
-        if (bits <= this->max_bits) [[likely]]
+        // mask off the uppermost bit to get the absolute value in integer space
+        // in integer space, we can use an intermediate, instead of using more
+        // vector units and load units
+        std::uint64_t bits = b.u & (((std::uint64_t)-1) >> 1);
+
+        // we do the reinterpret here (it's free) to make the constructor constexpr
+        std::uint64_t max_bits = *reinterpret_cast<const std::uint64_t *>(&this->max_bits_as_double);
+
+        // For zero, this *just works*
+        // so i skip the check as zero is likely a rare input
+        // the exp will be zero, leaving us with no change
+        // and each of the powers will be zero at the zeroth index
+        if (bits <= max_bits) [[likely]]
         {
 
             // Project into 2^[1/0x10000] space
@@ -146,9 +164,46 @@ struct FastExpCache
 
         return NAN;
     }
+
+    static constexpr FastExpCache from_log_base(double log_base)
+    {
+        if (log_base > 0.0)
+        {
+            throw std::runtime_error("Trying to set log with base greater than 1");
+        }
+
+        if (log_base == (-1 * std::numeric_limits<double>::infinity()))
+        {
+            return FastExpCache(0, 0);
+        }
+
+        double exp_mult = log_base * MULTIPLIER;
+        double div_mul = RANGE_LIMIT / exp_mult;
+        if (div_mul < 0.0)
+        {
+            div_mul *= -1;
+        }
+
+        return FastExpCache(exp_mult, div_mul);
+    }
+
+    static FastExpCache from_base(double base)
+    {
+        if (base > 1.0)
+        {
+            throw std::runtime_error("Trying to create FastExpCache with base greater than 1");
+        }
+        if (base <= 0.0)
+        {
+            throw std::runtime_error("Trying to create FastExpCache with base <= 0");
+        }
+
+        return from_log_base(std::log(base));
+    }
 };
 
-double do_compute(FastExpCache &a, double d)
-{
-    return a.compute(d);
-}
+// These constexpr paths means that users don't have to store/pass a pointer around
+// and the operations hold no data dependency on said pointer
+constexpr FastExpCache FastExp2 = FastExpCache::from_log_base(-std::numbers::ln2_v<double>);
+constexpr FastExpCache FastExp10 = FastExpCache::from_log_base(-std::numbers::ln10_v<double>);
+constexpr FastExpCache FastExpE = FastExpCache::from_log_base(-1.0);

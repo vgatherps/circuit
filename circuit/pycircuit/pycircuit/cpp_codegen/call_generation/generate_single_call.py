@@ -1,7 +1,6 @@
 from typing import Dict, List, Set
 
-from pycircuit.circuit_builder.circuit import CircuitBuilder, Component, ComponentInput
-from pycircuit.circuit_builder.definition import CallSpec
+from pycircuit.circuit_builder.circuit import Component, ComponentInput
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
