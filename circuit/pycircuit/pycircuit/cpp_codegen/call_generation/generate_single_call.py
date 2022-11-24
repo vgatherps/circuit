@@ -86,7 +86,7 @@ def find_writeset_for(
 def generate_single_call(
     annotated_component: AnnotatedComponent,
     gen_data: GenerationMetadata,
-    all_children: Set[Component],
+    all_children: List[Component],
     postfix_args: List[str] = [],
 ) -> str:
     # TODO How to deal with generics? Can/should just do in order

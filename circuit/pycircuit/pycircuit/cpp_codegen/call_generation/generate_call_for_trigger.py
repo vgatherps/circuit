@@ -19,7 +19,7 @@ def generate_external_call_body_for(
         generate_single_call(
             gen_data.annotated_components[component.name],
             gen_data,
-            set(children_for_call),
+            children_for_call,
         )
         for component in children_for_call
     )

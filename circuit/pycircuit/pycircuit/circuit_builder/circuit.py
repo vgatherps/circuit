@@ -25,7 +25,7 @@ class ComponentOutput(DataClassJsonMixin):
     output: str
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class ComponentInput(DataClassJsonMixin):
     parent: str
     output_name: str

@@ -14,7 +14,7 @@
             "static_call": true,
             "ephemeral": true,
             "header": "adder.hh",
-            "generics_callback": "call",
+            "generic_callback": "call",
             "generics_order": {
                 "a": 0,
                 "b": 1

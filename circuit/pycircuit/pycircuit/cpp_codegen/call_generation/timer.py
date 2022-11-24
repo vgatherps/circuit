@@ -43,7 +43,7 @@ def generate_timer_call_body_for(
         generate_single_call(
             gen_data.annotated_components[child_component.name],
             gen_data,
-            set(children_for_call),
+            children_for_call,
         )
         for child_component in children_for_call
     )
@@ -51,7 +51,7 @@ def generate_timer_call_body_for(
     signature = generate_timer_signature(component, prefix=f"{gen_data.struct_name}::")
 
     timer_callback = generate_single_call(
-        component, gen_data, prefix_args=["__front__"]
+        component, gen_data, children_for_call, postfix_args=["__front__"]
     )
 
     return f"""

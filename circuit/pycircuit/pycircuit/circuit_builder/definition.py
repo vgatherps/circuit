@@ -55,15 +55,6 @@ class Definition(DataClassJsonMixin):
         default_factory=dict, metadata=config(decoder=decode_frozen)
     )
 
-    def validate_inputs_indices(self):
-        all_idxs = set(self.inputs.values())
-
-        expected = set(range(0, len(all_idxs)))
-
-        missing = expected - all_idxs
-
-        assert len(missing) == 0, f"Missing indices {missing}"
-
     def validate_generics(self):
         for key in self.generics_order:
             assert key in self.inputs, "Generic input is not real input"
@@ -79,6 +70,13 @@ class Definition(DataClassJsonMixin):
                     raise ValueError(
                         f"Written observable {written} in {self.class_name} is not an input"
                     )
+
+                # This is reflexive so don't need to redo the check in the observes loop
+                if written in callset.observes:
+                    raise ValueError(
+                        f"Written observable {written} also an observable {self.class_name} is also observable"
+                    )
+
             for observed in callset.observes:
                 if observed not in self.inputs:
                     raise ValueError(
@@ -86,7 +84,6 @@ class Definition(DataClassJsonMixin):
                     )
 
     def validate(self):
-        self.validate_inputs_indices()
         self.validate_generics()
         self.validate_callsets()
 
