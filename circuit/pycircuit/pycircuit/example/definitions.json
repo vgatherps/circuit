@@ -5,22 +5,25 @@
                 "a",
                 "b"
             ],
-            "output": {
-                "fields": [
-                    "out"
-                ]
+            "outputs": {
+                "out": {
+                    "ephemeral": true,
+                    "type_path": "Output"
+                }
             },
             "class_name": "Adder",
             "static_call": true,
-            "ephemeral": true,
             "header": "adder.hh",
-            "generic_callback": {
+            "generic_callset": {
                 "written_set": [],
                 "observes": [
                     "a",
                     "b"
                 ],
-                "callback": "call"
+                "callback": "call",
+                "outputs": [
+                    "out"
+                ]
             },
             "generics_order": {
                 "a": 0,

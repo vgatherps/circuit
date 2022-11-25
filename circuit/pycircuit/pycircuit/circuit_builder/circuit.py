@@ -46,37 +46,63 @@ class ExternalInput(DataClassJsonMixin):
 
 
 @dataclass
+class OutputOptions(DataClassJsonMixin):
+    force_stored: bool
+
+
+@dataclass
 class Component:
     inputs: Dict[str, ComponentInput]
+    output_options: Dict[str, OutputOptions]
     definition: Definition
     name: str
-    force_stored: bool
     index: int
 
     def output(self, which=None) -> ComponentOutput:
         if which is None:
-            n_outputs = len(self.definition.output.fields)
+            n_outputs = len(self.definition.outputs)
             if n_outputs == 1:
-                which = iter(self.definition.output.fields).__next__()
+                which = iter(self.definition.outputs).__next__()
             else:
                 raise ValueError(
                     f"Cannot take default output of component with {n_outputs}"
                 )
 
-        if which not in self.definition.output.fields:
-            raise ValueError(f"Component {self.name} does not have field {which}")
+        if which not in self.definition.outputs:
+            raise ValueError(f"Component {self.name} does not have output {which}")
         return ComponentOutput(
             parent=self.name,
             output=which,
         )
 
+    def validate(self):
+
+        for output in self.output_options:
+            if output not in self.definition.outputs:
+                raise ValueError(
+                    f"Component {self.name} has output options for {output} which is not an output"
+                )
+
+        for (input, comp_input) in self.inputs.items():
+            # this really only possible via api misuse, no point in real exception
+            assert input == comp_input.input_name
+
+            if input not in self.definition.inputs:
+                raise ValueError(
+                    f"Component {self.name} has input {input} which is not in definitions"
+                )
+
+        for input in self.definition.inputs:
+            if input not in self.inputs:
+                raise ValueError(f"Component {self.name} is missing input {input}")
+
 
 @dataclass
-class _PartialComponent:
+class _PartialComponent(DataClassJsonMixin):
     inputs: Dict[str, ComponentInput]
+    output_options: Dict[str, OutputOptions]
     name: str
     definition: str
-    force_stored: bool
     index: int
 
 
@@ -109,21 +135,26 @@ class CircuitData:
         for defin in partial.definitions.values():
             defin.validate()
 
-        return CircuitData(
+        data = CircuitData(
             external_inputs=partial.externals,
             definitions=partial.definitions,
             components={
                 comp_name: Component(
                     inputs=comp.inputs,
+                    output_options=comp.output_options,
                     name=comp.name,
                     definition=partial.definitions[comp.definition],
-                    force_stored=comp.force_stored,
                     index=comp.index,
                 )
                 for (comp_name, comp) in partial.components.items()
             },
             call_groups=partial.call_groups,
         )
+
+        for component in data.components.values():
+            component.validate()
+
+        return data
 
     def to_dict(self) -> Dict[str, Any]:
         def_to_name = {
@@ -138,8 +169,8 @@ class CircuitData:
                     name=comp.name,
                     inputs=comp.inputs,
                     definition=def_to_name[comp.definition],
-                    force_stored=comp.force_stored,
                     index=comp.index,
+                    output_options=comp.output_options,
                 )
                 for (comp_name, comp) in self.components.items()
             },
@@ -180,7 +211,7 @@ class CircuitBuilder(CircuitData):
         definition_name: str,
         name: str,
         inputs: Dict[str, ComponentOutput],
-        force_stored: bool = False,
+        output_options: Dict[str, OutputOptions] = {},
     ) -> "Component":
         assert name not in self.components
 
@@ -197,10 +228,11 @@ class CircuitBuilder(CircuitData):
         comp = Component(
             inputs=converted,
             definition=definition,
+            output_options=output_options,
             name=name,
-            force_stored=force_stored,
             index=self.running_index,
         )
         self.components[name] = comp
         self.running_index += 1
+        comp.validate()
         return comp

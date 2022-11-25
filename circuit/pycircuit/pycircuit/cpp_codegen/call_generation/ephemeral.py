@@ -1,29 +1,42 @@
 from typing import List, Set
 
-from pycircuit.circuit_builder.circuit import Component
+from pycircuit.circuit_builder.circuit import Component, ComponentOutput
+from pycircuit.cpp_codegen.call_generation.find_children_of import CalledComponent
 
 
-def is_ephemeral(component: Component, non_ephemeral_components: Set[str]):
+def is_ephemeral(
+    component: Component, output: str, non_ephemeral_outputs: Set[ComponentOutput]
+):
+    potential_options = component.output_options.get(output)
+    output_data = component.definition.d_outputs[output]
+    component_output = ComponentOutput(parent=component.name, output=output)
+
+    if potential_options is not None:
+        must_store = potential_options.force_stored
+    else:
+        must_store = False
+
     return (
-        component.name not in non_ephemeral_components
-        and not component.force_stored
-        and component.definition.ephemeral
+        component_output not in non_ephemeral_outputs
+        and not must_store
+        and output_data.ephemeral
     )
 
 
-def find_required_inputs(components: List[Component]) -> Set[str]:
-    own_component_names = {component.name for component in components}
-    non_ephemeral_components = set()
-    for component in components:
+def find_nonephemeral_outputs(
+    called_components: List[CalledComponent],
+) -> Set[ComponentOutput]:
+    own_component_names = {
+        called_component.component.name for called_component in called_components
+    }
+    non_ephemeral_outputs = set()
+    for called_component in called_components:
 
-        # Later, could make it so that the timer function includes polling the timer queue
-        # For now, it easier to split them out
-        if component.definition.timer_callback is not None:
-            continue
+        component = called_component.component
+        # TODO ignore times for now as we need to properly build graphs for those
+
         for input in component.inputs.values():
-            if (
-                input.parent != "external" and input.parent not in own_component_names
-            ) or component.definition.timer_callback is not None:
-                non_ephemeral_components.add(input.parent)
+            if input.parent not in own_component_names:
+                non_ephemeral_outputs.add(input.output())
 
-    return non_ephemeral_components
+    return non_ephemeral_outputs

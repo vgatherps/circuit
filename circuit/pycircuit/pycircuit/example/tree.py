@@ -2,7 +2,12 @@ import json
 import os
 from typing import Sequence
 
-from pycircuit.circuit_builder.circuit import CallGroup, CircuitBuilder, HasOutput
+from pycircuit.circuit_builder.circuit import (
+    CallGroup,
+    CircuitBuilder,
+    HasOutput,
+    OutputOptions,
+)
 from pycircuit.circuit_builder.definition import Definitions
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -12,8 +17,8 @@ definitions = Definitions.from_json(definitions_str)
 
 circuit = CircuitBuilder(definitions=definitions.definitions)
 
-NUM_OVERALL = 16
-NUM_CALLED = 5
+NUM_OVERALL = 8
+NUM_CALLED = 2
 NAME_COUNTER = 0
 
 
@@ -37,7 +42,7 @@ while len(roots) > 1:
                 "add",
                 f"add_{NAME_COUNTER}",
                 inputs={"a": roots[i].output(), "b": roots[i + 1].output()},
-                force_stored=store,
+                output_options={"out": OutputOptions(force_stored=store)},
             )
         )
         NAME_COUNTER += 1

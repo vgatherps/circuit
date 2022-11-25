@@ -15,7 +15,9 @@ $(DUMP)/tree.hh: $(DUMP)/circuit.json
 	--circuit-json $(DUMP)/circuit.json \
 	--struct-name Tree \
 	| clang-format \
-	> $(DUMP)/tree.hh
+	> $(DUMP)/_tree.hh \
+	&& \
+	mv $(DUMP)/_tree.hh  $(DUMP)/tree.hh
 
 $(DUMP)/root_call.cc: $(DUMP)/circuit.json
 	python3 -m pycircuit.loader.write_circuit_call \
@@ -25,8 +27,22 @@ $(DUMP)/root_call.cc: $(DUMP)/circuit.json
 	--struct-name Tree \
 	--struct-header tree.hh \
 	| clang-format \
-	> $(DUMP)/root_call.cc
-        
-.PHONY: tree
-tree: $(DUMP)/tree.hh $(DUMP)/root_call.cc $(DUMP)/circuit.json
+	> $(DUMP)/_root_call.cc \
+	&& \
+	mv  $(DUMP)/_root_call.cc $(DUMP)/root_call.cc
+
+.PHONY: call
+call: $(DUMP)/root_call.cc $(DUMP)/circuit.json
 	echo
+
+.PHONY: header
+header: $(DUMP)/tree.hh $(DUMP)/circuit.json
+	echo
+
+.PHONY: tree
+tree: header call
+	echo
+
+.PHONY: clean
+clean:
+	rm -r $(DUMP)

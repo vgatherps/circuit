@@ -8,11 +8,6 @@ from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
 )
-from pycircuit.cpp_codegen.type_data import get_sorted_inputs, get_type_name_for_input
-
-from pycircuit.pycircuit.cpp_codegen.call_generation.generate_single_call import (
-    get_valid_path_external,
-)
 
 
 def generate_timer_signature(component: AnnotatedComponent, prefix: str = ""):

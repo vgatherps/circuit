@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
-from dataclasses_json import DataClassJsonMixin, config
+from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
 
 
@@ -18,7 +18,8 @@ class PingInfo(DataClassJsonMixin):
 
 @dataclass(eq=True, frozen=True)
 class OutputSpec(DataClassJsonMixin):
-    fields: frozenset[str]
+    ephemeral: bool
+    type_path: str
 
 
 @dataclass(eq=True, frozen=True)
@@ -27,21 +28,26 @@ class CallSpec(DataClassJsonMixin):
     observes: frozenset[str]
     callback: str
 
+    outputs: frozenset[str] = frozenset()
+
 
 @dataclass(eq=True, frozen=True)
 class Definition(DataClassJsonMixin):
     inputs: frozenset[str]
-    output: OutputSpec
+    outputs: frozendict[str, OutputSpec]
     class_name: str
+
+    # TODO should static call actually be a feature of the writeset?
+    # personally feel like no
     static_call: bool
-    ephemeral: bool
+
     header: str
 
     timer_callback: Optional[PingInfo] = None
 
     # This call is triggered if the written input set does not match
     # any specific triggerset
-    generic_callback: Optional[CallSpec] = None
+    generic_callset: Optional[CallSpec] = None
 
     callsets: frozenset[CallSpec] = frozenset()
 
@@ -51,8 +57,8 @@ class Definition(DataClassJsonMixin):
     # mailbox: frozendict[str, PingInfo] = {}
 
     # Defines what order generic types must be specified, if at all
-    generics_order: frozendict[str] = field(
-        default_factory=dict, metadata=config(decoder=decode_frozen)
+    generics_order: frozendict[str, int] = field(
+        default_factory=frozendict,
     )
 
     def validate_generics(self):
@@ -86,6 +92,13 @@ class Definition(DataClassJsonMixin):
     def validate(self):
         self.validate_generics()
         self.validate_callsets()
+
+    def all_outputs(self) -> List[str]:
+        return list(self.outputs.keys())
+
+    @property
+    def d_outputs(self) -> Dict[str, OutputSpec]:
+        return self.outputs
 
 
 @dataclass

@@ -1,12 +1,10 @@
 from typing import List
 
 from pycircuit.circuit_builder.circuit import CircuitData, Component
-from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
-    generate_call_signature,
-)
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
+    generate_call_signature,
 )
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
 
@@ -30,8 +28,19 @@ def generate_externals_struct(circuit: CircuitData) -> str:
     """
 
 
-def generate_output_declarations_for_component(component: Component):
-    return f"{get_alias_for(component)}::Output {component.name};"
+def generate_output_type_alias_name(component_name: str, output: str) -> str:
+    return f"{component_name}_{output}_O_T"
+
+
+def generate_output_type_alias(component: Component, output: str):
+    output_type = component.definition.d_outputs[output].type_path
+    type_name = generate_output_type_alias_name(component.name, output)
+    return f"using {type_name} = {get_alias_for(component)}::{output_type};"
+
+
+def generate_output_declarations_for_component(component: Component, output: str):
+    output_type = component.definition.d_outputs[output].type_path
+    return f"{get_alias_for(component)}::{output_type} {component.name}_{output};"
 
 
 def generate_output_substruct(
@@ -39,18 +48,19 @@ def generate_output_substruct(
 ) -> str:
 
     circuit_declarations = "\n\n".join(
-        generate_output_declarations_for_component(component.component)
+        generate_output_declarations_for_component(component.component, output)
         for component in metadata.annotated_components.values()
-        if not component.is_ephemeral
+        for output in component.component.definition.all_outputs()
+        if not component.output_data[output].is_ephemeral
     )
 
-    num_valid_structs = len(metadata.non_ephemeral_components)
+    num_valid_outputs = len(metadata.non_ephemeral_components)
 
     return f"""
         struct Outputs {{
             {circuit_declarations}
 
-            bool is_valid[{num_valid_structs + 1}];
+            bool is_valid[{num_valid_outputs + 1}];
         }};
     """
 
