@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, Set
+from typing import Any, Dict, List, Set
 
 from dataclasses_json import DataClassJsonMixin
 from pycircuit.circuit_builder.definition import Definition
@@ -58,17 +58,24 @@ class Component:
     name: str
     index: int
 
+    def triggering_inputs(self) -> List[ComponentInput]:
+        return [
+            comp_input
+            for (input, comp_input) in self.inputs.items()
+            if not self.definition.d_input_specs[input].non_triggering
+        ]
+
     def output(self, which=None) -> ComponentOutput:
         if which is None:
-            n_outputs = len(self.definition.outputs)
+            n_outputs = len(self.definition.output_specs)
             if n_outputs == 1:
-                which = iter(self.definition.outputs).__next__()
+                which = iter(self.definition.output_specs).__next__()
             else:
                 raise ValueError(
                     f"Cannot take default output of component with {n_outputs}"
                 )
 
-        if which not in self.definition.outputs:
+        if which not in self.definition.output_specs:
             raise ValueError(f"Component {self.name} does not have output {which}")
         return ComponentOutput(
             parent=self.name,
@@ -80,7 +87,7 @@ class Component:
         self.definition.validate()
 
         for output in self.output_options:
-            if output not in self.definition.outputs:
+            if output not in self.definition.output_specs:
                 raise ValueError(
                     f"Component {self.name} has output options for {output} which is not an output"
                 )

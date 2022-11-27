@@ -8,7 +8,7 @@ def is_ephemeral(
     component: Component, output: str, non_ephemeral_outputs: Set[ComponentOutput]
 ):
     potential_options = component.output_options.get(output)
-    output_data = component.definition.d_outputs[output]
+    output_data = component.definition.d_output_specs[output]
     component_output = ComponentOutput(parent=component.name, output=output)
 
     if potential_options is not None:

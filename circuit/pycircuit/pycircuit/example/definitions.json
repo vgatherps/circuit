@@ -1,11 +1,11 @@
 {
     "definitions": {
         "add": {
-            "inputs": [
-                "a",
-                "b"
-            ],
-            "outputs": {
+            "input_specs": {
+                "a": {},
+                "b": {}
+            },
+            "output_specs": {
                 "out": {
                     "ephemeral": true,
                     "type_path": "Output"

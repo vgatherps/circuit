@@ -59,7 +59,7 @@ def generate_output_metadata_for(
 ) -> Tuple[Dict[str, OutputMetadata], int]:
     pass
     output_metadata = {}
-    for output in component.definition.all_outputs():
+    for output in component.definition.outputs():
         ephemeral = is_ephemeral(component, output, all_non_ephemeral_outputs)
         if ephemeral:
             this_output_metadata = OutputMetadata(validity_index=None)

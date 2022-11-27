@@ -1,6 +1,11 @@
 from frozendict import frozendict
 from pycircuit.circuit_builder.circuit import Component, ComponentInput
-from pycircuit.circuit_builder.definition import CallSpec, Definition, OutputSpec
+from pycircuit.circuit_builder.definition import (
+    CallSpec,
+    Definition,
+    InputSpec,
+    OutputSpec,
+)
 from pycircuit.cpp_codegen.generation_metadata import AnnotatedComponent, OutputMetadata
 
 OUT_B_VALID_INDEX = 2
@@ -39,8 +44,14 @@ GENERIC_CALLSET = CallSpec(
 
 def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
     return Definition(
-        inputs=frozenset(["a", "b", "c"]),
-        outputs=frozendict(
+        input_specs=frozendict(
+            {
+                "a": InputSpec(),
+                "b": InputSpec(),
+                "c": InputSpec(),
+            }
+        ),
+        output_specs=frozendict(
             {
                 OUT_A: OutputSpec(ephemeral=True, type_path=OUT_A_CLASS),
                 OUT_B: OutputSpec(ephemeral=False, type_path=OUT_B_CLASS),

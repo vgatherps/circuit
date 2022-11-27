@@ -16,6 +16,6 @@ def generate_output_type_alias_name(component_name: str, output: str) -> str:
 
 
 def generate_output_type_alias(component: Component, output: str):
-    output_type = component.definition.d_outputs[output].type_path
+    output_type = component.definition.d_output_specs[output].type_path
     type_name = generate_output_type_alias_name(component.name, output)
     return f"using {type_name} = {get_alias_for(component)}::{output_type};"

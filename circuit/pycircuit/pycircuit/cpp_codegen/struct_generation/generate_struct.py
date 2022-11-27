@@ -28,18 +28,8 @@ def generate_externals_struct(circuit: CircuitData) -> str:
     """
 
 
-def generate_output_type_alias_name(component_name: str, output: str) -> str:
-    return f"{component_name}_{output}_O_T"
-
-
-def generate_output_type_alias(component: Component, output: str):
-    output_type = component.definition.d_outputs[output].type_path
-    type_name = generate_output_type_alias_name(component.name, output)
-    return f"using {type_name} = {get_alias_for(component)}::{output_type};"
-
-
 def generate_output_declarations_for_component(component: Component, output: str):
-    output_type = component.definition.d_outputs[output].type_path
+    output_type = component.definition.d_output_specs[output].type_path
     return f"{get_alias_for(component)}::{output_type} {component.name}_{output};"
 
 
@@ -50,7 +40,7 @@ def generate_output_substruct(
     circuit_declarations = "\n\n".join(
         generate_output_declarations_for_component(component.component, output)
         for component in metadata.annotated_components.values()
-        for output in component.component.definition.all_outputs()
+        for output in component.component.definition.outputs()
         if not component.output_data[output].is_ephemeral
     )
 

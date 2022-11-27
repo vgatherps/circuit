@@ -24,7 +24,9 @@ def get_using_declarations_for(
             dtype = circuit.external_inputs[c.output_name].type
         else:
             parent_c = circuit.components[c.parent]
-            parent_output_path = parent_c.definition.d_outputs[c.output_name].type_path
+            parent_output_path = parent_c.definition.d_output_specs[
+                c.output_name
+            ].type_path
             dtype = f"{get_alias_for(parent_c)}::{parent_output_path}"
 
         type_name = get_type_name_for_input(component, c.input_name)
@@ -33,7 +35,7 @@ def get_using_declarations_for(
 
     names += [f"using {get_alias_for(component)} = {class_declaration};"]
 
-    for output in component.definition.all_outputs():
+    for output in component.definition.outputs():
         names.append(generate_output_type_alias(component, output))
 
     names += ["\n"]

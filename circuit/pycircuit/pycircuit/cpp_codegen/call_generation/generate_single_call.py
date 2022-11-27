@@ -138,7 +138,7 @@ def generate_value_inits(
             output, OutputMetadata(validity_index=None)
         )
 
-        output_class = definition.outputs[output].type_path
+        output_class = definition.output_specs[output].type_path
         type_header = f"{class_name}::{output_class}"
         var_name = generate_local_output_ref_name(name, output)
 

@@ -37,11 +37,10 @@ def topologically_sort(
             if component.name in conservatively_called:
                 continue
 
-            all_outputs = {input.output() for input in component.inputs.values()}
-            if any(o in used_outputs for o in all_outputs):
+            if any(i.output() in used_outputs for i in component.triggering_inputs()):
                 potentially_written = {
                     ComponentOutput(parent=component.name, output=field)
-                    for field in component.definition.all_outputs()
+                    for field in component.definition.outputs()
                 }
                 used_outputs |= potentially_written
                 did_work = True
@@ -74,7 +73,7 @@ def find_all_children_of_from_outputs(
 
         # Skip calling components where *nothing* is triggered
         if not any(
-            input.output() in seen_outputs for input in component.inputs.values()
+            input.output() in seen_outputs for input in component.triggering_inputs()
         ):
             continue
 
