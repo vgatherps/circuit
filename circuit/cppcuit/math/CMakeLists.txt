@@ -1,0 +1,1 @@
+add_library(fast_exp_lib fast_exp_64.cc)

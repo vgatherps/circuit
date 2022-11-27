@@ -25,6 +25,8 @@ static int fill_exp_arrays()
 
         fast_exp_U[i] = *reinterpret_cast<std::uint64_t *>(&two_upper);
     }
+
+    return 0;
 }
 
 int __force_early_fill = fill_exp_arrays();

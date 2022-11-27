@@ -1,7 +1,6 @@
 #include <cassert>
 
 #include "trade_pressure.hh"
-#include "trade_pressure_math.hh"
 #include "fast_exp_64.hh"
 
 enum class Side

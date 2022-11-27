@@ -1,10 +1,12 @@
+#define _USE_MATH_DEFINES
+
 #include <cstdint>
 #include <cmath>
 #include <stdexcept>
 #include <limits>
 
-double fast_exp_L[256];
-std::uint64_t fast_exp_U[256];
+extern double fast_exp_L[256];
+extern std::uint64_t fast_exp_U[256];
 
 // 0x10000 / ln(2)
 constexpr double MULTIPLIER = 94548.4621996991;
@@ -204,6 +206,6 @@ public:
 
 // These constexpr paths means that users don't have to store/pass a pointer around
 // and the operations hold no data dependency on said pointer
-constexpr FastExpCache FastExp2 = FastExpCache::from_log_base(-std::numbers::ln2_v<double>);
-constexpr FastExpCache FastExp10 = FastExpCache::from_log_base(-std::numbers::ln10_v<double>);
+constexpr FastExpCache FastExp2 = FastExpCache::from_log_base(-M_LN2);
+constexpr FastExpCache FastExp10 = FastExpCache::from_log_base(-M_LN10);
 constexpr FastExpCache FastExpE = FastExpCache::from_log_base(-1.0);
