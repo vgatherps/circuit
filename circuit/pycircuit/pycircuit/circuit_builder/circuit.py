@@ -77,6 +77,8 @@ class Component:
 
     def validate(self):
 
+        self.definition.validate()
+
         for output in self.output_options:
             if output not in self.definition.outputs:
                 raise ValueError(

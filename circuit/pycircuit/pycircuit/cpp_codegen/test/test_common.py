@@ -11,8 +11,33 @@ OUT_A_CLASS = "OutA"
 OUT_B = "out_b"
 OUT_B_CLASS = "OutB"
 
+A_INPUT = ComponentInput(parent="external", input_name="a", output_name="val_a")
+B_INPUT = ComponentInput(parent="fake", input_name="b", output_name="fake_out")
+C_INPUT = ComponentInput(parent="fake", input_name="c", output_name="fake_out_c")
 
-def basic_definition() -> Definition:
+AB_CALLSET = CallSpec(
+    written_set=frozenset({"a", "b"}),
+    observes=frozenset(),
+    callback="call_out_a",
+    outputs=frozenset({OUT_A}),
+)
+
+BC_CALLSET = CallSpec(
+    written_set=frozenset({"b", "c"}),
+    observes=frozenset(),
+    callback="call_out_b",
+    outputs=frozenset({OUT_B}),
+)
+
+GENERIC_CALLSET = CallSpec(
+    written_set=frozenset({"a", "b", "c"}),
+    observes=frozenset(),
+    callback="call",
+    outputs=frozenset({OUT_A, OUT_B}),
+)
+
+
+def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
     return Definition(
         inputs=frozenset(["a", "b", "c"]),
         outputs=frozendict(
@@ -24,48 +49,26 @@ def basic_definition() -> Definition:
         class_name=COMPONENT_CLASS,
         static_call=False,
         header="test.hh",
-        generic_callset=CallSpec(
-            written_set=frozenset({"a", "b", "c"}),
-            observes=frozenset(),
-            callback="call",
-            outputs=frozenset({OUT_A, OUT_B}),
-        ),
+        generic_callset=generic_callset,
         callsets=frozenset(
             {
-                CallSpec(
-                    written_set=frozenset({"a", "b"}),
-                    observes=frozenset(),
-                    callback="call_out_a",
-                    outputs=frozenset({OUT_A}),
-                ),
-                CallSpec(
-                    written_set=frozenset({"b", "c"}),
-                    observes=frozenset(),
-                    callback="call_out_b",
-                    outputs=frozenset({OUT_B}),
-                ),
+                AB_CALLSET,
+                BC_CALLSET,
             }
         ),
     )
 
 
 def basic_component() -> Component:
-    return Component(
-        inputs=frozendict(
-            {
-                "a": ComponentInput(
-                    parent="external", input_name="a", output_name="val_a"
-                ),
-                "b": ComponentInput(
-                    parent="fake", input_name="b", output_name="fake_out"
-                ),
-            }
-        ),
+    comp = Component(
+        inputs=frozendict({"a": A_INPUT, "b": B_INPUT, "c": C_INPUT}),
         output_options={},
         definition=basic_definition(),
         name="test",
         index=OUT_B_VALID_INDEX,
     )
+    comp.validate()
+    return comp
 
 
 def basic_annotated() -> AnnotatedComponent:

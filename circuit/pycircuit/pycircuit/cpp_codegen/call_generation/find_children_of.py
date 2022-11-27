@@ -65,8 +65,8 @@ def find_all_children_of_from_outputs(
 
     sorted = topologically_sort(circuit, used_outputs)
 
-    # With a topologically sorted set of inputs,
-    # Now iterate through them and discover what writesets actually propagate
+    # With a topologically sorted set of inputs
+    # iterate through them and discover what writesets actually propagate
 
     called = []
     seen_outputs = set(used_outputs)
