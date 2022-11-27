@@ -8,10 +8,11 @@ from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
     OutputMetadata,
 )
-from pycircuit.cpp_codegen.struct_generation.generate_struct import (
+from pycircuit.cpp_codegen.type_names import (
     generate_output_type_alias_name,
+    get_alias_for,
+    get_type_name_for_input,
 )
-from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
