@@ -79,6 +79,9 @@ def find_all_children_of_from_outputs(
             continue
 
         callset = find_callset_for(component, seen_outputs)
+        if callset.skippable:
+            continue
+
         writes = callset.outputs
         new_outs = {
             ComponentOutput(parent=component.name, output=field) for field in writes

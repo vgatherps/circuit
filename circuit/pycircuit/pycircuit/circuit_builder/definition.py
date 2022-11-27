@@ -26,9 +26,12 @@ class OutputSpec(DataClassJsonMixin):
 class CallSpec(DataClassJsonMixin):
     written_set: frozenset[str]
     observes: frozenset[str]
-    callback: str
-
+    callback: Optional[str]
     outputs: frozenset[str] = frozenset()
+
+    @property
+    def skippable(self):
+        return self.callback is None
 
 
 @dataclass(eq=True, frozen=True)
@@ -71,6 +74,10 @@ class Definition(DataClassJsonMixin):
 
     def validate_callsets(self):
         for callset in self.callsets:
+            if callset.skippable and callset.outputs:
+                raise ValueError(
+                    f"A callset if both skippable but has outputs {callset.outputs} for {self.class_name}"
+                )
             for written in callset.written_set:
                 if written not in self.inputs:
                     raise ValueError(
