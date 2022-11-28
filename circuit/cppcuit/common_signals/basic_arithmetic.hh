@@ -4,20 +4,19 @@
 #include "cppcuit/side.hh"
 #include "cppcuit/signal_requirements.hh"
 
-template <class A, class B, class O>
-requires requires(A a, B b) { O::call(a, b); }
-class Adder {
+template <class A, class B, class Op>
+  requires requires(A a, B b) { Op::call(a, b); }
+class CoreArithmetic {
 public:
   // Probably want to do this by taking advantage of the call itself?
-  struct Output {
-    decltype(get_add_type<A, B>(nullptr, nullptr)) out;
-  };
+  using Output = decltype(Op::call(*(A *)nullptr, *(B *)nullptr));
 
-  template <class I>
-  requires HAS_OPT_REF(I, A, a) && HAS_OPT_REF(I, B, b)
+  template <class I, class O>
+    requires HAS_OPT_REF(I, A, a) && HAS_OPT_REF(I, B, b) &&
+             HAS_REF_FIELD(O, Output, out)
   static bool call(I inputs, Output &o) {
     if (inputs.a.valid() && inputs.b.valid()) {
-      o.out = (*inputs.a + *inputs.b);
+      o.out = Op::call(*inputs.a, *inputs.b);
       return true;
     } else {
       return false;
@@ -25,22 +24,39 @@ public:
   }
 };
 
-struct CircuitStruct {
-  double a;
-  double b;
-  Adder<double, double>::Output c;
-
-  void call_updated_a() {
-    struct my_input {
-      optional_reference<const double> a;
-      optional_reference<const double> b;
-    };
-
-    my_input input = {.a = optional_reference<const double>(this->a),
-                      .b = optional_reference<const double>(this->b)};
-
-    Adder<double, double>::call(input, this->c);
+struct DoAdd {
+  template <class A, class B>
+    requires requires(A a, B b) { a + b; }
+  static auto call(A a, B b) {
+    return a + b;
   }
 };
 
-void call_c(CircuitStruct &c) { c.call_updated_a(); }
+struct DoSub {
+  template <class A, class B>
+    requires requires(A a, B b) { a - b; }
+  static auto call(A a, B b) {
+    return a - b;
+  }
+};
+
+struct DoMul {
+  template <class A, class B>
+    requires requires(A a, B b) { a *b; }
+  static auto call(A a, B b) {
+    return a * b;
+  }
+};
+
+struct DoDiv {
+  template <class A, class B>
+    requires requires(A a, B b) { a / b; }
+  static auto call(A a, B b) {
+    return a / b;
+  }
+};
+
+template <class A, class B> using AddComponent = CoreArithmetic<A, B, DoAdd>;
+template <class A, class B> using SubComponent = CoreArithmetic<A, B, DoSub>;
+template <class A, class B> using MulComponent = CoreArithmetic<A, B, DoMul>;
+template <class A, class B> using DivComponent = CoreArithmetic<A, B, DoDiv>;
