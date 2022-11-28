@@ -71,11 +71,13 @@ def generate_circuit_for_market_venue(
         definition_name="tick_aggregator",
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
-            "trade": circuit.get_external(f"{market}_{venue}_trades", "Trade"),
-            "fair": circuit.get_external(f"{market}_{venue}_fair", "double"),
-            "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick"),
+            "trade": circuit.get_external(f"{market}_{venue}_trades", "Trade").output(),
+            "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
+            "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick").output(),
         },
     )
+
+    # TODO implement the built-in math operators
 
 
 def generate_circuit_for_market(
