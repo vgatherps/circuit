@@ -25,6 +25,7 @@ class InputSpec(DataClassJsonMixin):
 class OutputSpec(DataClassJsonMixin):
     ephemeral: bool
     type_path: str
+    always_valid: bool = False
 
 
 @dataclass(eq=True, frozen=True)

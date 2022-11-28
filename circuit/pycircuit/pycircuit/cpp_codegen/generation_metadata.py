@@ -20,10 +20,7 @@ class NonEphemeralData:
 @dataclass
 class OutputMetadata:
     validity_index: Optional[int]
-
-    @property
-    def is_ephemeral(self):
-        return self.validity_index is None
+    is_value_ephemeral: bool
 
 
 @dataclass
@@ -44,6 +41,8 @@ class GenerationMetadata:
 
     call_endpoints: List[CallMetaData]
 
+    required_validity_markers: int
+
 
 def get_ordered_generic_inputs(component: Component) -> List[str]:
     return sorted(
@@ -55,21 +54,26 @@ def get_ordered_generic_inputs(component: Component) -> List[str]:
 def generate_output_metadata_for(
     component: Component,
     all_non_ephemeral_outputs: Set[ComponentOutput],
-    non_ephemeral_count: int,
+    validity_market_count: int,
 ) -> Tuple[Dict[str, OutputMetadata], int]:
     pass
     output_metadata = {}
     for output in component.definition.outputs():
         ephemeral = is_ephemeral(component, output, all_non_ephemeral_outputs)
-        if ephemeral:
-            this_output_metadata = OutputMetadata(validity_index=None)
+        always_valid = component.definition.d_output_specs[output].always_valid
+        if ephemeral or always_valid:
+            this_output_metadata = OutputMetadata(
+                validity_index=None, is_value_ephemeral=ephemeral
+            )
         else:
-            this_output_metadata = OutputMetadata(validity_index=non_ephemeral_count)
-            non_ephemeral_count += 1
+            this_output_metadata = OutputMetadata(
+                validity_index=validity_market_count, is_value_ephemeral=ephemeral
+            )
+            validity_market_count += 1
 
         output_metadata[output] = this_output_metadata
 
-    return output_metadata, non_ephemeral_count
+    return output_metadata, validity_market_count
 
 
 def generate_call_signature(meta: CallMetaData, prefix: str = ""):
@@ -99,7 +103,7 @@ def generate_global_metadata(
 
     annotated_components = OrderedDict()
 
-    non_ephemeral_count = 0
+    validity_marker_count = 0
 
     for (name, component) in circuit.components.items():
 
@@ -109,8 +113,8 @@ def generate_global_metadata(
             object_name = f"objects.{component.name}"
             call_path = f"{object_name}.call"
 
-        output_metadata, non_ephemeral_count = generate_output_metadata_for(
-            component, all_non_ephemeral_component_outputs, non_ephemeral_count
+        output_metadata, validity_marker_count = generate_output_metadata_for(
+            component, all_non_ephemeral_component_outputs, validity_marker_count
         )
 
         if component.definition.generics_order:
@@ -136,4 +140,5 @@ def generate_global_metadata(
         annotated_components=annotated_components,
         struct_name=struct_name,
         call_endpoints=call_metas,
+        required_validity_markers=validity_marker_count,
     )

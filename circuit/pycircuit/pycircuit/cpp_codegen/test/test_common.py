@@ -15,6 +15,8 @@ OUT_A = "out_a"
 OUT_A_CLASS = "OutA"
 OUT_B = "out_b"
 OUT_B_CLASS = "OutB"
+OUT_C = "out_c"
+OUT_C_CLASS = "OutC"
 
 A_INPUT = ComponentInput(parent="external", input_name="a", output_name="val_a")
 B_INPUT = ComponentInput(parent="fake", input_name="b", output_name="fake_out")
@@ -55,6 +57,9 @@ def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
             {
                 OUT_A: OutputSpec(ephemeral=True, type_path=OUT_A_CLASS),
                 OUT_B: OutputSpec(ephemeral=False, type_path=OUT_B_CLASS),
+                OUT_C: OutputSpec(
+                    ephemeral=True, type_path=OUT_C_CLASS, always_valid=True
+                ),
             }
         ),
         class_name=COMPONENT_CLASS,
@@ -82,12 +87,17 @@ def basic_component() -> Component:
     return comp
 
 
-def basic_annotated() -> AnnotatedComponent:
+def basic_annotated(is_c_ephemeral: bool = False) -> AnnotatedComponent:
     return AnnotatedComponent(
         component=basic_component(),
         output_data={
-            OUT_A: OutputMetadata(validity_index=None),
-            OUT_B: OutputMetadata(validity_index=OUT_B_VALID_INDEX),
+            OUT_A: OutputMetadata(validity_index=None, is_value_ephemeral=True),
+            OUT_B: OutputMetadata(
+                validity_index=OUT_B_VALID_INDEX, is_value_ephemeral=False
+            ),
+            OUT_C: OutputMetadata(
+                validity_index=None, is_value_ephemeral=is_c_ephemeral
+            ),
         },
         call_path="dummy_for_now",
         class_generics="",

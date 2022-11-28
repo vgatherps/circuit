@@ -34,7 +34,11 @@ def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
         return f"externals.{c.output_name}"
     else:
         parent = meta.annotated_components[c.parent]
-        if meta.annotated_components[c.parent].output_data[c.output_name].is_ephemeral:
+        if (
+            meta.annotated_components[c.parent]
+            .output_data[c.output_name]
+            .is_value_ephemeral
+        ):
             root_name = f"{parent.component.name}_{c.output_name}_EV__"
         else:
             # TODO post-refactor nest this struct
@@ -44,10 +48,8 @@ def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
 
 
 def get_valid_path(component: AnnotatedComponent, output: str):
-    output_metadata = component.output_data.get(
-        output, OutputMetadata(validity_index=None)
-    )
-    if output_metadata.is_ephemeral:
+    output_metadata = component.output_data[output]
+    if output_metadata.validity_index is None:
         return f"{component.component.name}_{output}_IV"
     else:
         return f"outputs.is_valid[{output_metadata.validity_index}]"
@@ -93,12 +95,19 @@ def deconstruct_valid_output(
         return ""
     elif len(used_outputs) == 1:
         first_output = list(used_outputs)[0]
+        if annotated_component.component.definition.d_output_specs[
+            first_output
+        ].always_valid:
+            return ""
         output_name = get_valid_path(annotated_component, first_output)
         return f"{output_name} = {VALID_DATA_NAME};"
     else:
         return "\n".join(
             f"{get_valid_path(annotated_component, output)} = {VALID_DATA_NAME}.{output};"
             for output in used_outputs
+            if not annotated_component.component.definition.d_output_specs[
+                output
+            ].always_valid
         )
 
 
@@ -109,12 +118,18 @@ def generate_is_valid_inits(
     is_valid_init_lines = []
 
     for output in used_outputs:
-        output_metadata = annotated_component.output_data.get(
-            output, OutputMetadata(validity_index=None)
-        )
-        if output_metadata.is_ephemeral:
+        output_metadata = annotated_component.output_data[output]
+        if output_metadata.validity_index is None:
+            if annotated_component.component.definition.d_output_specs[
+                output
+            ].always_valid:
+                valid_value = "true"
+                valid_prefix = "constexpr bool"
+            else:
+                valid_value = "false"
+                valid_prefix = "bool"
             is_valid_init_lines.append(
-                f"bool {get_valid_path(annotated_component, output)} = false;"
+                f"{valid_prefix} {get_valid_path(annotated_component, output)} = {valid_value};"
             )
 
     return "\n".join(is_valid_init_lines)
@@ -134,17 +149,15 @@ def generate_value_inits(
     name = annotated_component.component.name
     class_name = get_alias_for(annotated_component.component)
     for output in used_outputs:
-        output_metadata = annotated_component.output_data.get(
-            output, OutputMetadata(validity_index=None)
-        )
+        output_metadata = annotated_component.output_data[output]
 
-        output_class = definition.output_specs[output].type_path
+        output_class = definition.d_output_specs[output].type_path
         type_header = f"{class_name}::{output_class}"
         var_name = generate_local_output_ref_name(name, output)
 
         reference_header = f"{type_header}& {var_name}"
 
-        if output_metadata.is_ephemeral:
+        if output_metadata.is_value_ephemeral:
 
             init_var_name = f"{var_name}_EV__"
             output_line = [

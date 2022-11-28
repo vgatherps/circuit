@@ -9,60 +9,67 @@ from pycircuit.cpp_codegen.test.test_common import (
     COMPONENT_NAME,
     OUT_A,
     OUT_B,
+    OUT_C,
     basic_component,
 )
 
 
-@pytest.mark.parametrize("initial_non_ephemeral", [0, 1, 2, 3])
-def test_output_metadata_non_loaded(initial_non_ephemeral):
+@pytest.mark.parametrize("initial_validity_required", [0, 1])
+def test_output_metadata_non_loaded(initial_validity_required):
     component = basic_component()
 
     metadata, count = generate_output_metadata_for(
-        component, set(), initial_non_ephemeral
+        component, set(), initial_validity_required
     )
 
     metadata_f = frozendict(metadata)
 
     assert metadata_f == frozendict(
         {
-            OUT_A: OutputMetadata(validity_index=None),
-            OUT_B: OutputMetadata(validity_index=initial_non_ephemeral),
+            OUT_A: OutputMetadata(validity_index=None, is_value_ephemeral=True),
+            OUT_B: OutputMetadata(
+                validity_index=initial_validity_required, is_value_ephemeral=False
+            ),
+            OUT_C: OutputMetadata(validity_index=None, is_value_ephemeral=True),
         }
     )
 
-    assert count == initial_non_ephemeral + 1
+    assert count == initial_validity_required + 1
 
 
-@pytest.mark.parametrize("initial_non_ephemeral", [0, 1])
-def test_output_metadata_non_ephemeral_loaded(initial_non_ephemeral):
+@pytest.mark.parametrize("initial_validity_required", [0, 1])
+def test_output_metadata_non_ephemeral_loaded(initial_validity_required):
     component = basic_component()
 
     metadata, count = generate_output_metadata_for(
         component,
         set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_B)]),
-        initial_non_ephemeral,
+        initial_validity_required,
     )
 
     metadata_f = frozendict(metadata)
 
     assert metadata_f == frozendict(
         {
-            OUT_A: OutputMetadata(validity_index=None),
-            OUT_B: OutputMetadata(validity_index=initial_non_ephemeral),
+            OUT_A: OutputMetadata(validity_index=None, is_value_ephemeral=True),
+            OUT_B: OutputMetadata(
+                validity_index=initial_validity_required, is_value_ephemeral=False
+            ),
+            OUT_C: OutputMetadata(validity_index=None, is_value_ephemeral=True),
         }
     )
 
-    assert count == initial_non_ephemeral + 1
+    assert count == initial_validity_required + 1
 
 
-@pytest.mark.parametrize("initial_non_ephemeral", [0, 1])
-def test_output_metadata_ephemeral_loaded(initial_non_ephemeral):
+@pytest.mark.parametrize("initial_validity_required", [0, 1])
+def test_output_metadata_ephemeral_loaded(initial_validity_required):
     component = basic_component()
 
     metadata, count = generate_output_metadata_for(
         component,
         set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_A)]),
-        initial_non_ephemeral,
+        initial_validity_required,
     )
 
     metadata_f = frozendict(metadata)
@@ -70,16 +77,21 @@ def test_output_metadata_ephemeral_loaded(initial_non_ephemeral):
     # This passes tests - iirc python guarantees iteration order is insertion order now?
     assert metadata_f == frozendict(
         {
-            OUT_A: OutputMetadata(validity_index=initial_non_ephemeral),
-            OUT_B: OutputMetadata(validity_index=initial_non_ephemeral + 1),
+            OUT_A: OutputMetadata(
+                validity_index=initial_validity_required, is_value_ephemeral=False
+            ),
+            OUT_B: OutputMetadata(
+                validity_index=initial_validity_required + 1, is_value_ephemeral=False
+            ),
+            OUT_C: OutputMetadata(validity_index=None, is_value_ephemeral=True),
         }
     )
 
-    assert count == initial_non_ephemeral + 2
+    assert count == initial_validity_required + 2
 
 
-@pytest.mark.parametrize("initial_non_ephemeral", [0, 1])
-def test_output_metadata_ephemeral_force_stored(initial_non_ephemeral):
+@pytest.mark.parametrize("initial_validity_required", [0, 1])
+def test_output_metadata_ephemeral_force_stored(initial_validity_required):
     component = basic_component()
 
     component.output_options[OUT_A] = OutputOptions(force_stored=True)
@@ -87,7 +99,7 @@ def test_output_metadata_ephemeral_force_stored(initial_non_ephemeral):
     metadata, count = generate_output_metadata_for(
         component,
         set(),
-        initial_non_ephemeral,
+        initial_validity_required,
     )
 
     metadata_f = frozendict(metadata)
@@ -95,9 +107,39 @@ def test_output_metadata_ephemeral_force_stored(initial_non_ephemeral):
     # This passes tests - iirc python guarantees iteration order is insertion order now?
     assert metadata_f == frozendict(
         {
-            OUT_A: OutputMetadata(validity_index=initial_non_ephemeral),
-            OUT_B: OutputMetadata(validity_index=initial_non_ephemeral + 1),
+            OUT_A: OutputMetadata(
+                validity_index=initial_validity_required, is_value_ephemeral=False
+            ),
+            OUT_B: OutputMetadata(
+                validity_index=initial_validity_required + 1, is_value_ephemeral=False
+            ),
+            OUT_C: OutputMetadata(validity_index=None, is_value_ephemeral=True),
         }
     )
 
-    assert count == initial_non_ephemeral + 2
+    assert count == initial_validity_required + 2
+
+
+@pytest.mark.parametrize("initial_validity_required", [0, 1])
+def test_output_metadata_always_valid_loaded(initial_validity_required):
+    component = basic_component()
+
+    metadata, count = generate_output_metadata_for(
+        component,
+        set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_C)]),
+        initial_validity_required,
+    )
+
+    metadata_f = frozendict(metadata)
+
+    assert metadata_f == frozendict(
+        {
+            OUT_A: OutputMetadata(validity_index=None, is_value_ephemeral=True),
+            OUT_B: OutputMetadata(
+                validity_index=initial_validity_required, is_value_ephemeral=False
+            ),
+            OUT_C: OutputMetadata(validity_index=None, is_value_ephemeral=False),
+        }
+    )
+
+    assert count == initial_validity_required + 1

@@ -41,16 +41,14 @@ def generate_output_substruct(
         generate_output_declarations_for_component(component.component, output)
         for component in metadata.annotated_components.values()
         for output in component.component.definition.outputs()
-        if not component.output_data[output].is_ephemeral
+        if not component.output_data[output].is_value_ephemeral
     )
-
-    num_valid_outputs = len(metadata.non_ephemeral_components)
 
     return f"""
         struct Outputs {{
             {circuit_declarations}
 
-            bool is_valid[{num_valid_outputs + 1}];
+            bool is_valid[{metadata.required_validity_markers}];
         }};
     """
 

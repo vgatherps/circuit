@@ -1,3 +1,4 @@
+import pytest
 from pycircuit.cpp_codegen.call_generation.generate_single_call import (
     VALID_DATA_NAME,
     deconstruct_valid_output,
@@ -7,6 +8,7 @@ from pycircuit.cpp_codegen.test.test_common import (
     OUT_A,
     OUT_B,
     OUT_B_VALID_INDEX,
+    OUT_C,
     basic_annotated,
 )
 
@@ -37,10 +39,30 @@ def test_single_validity_deconstruction_nonephemeral():
     )
 
 
+@pytest.mark.parametrize("is_c_ephemeral", [True, False])
+def test_single_validity_deconstruction_always_valid(is_c_ephemeral):
+    annotated = basic_annotated(is_c_ephemeral=is_c_ephemeral)
+
+    deconstructed_valid = deconstruct_valid_output(annotated, {OUT_C})
+    assert deconstructed_valid == ""
+
+
 def test_both_validity_deconstruction():
     annotated = basic_annotated()
 
     deconstructed_valid = deconstruct_valid_output(annotated, [OUT_B, OUT_A])
+    assert (
+        deconstructed_valid
+        == f"""outputs.is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME}.{OUT_B};
+{COMPONENT_NAME}_{OUT_A}_IV = {VALID_DATA_NAME}.{OUT_A};"""
+    )
+
+
+@pytest.mark.parametrize("is_c_ephemeral", [True, False])
+def test_multi_validity_deconstruction_always_valid(is_c_ephemeral):
+    annotated = basic_annotated(is_c_ephemeral=is_c_ephemeral)
+
+    deconstructed_valid = deconstruct_valid_output(annotated, [OUT_C, OUT_B, OUT_A])
     assert (
         deconstructed_valid
         == f"""outputs.is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME}.{OUT_B};
