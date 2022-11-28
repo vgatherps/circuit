@@ -81,7 +81,7 @@ class SingleTickAggregator {
 
 public:
   using RunningTickScore = double;
-  using NewTickEvent = double;
+  using NewTickScore = double;
 
   struct OnTradeOutput {
     bool tick;
@@ -94,8 +94,8 @@ public:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
   requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
-           HAS_REF_FIELD(O, double, tick) &&
-           HAS_REF_FIELD(O, double, running)) OnTradeOutput
+           HAS_REF_FIELD(O, NewTickScore, tick) &&
+           HAS_REF_FIELD(O, RunningTickScore, running)) OnTradeOutput
       on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};

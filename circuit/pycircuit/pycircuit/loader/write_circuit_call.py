@@ -23,6 +23,44 @@ class CallOptions:
     call_name: str
 
 
+@dataclass
+class StructOptions:
+    struct_name: str
+    struct_header: str
+    call_name: str
+
+
+def generate_circuit_call(
+    struct_options: StructOptions, config: CoreLoaderConfig, circuit: CircuitData
+) -> str:
+    if struct_options.call_name not in circuit.call_groups:
+        raise ValueError(
+            f"Call {struct_options.call_name} not contained in circuit config"
+        )
+
+    call = circuit.call_groups[struct_options.call_name]
+    metadata = CallMetaData(triggered=call.inputs, call_name=struct_options.call_name)
+
+    gen_metadata = generate_global_metadata(
+        circuit, [metadata], struct_options.struct_name
+    )
+
+    call_str = generate_external_call_body_for(metadata, gen_metadata)
+
+    default_includes = "\n".join(
+        f'#include "{config.root_cppcuit_path}/{header}"' for header in DEFAULT_HEADERS
+    )
+
+    struct_include = f'#include "{struct_options.struct_header}.hh"'
+
+    return f"""
+        {default_includes}
+        {struct_include}
+    
+        {call_str}
+    """
+
+
 def main():
     args = ArgumentParser(CallOptions).parse_args(sys.argv[1:])
 
@@ -30,30 +68,13 @@ def main():
 
     circuit = CircuitData.from_dict(json.load(open(args.circuit_json)))
 
-    if args.call_name not in circuit.call_groups:
-        raise ValueError(f"Call {args.call_name} not contained in circuit config")
-
-    call = circuit.call_groups[args.call_name]
-    metadata = CallMetaData(triggered=call.inputs, call_name=args.call_name)
-
-    gen_metadata = generate_global_metadata(circuit, [metadata], args.struct_name)
-
-    call = generate_external_call_body_for(metadata, gen_metadata)
-
-    default_includes = "\n".join(
-        f'#include "{config.root_cppcuit_path}/{header}"' for header in DEFAULT_HEADERS
+    struct = StructOptions(
+        call_name=args.call_name,
+        struct_header=args.struct_header,
+        struct_name=args.struct_name,
     )
 
-    struct_include = f'#include "{args.struct_header}.hh"'
-
-    file = f"""
-        {default_includes}
-        {struct_include}
-    
-        {call}
-    """
-
-    print(file)
+    print(generate_circuit_call(struct, config, circuit))
 
 
 if __name__ == "__main__":

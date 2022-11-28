@@ -23,18 +23,15 @@ class StructOptions:
     struct_name: str
 
 
-def main():
-    args = ArgumentParser(StructOptions).parse_args(sys.argv[1:])
-
-    config = CoreLoaderConfig.from_dict(json.load(open(args.loader_config)))
-
-    circuit = CircuitData.from_dict(json.load(open(args.circuit_json)))
+def generate_circuit_struct_file(
+    struct_name: str, config: CoreLoaderConfig, circuit: CircuitData
+) -> str:
 
     all_calls = [
         CallMetaData(triggered=call.inputs, call_name=name)
         for (name, call) in circuit.call_groups.items()
     ]
-    gen_metadata = generate_global_metadata(circuit, all_calls, args.struct_name)
+    gen_metadata = generate_global_metadata(circuit, all_calls, struct_name)
 
     signal_headers = get_struct_headers_for(gen_metadata)
 
@@ -44,13 +41,21 @@ def main():
 
     struct = generate_circuit_struct(circuit, gen_metadata)
 
-    file = f"""
+    return f"""
         {signal_includes}
 
         {struct}
     """
 
-    print(file)
+
+def main():
+    args = ArgumentParser(StructOptions).parse_args(sys.argv[1:])
+
+    config = CoreLoaderConfig.from_dict(json.load(open(args.loader_config)))
+
+    circuit = CircuitData.from_dict(json.load(open(args.circuit_json)))
+
+    print(generate_circuit_struct_file(args.struct_name, config, circuit))
 
 
 if __name__ == "__main__":
