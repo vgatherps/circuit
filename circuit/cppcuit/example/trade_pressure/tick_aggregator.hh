@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 #include <optional>
 
 #include "cppcuit/optional_reference.hh"
@@ -92,10 +93,10 @@ public:
   // REQUIRED TODOS FOR THIS ONE:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
-    requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
-             HAS_REF_FIELD(O, double, tick) &&
-             HAS_REF_FIELD(O, double, running))
-  OnTradeOutput on_trade(I inputs, O outputs) {
+  requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
+           HAS_REF_FIELD(O, double, tick) &&
+           HAS_REF_FIELD(O, double, running)) OnTradeOutput
+      on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};
 
@@ -132,9 +133,9 @@ public:
   // Takes a dummy tick input
   // Sets running score to zero and potentially outputs a current tick
   template <class I, class O>
-    requires(HAS_OPT_REF(I, double, tick) && HAS_REF_FIELD(O, double, tick) &&
-             HAS_REF_FIELD(O, double, running))
-  OnTradeOutput on_end_tick(I inputs, O outputs) {
+  requires(HAS_OPT_REF(I, double, tick) && HAS_REF_FIELD(O, double, tick) &&
+           HAS_REF_FIELD(O, double, running)) OnTradeOutput
+      on_end_tick(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid;
 
