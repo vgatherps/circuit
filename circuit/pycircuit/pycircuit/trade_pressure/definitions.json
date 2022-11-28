@@ -11,9 +11,99 @@
                     "type_path": "Output"
                 }
             },
-            "class_name": "Adder",
+            "class_name": "AddComponent",
             "static_call": true,
-            "header": "adder.hh",
+            "header": "basic_arithmetic.hh",
+            "generic_callset": {
+                "written_set": [],
+                "observes": [
+                    "a",
+                    "b"
+                ],
+                "callback": "call",
+                "outputs": [
+                    "out"
+                ]
+            },
+            "generics_order": {
+                "a": 0,
+                "b": 1
+            }
+        },
+        "sub": {
+            "input_specs": {
+                "a": {},
+                "b": {}
+            },
+            "output_specs": {
+                "out": {
+                    "ephemeral": true,
+                    "type_path": "Output"
+                }
+            },
+            "class_name": "SubComponent",
+            "static_call": true,
+            "header": "basic_arithmetic.hh",
+            "generic_callset": {
+                "written_set": [],
+                "observes": [
+                    "a",
+                    "b"
+                ],
+                "callback": "call",
+                "outputs": [
+                    "out"
+                ]
+            },
+            "generics_order": {
+                "a": 0,
+                "b": 1
+            }
+        },
+        "mul": {
+            "input_specs": {
+                "a": {},
+                "b": {}
+            },
+            "output_specs": {
+                "out": {
+                    "ephemeral": true,
+                    "type_path": "Output"
+                }
+            },
+            "class_name": "MulComponent",
+            "static_call": true,
+            "header": "basic_arithmetic.hh",
+            "generic_callset": {
+                "written_set": [],
+                "observes": [
+                    "a",
+                    "b"
+                ],
+                "callback": "call",
+                "outputs": [
+                    "out"
+                ]
+            },
+            "generics_order": {
+                "a": 0,
+                "b": 1
+            }
+        },
+        "div": {
+            "input_specs": {
+                "a": {},
+                "b": {}
+            },
+            "output_specs": {
+                "out": {
+                    "ephemeral": true,
+                    "type_path": "Output"
+                }
+            },
+            "class_name": "DivComponent",
+            "static_call": true,
+            "header": "basic_arithmetic.hh",
             "generic_callset": {
                 "written_set": [],
                 "observes": [
