@@ -1,19 +1,11 @@
-#include "optional_reference.hh"
 #include <type_traits>
 
-#define HAS_OPT_REF(I, T, F)                                                   \
-  (requires { I::F; } &&                                                       \
-   std::is_same_v<optional_reference<const T>, decltype(I::F)>)
+#include "cppcuit/optional_reference.hh"
+#include "cppcuit/side.hh"
+#include "cppcuit/signal_requirements.hh"
 
-template <class A, class B> auto get_add_type(A *a, B *b) { return *a + *b; }
-
-template <typename A, typename B>
-concept SignalMath = requires(A a, B b) {
-  a + b;
-};
-
-template <class A, class B>
-requires SignalMath<A, B>
+template <class A, class B, class O>
+requires requires(A a, B b) { O::call(a, b); }
 class Adder {
 public:
   // Probably want to do this by taking advantage of the call itself?
