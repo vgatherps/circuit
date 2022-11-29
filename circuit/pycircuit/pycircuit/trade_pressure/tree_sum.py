@@ -1,15 +1,7 @@
-import json
-import os
-from typing import List, Sequence
+import math
+from typing import List
 
-from pycircuit.circuit_builder.circuit import (
-    CallGroup,
-    CircuitBuilder,
-    ComponentOutput,
-    HasOutput,
-    OutputOptions,
-)
-from pycircuit.circuit_builder.definition import Definitions
+from pycircuit.circuit_builder.circuit import CircuitBuilder, ComponentOutput
 
 DUMMY_COUNTER = 0
 
@@ -21,7 +13,11 @@ def do_add(circuit, a, b):
         "add",
         f"add_{DUMMY_COUNTER}",
         inputs={"a": a, "b": b},
-    )
+    ).output()
+
+
+def even(x):
+    return 2 * int(math.floor(x / 2))
 
 
 def tree_sum(circuit: CircuitBuilder, roots: List[ComponentOutput]):
@@ -29,7 +25,7 @@ def tree_sum(circuit: CircuitBuilder, roots: List[ComponentOutput]):
         raise ValueError("Empty list passed to sum")
     while len(roots) > 1:
         new_roots = []
-        for i in range(0, len(roots), 2):
+        for i in range(0, even(len(roots)), 2):
             new_roots.append(do_add(circuit, roots[i], roots[i + 1]))
 
         if len(roots) % 1 != 0:

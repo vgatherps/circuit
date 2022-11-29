@@ -41,7 +41,8 @@
             "output_specs": {
                 "running": {
                     "ephemeral": false,
-                    "type_path": "RunningTickScore"
+                    "type_path": "RunningTickScore",
+                    "always_valid": true
                 },
                 "tick": {
                     "ephemeral": true,
