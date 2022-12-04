@@ -11,7 +11,8 @@ from pycircuit.cpp_codegen.generation_metadata import (
 
 
 def generate_timer_signature(component: AnnotatedComponent, prefix: str = ""):
-    return f"void {prefix}{component.component.name}TimerCallback()"
+    call_type = f"{component.component.definition.timer_callback.ping_with_type} &__timer_data__"
+    return f"void {prefix}{component.component.name}TimerCallback({call_type})"
 
 
 def generate_timer_name(component: AnnotatedComponent) -> str:
@@ -29,14 +30,14 @@ def generate_timer_call_body_for(
 
     all_outputs = {
         component.component.output(which)
-        for which in component.component.definition.output.fields
+        for which in component.component.definition.timer_callback.call.outputs
     }
 
     children_for_call = find_all_children_of_from_outputs(gen_data.circuit, all_outputs)
 
     all_children = "\n".join(
         generate_single_call(
-            gen_data.annotated_components[child_component.name],
+            gen_data.annotated_components[child_component.component.name],
             gen_data,
             children_for_call,
         )
@@ -46,28 +47,12 @@ def generate_timer_call_body_for(
     signature = generate_timer_signature(component, prefix=f"{gen_data.struct_name}::")
 
     timer_callback = generate_single_call(
-        component, gen_data, children_for_call, postfix_args=["__front__"]
+        component, gen_data, children_for_call, postfix_args=["__timer_data__"]
     )
 
     return f"""
     {signature} {{
-
-        auto &__timer__ = this->{generate_timer_name(component)};
-
-        if (__timer__.size() == 0) [[unlikely]] {{
-            return;
-        }}
-
-        // TODO would be nice to find a good way to do this in place instead of moving out of the timer queue
-        // Maybe the optimizer could do this if we shifted pop_front to being after, HOWEVER this would
-        // also imply that we aren't able to reuse the same space, assuming that most timer callbacks will
-        // want to schedule new work
-        {component.component.definition.timer_callback.ping_with_type} __front__ = std::move(__timer__.front());
-        __timer__.pop_front();
-
         {timer_callback}
-
-
         {all_children}
     }}
     """
