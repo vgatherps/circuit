@@ -7,9 +7,8 @@ include(CTest)
 enable_testing()
 
 include_directories(include)
-include_directories(math)
 
-add_subdirectory(math)
+add_subdirectory(src)
 add_subdirectory(trade_pressure)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
