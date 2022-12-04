@@ -22,15 +22,18 @@ from .tree_sum import tree_sum
 def generate_circuit_for_market_venue(
     circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
 ):
+    trades_name = f"{market}_{venue}_trades"
     raw_venue_pressure = circuit.make_component(
         definition_name="tick_aggregator",
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
-            "trade": circuit.get_external(f"{market}_{venue}_trades", "Trade").output(),
+            "trade": circuit.get_external(trades_name, "Trade").output(),
             "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
             "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick").output(),
         },
     )
+
+    circuit.add_call_group(trades_name, CallGroup(inputs={trades_name}))
 
     return raw_venue_pressure.output("tick"), raw_venue_pressure.output("running")
 
@@ -86,7 +89,6 @@ def main():
     circuit = CircuitBuilder(definitions=definitions.definitions)
 
     generate_trade_pressure_circuit(circuit, trade_pressure)
-    circuit.add_call_group("SPY_BATS_trades", CallGroup(inputs={"SPY_BATS_trades"}))
 
     a_call_str = generate_circuit_call(
         StructOptions(
