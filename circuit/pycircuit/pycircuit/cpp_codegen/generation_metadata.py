@@ -8,8 +8,15 @@ from pycircuit.cpp_codegen.call_generation.ephemeral import (
     find_nonephemeral_outputs,
     is_ephemeral,
 )
-from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
+from pycircuit.cpp_codegen.call_generation.find_children_of import (
+    CalledComponent,
+    find_all_children_of,
+)
 from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
+
+from pycircuit.pycircuit.cpp_codegen.call_generation.find_children_of import (
+    find_all_children_of_from_outputs,
+)
 
 
 @dataclass
@@ -80,13 +87,43 @@ def generate_call_signature(meta: CallMetaData, prefix: str = ""):
     return f"void {prefix}{meta.call_name}()"
 
 
+def find_all_subgraphs(
+    circuit: CircuitData, call_metas: List[CallMetaData]
+) -> List[List[CalledComponent]]:
+    called = []
+
+    for call in call_metas:
+        children = find_all_children_of(call.triggered, circuit)
+        called.append(children)
+
+    # find timer subgraphs
+
+    for component in circuit.components.values():
+        if component.definition.timer_callback is not None:
+            timer_outputs = {
+                component.output(out)
+                for out in component.definition.timer_callback.call.outputs
+            }
+            timer_children = find_all_children_of_from_outputs(circuit, timer_outputs)
+            called_component = CalledComponent(
+                callset=component.definition.timer_callback.call, component=component
+            )
+
+            all_timer_calls = [called_component] + [timer_children]
+
+            called.append(all_timer_calls)
+
+    return called
+
+
 def generate_global_metadata(
     circuit: CircuitData, call_metas: List[CallMetaData], struct_name: str
 ) -> GenerationMetadata:
     all_non_ephemeral_component_outputs: Set[ComponentOutput] = set()
 
-    for call in call_metas:
-        children = find_all_children_of(call.triggered, circuit)
+    all_subgraphs = find_all_subgraphs(circuit, call_metas)
+
+    for children in all_subgraphs:
         all_non_ephemeral_component_outputs |= find_nonephemeral_outputs(children)
 
     # TODO we must ALSO find everybody who could get observed as part of a timer callback

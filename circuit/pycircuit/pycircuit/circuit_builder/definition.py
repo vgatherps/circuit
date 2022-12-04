@@ -11,9 +11,21 @@ def decode_frozen(json: Dict[str, Any]) -> frozendict:
 
 
 @dataclass(eq=True, frozen=True)
+class CallSpec(DataClassJsonMixin):
+    written_set: frozenset[str]
+    observes: frozenset[str]
+    callback: Optional[str]
+    outputs: frozenset[str] = frozenset()
+
+    @property
+    def skippable(self):
+        return self.callback is None
+
+
+@dataclass(eq=True, frozen=True)
 class PingInfo(DataClassJsonMixin):
     ping_with_type: str
-    callback: str
+    call: CallSpec
 
 
 @dataclass(eq=True, frozen=True)
@@ -26,18 +38,6 @@ class OutputSpec(DataClassJsonMixin):
     ephemeral: bool
     type_path: str
     always_valid: bool = False
-
-
-@dataclass(eq=True, frozen=True)
-class CallSpec(DataClassJsonMixin):
-    written_set: frozenset[str]
-    observes: frozenset[str]
-    callback: Optional[str]
-    outputs: frozenset[str] = frozenset()
-
-    @property
-    def skippable(self):
-        return self.callback is None
 
 
 @dataclass(eq=True, frozen=True)
@@ -78,33 +78,45 @@ class Definition(DataClassJsonMixin):
             self.generics_order
         ), "Duplicate generic inputs"
 
+    def validate_a_callset(self, callset: CallSpec):
+        if callset.skippable and callset.outputs:
+            raise ValueError(
+                f"A callset if both skippable but has outputs {callset.outputs} for {self.class_name}"
+            )
+        for written in callset.written_set:
+            if written not in self.input_specs:
+                raise ValueError(
+                    f"Written observable {written} in {self.class_name} is not an input"
+                )
+
+            # This is reflexive so don't need to redo the check in the observes loop
+            if written in callset.observes:
+                raise ValueError(
+                    f"Written observable {written} also an observable {self.class_name} is also observable"
+                )
+
+        for observed in callset.observes:
+            if observed not in self.input_specs:
+                raise ValueError(
+                    f"Observable {observed} in {self.class_name} is not an input"
+                )
+
     def validate_callsets(self):
         for callset in self.callsets:
-            if callset.skippable and callset.outputs:
+            self.validate_a_callset(callset)
+
+    def validate_timer(self):
+        if self.timer_callback is not None:
+            if self.timer_callback.call.skippable:
                 raise ValueError(
-                    f"A callset if both skippable but has outputs {callset.outputs} for {self.class_name}"
+                    f"Signal {self.class_name} has a skippable timer callback"
                 )
-            for written in callset.written_set:
-                if written not in self.input_specs:
-                    raise ValueError(
-                        f"Written observable {written} in {self.class_name} is not an input"
-                    )
-
-                # This is reflexive so don't need to redo the check in the observes loop
-                if written in callset.observes:
-                    raise ValueError(
-                        f"Written observable {written} also an observable {self.class_name} is also observable"
-                    )
-
-            for observed in callset.observes:
-                if observed not in self.input_specs:
-                    raise ValueError(
-                        f"Observable {observed} in {self.class_name} is not an input"
-                    )
+            self.validate_a_callset(self.timer_callback.call)
 
     def validate(self):
         self.validate_generics()
         self.validate_callsets()
+        self.validate_timer()
 
     def outputs(self) -> List[str]:
         return list(self.output_specs.keys())
