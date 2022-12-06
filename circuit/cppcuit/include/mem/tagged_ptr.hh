@@ -16,23 +16,22 @@ template <class T, int BITS, bool MUTABLE_TAG = false> class TaggedPtr {
     return (1 << BITS) - 1;
   }
 
-  void _set_tag(std::uintptr_t to) {
+  void _set_tag(std::uintptr_t tag) {
     const std::uintptr_t without_mask = raw_ptr & ~get_mask();
-    raw_ptr = without_mask | (to & get_mask());
+    raw_ptr = without_mask | (tag & get_mask());
   }
 
 public:
-  TaggedPtr(T *ptr, std::uintptr_t mask) {
-    const std::uintptr_t without_mask =
-        std::reinterpret_cast<std::uintptr_t>(ptr);
+  TaggedPtr(T *ptr, std::uintptr_t tag) {
+    const std::uintptr_t without_mask = reinterpret_cast<std::uintptr_t>(ptr);
 
-    if (without_mask & get_mask) [[unlikely]] {
+    if (without_mask & get_mask()) [[unlikely]] {
       // TODO good common out-of-line exception thrower
       throw std::runtime_error("Pointer does not respect mask limits");
     }
 
     raw_ptr = without_mask;
-    set_tag(to);
+    _set_tag(tag);
   }
 
   TaggedPtr(T *ptr) : TaggedPtr(ptr, 0) {}
@@ -45,17 +44,14 @@ public:
 
   T *get() const {
     const std::uintptr_t without_mask = raw_ptr & ~get_mask();
-    return std::reinterpret_cast<T *>(without_mask);
+    return reinterpret_cast<T *>(without_mask);
   }
 
   std::uintptr_t tag() const { return raw_ptr & get_mask(); }
 
-  void set_tag(std::uintptr_t to) {
-    if constexpr (MUTABLE_TAG) {
-      _set_tag(to);
-    } else {
-      static_assert(false, "Can't try to set the mask on a tagged pointer with "
-                           "an immutable mask");
-    }
+  void set_tag(std::uintptr_t to)
+    requires MUTABLE_TAG
+  {
+    _set_tag(to);
   }
 };

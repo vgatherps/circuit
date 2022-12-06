@@ -1,1 +1,1 @@
-# add_library(mem_lib linear_alloc.cc)
+add_library(mem linear_pool.cc)
