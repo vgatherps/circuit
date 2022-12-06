@@ -11,12 +11,9 @@ from pycircuit.cpp_codegen.call_generation.ephemeral import (
 from pycircuit.cpp_codegen.call_generation.find_children_of import (
     CalledComponent,
     find_all_children_of,
-)
-from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
-
-from pycircuit.pycircuit.cpp_codegen.call_generation.find_children_of import (
     find_all_children_of_from_outputs,
 )
+from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 
 
 @dataclass
@@ -108,7 +105,7 @@ def find_all_subgraphs(
             called_component = CalledComponent(
                 callset=component.definition.timer_callback.call, component=component
             )
-            all_timer_calls = [called_component] + [timer_children]
+            all_timer_calls = [called_component] + timer_children
             called.append(all_timer_calls)
 
     return called
