@@ -1,5 +1,5 @@
-#include "tick_aggregator.hh"
-#include "fast_exp_64.hh"
+#include "signals/trade_pressure/tick_aggregator.hh"
+#include "math/fast_exp_64.hh"
 
 static double score_pricesize(double pricesize, double scale) {
   assert(pricesize >= -1.0);

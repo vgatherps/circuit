@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "fast_exp_64.hh"
+#include "math/fast_exp_64.hh"
 
 double fast_exp_L[256] = {};
 std::uint64_t fast_exp_U[256] = {};

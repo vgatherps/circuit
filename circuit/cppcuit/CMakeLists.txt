@@ -9,7 +9,6 @@ enable_testing()
 include_directories(include)
 
 add_subdirectory(src)
-add_subdirectory(trade_pressure)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
