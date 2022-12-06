@@ -28,7 +28,7 @@ void *LinearPoolStorage::add_blocks(std::size_t elem_size,
 
   Block head_block = {
       .data = TPtr(data, 1),
-      .free = -1,
+      .free = (std::uint64_t)(std::int64_t)-1,
   };
 
   this->blocks.reserve(this->blocks.size() + block_count);
@@ -42,7 +42,7 @@ void *LinearPoolStorage::add_blocks(std::size_t elem_size,
 
     Block block = {
         .data = TPtr((void *)block_base, 0),
-        .free = -1,
+        .free = (std::uint64_t)(std::int64_t)-1,
     };
 
     this->blocks.push_back(block);
