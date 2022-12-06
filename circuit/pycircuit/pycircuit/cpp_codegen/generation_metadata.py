@@ -108,9 +108,7 @@ def find_all_subgraphs(
             called_component = CalledComponent(
                 callset=component.definition.timer_callback.call, component=component
             )
-
             all_timer_calls = [called_component] + [timer_children]
-
             called.append(all_timer_calls)
 
     return called
