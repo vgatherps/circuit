@@ -9,4 +9,4 @@ DEFAULT_HEADERS = ["optional_reference.hh"]
 
 def get_call_headers_for(meta: CallMetaData, gen_data: GenerationMetadata) -> Set[str]:
     children_for_call = find_all_children_of(meta.triggered, gen_data.circuit)
-    return {comp.definition.header for comp in children_for_call}
+    return {comp.component.definition.header for comp in children_for_call}
