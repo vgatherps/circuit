@@ -11,6 +11,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
 
 
 def generate_timer_signature(component: AnnotatedComponent, prefix: str = ""):
+    assert component.component.definition.timer_callback is not None
     call_type = f"{component.component.definition.timer_callback.ping_with_type} &__timer_data__"
     return f"void {prefix}{component.component.name}TimerCallback({call_type})"
 
@@ -38,8 +39,8 @@ def generate_timer_call_body_for(
     all_children = "\n".join(
         generate_single_call(
             gen_data.annotated_components[child_component.component.name],
+            child_component.callset,
             gen_data,
-            children_for_call,
         )
         for child_component in children_for_call
     )
@@ -47,7 +48,10 @@ def generate_timer_call_body_for(
     signature = generate_timer_signature(component, prefix=f"{gen_data.struct_name}::")
 
     timer_callback = generate_single_call(
-        component, gen_data, children_for_call, postfix_args=["__timer_data__"]
+        component,
+        component.component.definition.timer_callback.call,
+        gen_data,
+        postfix_args=["__timer_data__"],
     )
 
     return f"""
