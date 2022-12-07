@@ -72,6 +72,8 @@ class Definition(DataClassJsonMixin):
         default_factory=frozendict,
     )
 
+    static_call: bool = False
+
     init_spec: Optional[InitSpec] = None
 
     def validate_generics(self):
@@ -144,10 +146,6 @@ class Definition(DataClassJsonMixin):
             for (input, spec) in self.d_input_specs.items()
             if not spec.non_triggering
         )
-
-    @property
-    def static_call(self):
-        return self.init_spec is not None
 
 
 @dataclass

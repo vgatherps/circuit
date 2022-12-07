@@ -36,9 +36,6 @@ def generate_single_init_for(annotated_component: AnnotatedComponent) -> str:
         json_data = f'{INPUT_JSON_NAME}["{component.name}"]'
         call_order.append(CallData(call_params=[json_data]))
 
-    # HACK to ensure that we're not writing this for a static call
-    assert annotated_component.call_root[-1] == "."
-
     call_path = f"{annotated_component.call_root}{definition.init_spec.init_call}"
 
     return assemble_call_from(call_path, call_order)
