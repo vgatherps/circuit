@@ -10,6 +10,8 @@ from pycircuit.cpp_codegen.struct_generation.generate_struct import (
     generate_circuit_struct,
 )
 from pycircuit.cpp_codegen.struct_generation.struct_headers import (
+    DEFAULT_HEADERS,
+    STD_HEADERS,
     get_struct_headers_for,
 )
 from pycircuit.loader.loader_config import CoreLoaderConfig
@@ -39,9 +41,17 @@ def generate_circuit_struct_file(
         f'#include "{config.root_signals_path}/{header}"' for header in signal_headers
     )
 
+    default_includes = "\n".join(
+        f'#include "{config.root_cppcuit_path}/{header}"' for header in DEFAULT_HEADERS
+    )
+
+    std_includes = "\n".join(f"#include <{header}>" for header in STD_HEADERS)
+
     struct = generate_circuit_struct(circuit, gen_metadata)
 
     return f"""
+        {std_includes}
+        {default_includes}
         {signal_includes}
 
         {struct}

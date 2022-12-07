@@ -16,21 +16,42 @@ def generate_externals_struct(circuit: CircuitData) -> str:
     externals = "\n".join(
         f"{ext.type} {name};" for (name, ext) in circuit.external_inputs.items()
     )
+
+    requires = " &&\n".join(
+        set(
+            f"std::is_default_constructible_v<{ext.type}>"
+            for ext in circuit.external_inputs.values()
+        )
+    )
     validity = f"""
     bool is_valid[{len(circuit.external_inputs)}];
     """
     return f"""
-        struct Externals {{
+        struct Externals
+        requires {requires} {{
             {externals}
 
             {validity}
+
+            Externals() = default;
         }};
     """
 
 
-def generate_output_declarations_for_component(component: Component, output: str):
+def generate_output_declarations_for_component(
+    component: Component, output: str
+) -> str:
     output_type = component.definition.d_output_specs[output].type_path
     return f"{get_alias_for(component)}::{output_type} {component.name}_{output};"
+
+
+def generate_default_constructible_requirements_for(
+    component: Component, output: str
+) -> str:
+    output_type = component.definition.d_output_specs[output].type_path
+    type_name = f"{get_alias_for(component)}::{output_type}"
+
+    return f"std::is_default_constructible_v<{type_name}>"
 
 
 def generate_output_substruct(
@@ -44,11 +65,24 @@ def generate_output_substruct(
         if not component.output_data[output].is_value_ephemeral
     )
 
+    requires_declarations = " &&\n".join(
+        set(
+            generate_default_constructible_requirements_for(component.component, output)
+            for component in metadata.annotated_components.values()
+            for output in component.component.definition.outputs()
+            if not component.output_data[output].is_value_ephemeral
+        )
+    )
+
     return f"""
-        struct Outputs {{
+        struct Outputs
+        requires {requires_declarations}
+        {{
             {circuit_declarations}
 
             bool is_valid[{metadata.required_validity_markers}];
+
+            Outputs() = default;
         }};
     """
 

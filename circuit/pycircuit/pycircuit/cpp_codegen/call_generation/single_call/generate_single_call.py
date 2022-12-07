@@ -23,7 +23,7 @@ def generate_single_call(
     if callset.callback is None:
         raise ValueError("Call generation called for a callset with no callback")
     input_data = generate_input_calldata(annotated_component, callset, gen_data)
-    output_data = generate_output_calldata(annotated_component, callset)
+    output_data = generate_output_calldata(annotated_component, set(callset.outputs))
     intermediate_args = CallData(call_params=postfix_args)
     call_path = f"{annotated_component.call_root}{callset.callback}"
 

@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Set
 
 from pycircuit.circuit_builder.circuit import Component
 from pycircuit.circuit_builder.definition import CallSpec
@@ -160,19 +160,16 @@ def generate_output_struct_initializers(
 
 def generate_output_calldata(
     annotated_component: AnnotatedComponent,
-    callset: CallSpec,
+    all_outputs: Set[str],
 ) -> CallData:
-    value_inits = generate_value_inits(annotated_component, list(callset.outputs))
-    is_valid_inits = generate_is_valid_inits(annotated_component, list(callset.outputs))
-    validity_deconstruction = deconstruct_valid_output(
-        annotated_component, list(callset.outputs)
-    )
+    outputs = list(all_outputs)
+    value_inits = generate_value_inits(annotated_component, outputs)
+    is_valid_inits = generate_is_valid_inits(annotated_component, outputs)
+    validity_deconstruction = deconstruct_valid_output(annotated_component, outputs)
 
-    output_struct = generate_output_struct(
-        annotated_component.component, list(callset.outputs)
-    )
+    output_struct = generate_output_struct(annotated_component.component, outputs)
     output_struct_inits = generate_output_struct_initializers(
-        annotated_component.component, list(callset.outputs)
+        annotated_component.component, outputs
     )
 
     call_prefix = f"""
