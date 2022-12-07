@@ -31,7 +31,7 @@ class OutputMetadata:
 class AnnotatedComponent:
     component: Component
     output_data: Dict[str, OutputMetadata]
-    call_path: str
+    call_root: str
     class_generics: str
 
 
@@ -140,10 +140,11 @@ def generate_global_metadata(
     for (name, component) in circuit.components.items():
 
         if component.definition.static_call:
-            call_path = f"{get_alias_for(component)}::call"
+            # TODO this is obviously wrong w.r.t. callsets
+            call_root = f"{get_alias_for(component)}::"
         else:
             object_name = f"objects.{component.name}"
-            call_path = f"{object_name}.call"
+            call_root = f"{object_name}."
 
         output_metadata, validity_marker_count = generate_output_metadata_for(
             component, all_non_ephemeral_component_outputs, validity_marker_count
@@ -162,7 +163,7 @@ def generate_global_metadata(
         annotated_components[name] = AnnotatedComponent(
             component=component,
             output_data=output_metadata,
-            call_path=call_path,
+            call_root=call_root,
             class_generics=generics_str,
         )
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Optional, Sequence
+from dataclasses import dataclass, field
+from typing import List, Optional, Sequence
 
 
 @dataclass
@@ -16,30 +16,24 @@ class ReturnValue:
             return "auto"
 
 
-class CallDataGenerator(ABC):
-    def get_global_prefix_lines(self) -> str:
-        return ""
-
-    def get_prefix_lines(self) -> str:
-        return ""
-
-    def get_call_params(self) -> str:
-        return ""
-
-    def get_postfix_lines(self) -> str:
-        return ""
-
-    def give_return_type(self) -> Optional[ReturnValue]:
-        return None
+@dataclass
+class CallData:
+    global_prefix: str = ""
+    local_prefix: str = ""
+    call_params: List[str] = field(
+        default_factory=list,
+    )
+    local_postfix: str = ""
+    static_return_type: Optional[ReturnValue] = None
 
 
-def assemble_call_from(calls: Sequence[CallDataGenerator]):
+def assemble_call_from(call_path: str, calls: Sequence[CallData]):
     calls = list(calls)
 
     return_type = None
 
     for call in calls:
-        requested_type = call.give_return_type()
+        requested_type = call.static_return_type
         if requested_type is not None:
             if return_type is not None:
                 raise ValueError(
@@ -48,16 +42,20 @@ def assemble_call_from(calls: Sequence[CallDataGenerator]):
 
             return_type = requested_type
 
-    global_prefix_lines = "\n".join(call.get_global_prefix_lines() for call in calls)
+    global_prefix_lines = "\n".join(call.global_prefix for call in calls)
+    prefix_lines = "\n".join(call.local_prefix for call in calls)
+    postfix_lines = "\n".join(call.local_postfix for call in calls)
 
-    prefix_lines = "\n".join(call.get_prefix_lines() for call in calls)
+    call_params = ",".join(
+        call_param for call in calls for call_param in call.call_params
+    )
 
-    postfix_lines = "\n".join(call.get_postfix_lines() for call in calls)
-
-    call_line = "fixme"
+    full_invocation = f"{call_path}({call_params})"
 
     if return_type is not None:
-        call_line = f"{return_type.return_type} {return_type.name} = {call_line}"
+        call_line = f"{return_type.return_type} {return_type.name} = {full_invocation};"
+    else:
+        call_line = f"{full_invocation};"
 
     return f"""
     {global_prefix_lines}

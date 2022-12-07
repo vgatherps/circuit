@@ -1,4 +1,4 @@
-from pycircuit.cpp_codegen.call_generation.generate_single_call import (
+from pycircuit.cpp_codegen.call_generation.generate_output_calldata import (
     generate_value_inits,
 )
 from pycircuit.cpp_codegen.test.test_common import (

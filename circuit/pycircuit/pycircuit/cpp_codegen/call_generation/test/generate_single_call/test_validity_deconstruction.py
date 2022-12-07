@@ -1,5 +1,5 @@
 import pytest
-from pycircuit.cpp_codegen.call_generation.generate_single_call import (
+from pycircuit.cpp_codegen.call_generation.generate_output_calldata import (
     VALID_DATA_NAME,
     deconstruct_valid_output,
 )

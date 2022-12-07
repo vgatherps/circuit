@@ -1,5 +1,4 @@
-from pycircuit.cpp_codegen.call_generation.generate_single_call import (
-    generate_output_struct,
+from pycircuit.cpp_codegen.call_generation.generate_output_calldata import (
     generate_output_struct_initializers,
 )
 from pycircuit.cpp_codegen.test.test_common import (

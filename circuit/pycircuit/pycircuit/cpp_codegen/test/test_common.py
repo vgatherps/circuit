@@ -3,6 +3,7 @@ from pycircuit.circuit_builder.circuit import Component, ComponentInput
 from pycircuit.circuit_builder.definition import (
     CallSpec,
     Definition,
+    InitSpec,
     InputSpec,
     OutputSpec,
 )
@@ -63,7 +64,7 @@ def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
             }
         ),
         class_name=COMPONENT_CLASS,
-        static_call=False,
+        init_spec=InitSpec(init_call="dummy"),
         header="test.hh",
         generic_callset=generic_callset,
         callsets=frozenset(
@@ -99,6 +100,6 @@ def basic_annotated(is_c_ephemeral: bool = False) -> AnnotatedComponent:
                 validity_index=None, is_value_ephemeral=is_c_ephemeral
             ),
         },
-        call_path="dummy_for_now",
+        call_root="dummy_for_now",
         class_generics="",
     )
