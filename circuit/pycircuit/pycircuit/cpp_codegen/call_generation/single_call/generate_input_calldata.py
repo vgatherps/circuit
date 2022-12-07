@@ -90,18 +90,15 @@ def generate_input_calldata(
 
     values = "\n".join(all_values)
     inputs_prefix = f"""
-    {{
+struct {INPUT_STRUCT_NAME} {{
+    {input_struct_fields}
+}};
 
-        struct {INPUT_STRUCT_NAME} {{
-            {input_struct_fields}
-        }};
+{values}
 
-        {values}
-
-        {INPUT_STRUCT_NAME} {INPUT_NAME} = {{
-            {input_struct_initializers}
-        }};
-    }}
+{INPUT_STRUCT_NAME} {INPUT_NAME} = {{
+    {input_struct_initializers}
+}};
     """
 
     return CallData(local_prefix=inputs_prefix, call_params=[INPUT_NAME])

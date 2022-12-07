@@ -6,7 +6,7 @@ from pycircuit.circuit_builder.circuit import (
 )
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.loader.loader_config import CoreLoaderConfig
-from pycircuit.loader.write_circuit_call import StructOptions, generate_circuit_call
+from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circuit_call
 from pycircuit.loader.write_circuit_struct import generate_circuit_struct_file
 
 core_confog = CoreLoaderConfig
@@ -91,7 +91,7 @@ def main():
     generate_trade_pressure_circuit(circuit, trade_pressure)
 
     a_call_str = generate_circuit_call(
-        StructOptions(
+        CallStructOptions(
             struct_name="pressure",
             struct_header="pressure.hh",
             call_name="SPY_BATS_trades",

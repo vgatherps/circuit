@@ -84,13 +84,11 @@ def generate_call_signature(meta: CallMetaData, prefix: str = ""):
     return f"void {prefix}{meta.call_name}()"
 
 
-def find_all_subgraphs(
-    circuit: CircuitData, call_metas: List[CallMetaData]
-) -> List[List[CalledComponent]]:
+def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:
     called = []
 
-    for call in call_metas:
-        children = find_all_children_of(call.triggered, circuit)
+    for call_group in circuit.call_groups.values():
+        children = find_all_children_of(call_group.inputs, circuit)
         called.append(children)
 
     # find timer subgraphs
@@ -116,7 +114,7 @@ def generate_global_metadata(
 ) -> GenerationMetadata:
     all_non_ephemeral_component_outputs: Set[ComponentOutput] = set()
 
-    all_subgraphs = find_all_subgraphs(circuit, call_metas)
+    all_subgraphs = find_all_subgraphs(circuit)
 
     for children in all_subgraphs:
         all_non_ephemeral_component_outputs |= find_nonephemeral_outputs(children)

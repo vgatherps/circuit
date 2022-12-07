@@ -24,14 +24,14 @@ class CallOptions:
 
 
 @dataclass
-class StructOptions:
+class CallStructOptions:
     struct_name: str
     struct_header: str
     call_name: str
 
 
 def generate_circuit_call(
-    struct_options: StructOptions, config: CoreLoaderConfig, circuit: CircuitData
+    struct_options: CallStructOptions, config: CoreLoaderConfig, circuit: CircuitData
 ) -> str:
     if struct_options.call_name not in circuit.call_groups:
         raise ValueError(
@@ -68,7 +68,7 @@ def main():
 
     circuit = CircuitData.from_dict(json.load(open(args.circuit_json)))
 
-    struct = StructOptions(
+    struct = CallStructOptions(
         call_name=args.call_name,
         struct_header=args.struct_header,
         struct_name=args.struct_name,
