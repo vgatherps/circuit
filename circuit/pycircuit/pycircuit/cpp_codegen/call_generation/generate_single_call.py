@@ -201,6 +201,10 @@ def generate_output_struct_initializers(
 }}"""
 
 
+# This is pretty close to what we run for initialization...
+# init has no inputs, really only difference
+
+
 def generate_single_call(
     annotated_component: AnnotatedComponent,
     callset: CallSpec,

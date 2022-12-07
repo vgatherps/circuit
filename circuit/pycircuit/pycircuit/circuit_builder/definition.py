@@ -41,14 +41,16 @@ class OutputSpec(DataClassJsonMixin):
 
 
 @dataclass(eq=True, frozen=True)
+class InitSpec(DataClassJsonMixin):
+    init_call: str
+    takes_params: bool = False
+
+
+@dataclass(eq=True, frozen=True)
 class Definition(DataClassJsonMixin):
     input_specs: frozendict[str, InputSpec]
     output_specs: frozendict[str, OutputSpec]
     class_name: str
-
-    # TODO should static call actually be a feature of the writeset?
-    # personally feel like no
-    static_call: bool
 
     header: str
 
@@ -69,6 +71,8 @@ class Definition(DataClassJsonMixin):
     generics_order: frozendict[str, int] = field(
         default_factory=frozendict,
     )
+
+    init_spec: Optional[InitSpec] = None
 
     def validate_generics(self):
         for key in self.generics_order:
@@ -140,6 +144,10 @@ class Definition(DataClassJsonMixin):
             for (input, spec) in self.d_input_specs.items()
             if not spec.non_triggering
         )
+
+    @property
+    def static_call(self):
+        return self.init_spec is not None
 
 
 @dataclass
