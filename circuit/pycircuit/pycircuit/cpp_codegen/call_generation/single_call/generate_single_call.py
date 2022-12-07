@@ -2,16 +2,15 @@ from typing import List
 
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, assemble_call_from
+from pycircuit.cpp_codegen.call_generation.single_call.generate_input_calldata import (
+    generate_input_calldata,
+)
+from pycircuit.cpp_codegen.call_generation.single_call.generate_output_calldata import (
+    generate_output_calldata,
+)
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
-)
-
-from pycircuit.pycircuit.cpp_codegen.call_generation.generate_input_calldata import (
-    generate_input_calldata,
-)
-from pycircuit.pycircuit.cpp_codegen.call_generation.generate_output_calldata import (
-    generate_output_calldata,
 )
 
 

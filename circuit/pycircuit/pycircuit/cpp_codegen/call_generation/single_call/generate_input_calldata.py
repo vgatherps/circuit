@@ -8,7 +8,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
 )
 from pycircuit.cpp_codegen.type_names import get_type_name_for_input
 
-from pycircuit.pycircuit.cpp_codegen.call_generation.generate_output_calldata import (
+from pycircuit.pycircuit.cpp_codegen.call_generation.single_call.generate_output_calldata import (
     get_valid_path,
 )
 
