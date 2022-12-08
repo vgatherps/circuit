@@ -13,6 +13,8 @@ from typing_extensions import Protocol
 
 # Validate topologically ordered. This itself prevents
 
+TIME_TYPE = "std::uint64_t"
+
 
 class HasOutput(Protocol):
     def output(self) -> "ComponentOutput":
@@ -199,9 +201,14 @@ class CircuitBuilder(CircuitData):
         self.running_index = 0
         self.running_external = 0
 
+        self.get_external("time", TIME_TYPE)
+
     def get_external(self, name: str, type: str) -> ExternalInput:
         if name in self.external_inputs:
-            return self.external_inputs[name]
+            ext = self.external_inputs[type]
+            if type !=ext.type:
+                raise ValueError(f"External {name} requested with type {type} but already has type {ext.type}")
+            return ext
         ext = ExternalInput(type=type, name=name, index=self.running_external)
         self.running_external += 1
         self.external_inputs[name] = ext

@@ -1,13 +1,35 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
-from dataclasses_json import DataClassJsonMixin
+from dataclasses_json import DataClassJsonMixin, config
 from frozendict import frozendict
 
 
-def decode_frozen(json: Dict[str, Any]) -> frozendict:
-    the_dict = {key: int(val) for (key, val) in json.items()}
-    return frozendict(the_dict)
+class Metadata(Enum):
+    Timer = "timer"
+
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return self.value
+
+
+def decode_metadata(metas: List[Any]) -> frozenset[Metadata]:
+    meta_lookup = {value.value: value for value in Metadata}
+
+    meta_set = set()
+    for v in metas:
+        if not isinstance(v, str):
+            raise ValueError("Was given non-string for metadata conversion")
+
+        if v not in meta_lookup:
+            raise ValueError(f"{v} is not a valid metadata request type")
+
+        meta_set.add(meta_lookup[v])
+
+    return frozenset(meta_set)
 
 
 @dataclass(eq=True, frozen=True)
@@ -15,6 +37,9 @@ class CallSpec(DataClassJsonMixin):
     written_set: frozenset[str]
     observes: frozenset[str]
     callback: Optional[str]
+    metadata: frozenset[Metadata] = field(
+        default_factory=frozenset, metadata=config(decoder=decode_metadata)
+    )
     outputs: frozenset[str] = frozenset()
 
     @property
@@ -43,6 +68,9 @@ class OutputSpec(DataClassJsonMixin):
 @dataclass(eq=True, frozen=True)
 class InitSpec(DataClassJsonMixin):
     init_call: str
+    metadata: frozenset[Metadata] = field(
+        default_factory=frozenset, metadata=config(decoder=decode_metadata)
+    )
     takes_params: bool = False
 
 

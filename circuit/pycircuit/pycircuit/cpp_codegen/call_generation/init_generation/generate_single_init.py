@@ -1,10 +1,6 @@
-from typing import List
-
-from pycircuit.circuit_builder.circuit import Component
-from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, assemble_call_from
-from pycircuit.cpp_codegen.call_generation.single_call.generate_input_calldata import (
-    generate_input_calldata,
+from pycircuit.cpp_codegen.call_generation.single_call.generate_metadata_calldata import (
+    generate_metadata_calldata,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_output_calldata import (
     generate_output_calldata,
@@ -21,21 +17,33 @@ def get_params_lookup(component_name: str) -> str:
     return f'{INPUT_JSON_NAME}["{component_name}"]'
 
 
-def generate_single_init_for(annotated_component: AnnotatedComponent) -> str:
+def generate_single_init_for(
+    annotated_component: AnnotatedComponent, gen_data: GenerationMetadata
+) -> str:
     component = annotated_component.component
     definition = component.definition
+
+    assert definition.init_spec is not None
+
+    init_spec = definition.init_spec
+
     all_outputs = set(definition.outputs())
 
     output_calls = generate_output_calldata(annotated_component, all_outputs)
 
     call_order = [output_calls]
 
-    assert definition.init_spec is not None
+    if init_spec.metadata:
+        metadata = generate_metadata_calldata(
+            annotated_component, set(init_spec.metadata), gen_data
+        )
 
-    if definition.init_spec.takes_params:
+        call_order.append(metadata)
+
+    if init_spec.takes_params:
         json_data = f'{INPUT_JSON_NAME}["{component.name}"]'
         call_order.append(CallData(call_params=[json_data]))
 
-    call_path = f"{annotated_component.call_root}{definition.init_spec.init_call}"
+    call_path = f"{annotated_component.call_root}{init_spec.init_call}"
 
     return assemble_call_from(call_path, call_order)

@@ -13,7 +13,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
 def generate_init_call(struct_name: str, gen_data: GenerationMetadata) -> str:
 
     individual_init_calls = "\n".join(
-        generate_single_init_for(annotated)
+        generate_single_init_for(annotated, gen_data)
         for annotated in gen_data.annotated_components.values()
         if annotated.component.definition.init_spec is not None
     )
