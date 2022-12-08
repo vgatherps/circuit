@@ -2,6 +2,20 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Optional, Sequence
 
+# TODO PERF
+# I think we can do a FAR better job of annotating with restrict.
+# For all validity markers, they're modified in-call,
+# so we can just take references and mark restrict when needed
+
+# For objects/externals
+# probably want to take a restrict pointer to the objects class at the top
+# of the scope
+
+# For outputs:
+# If not modified in the call, can just use an output block with a restrict reference
+# If they are modified, am not personally that confident in restrict behaving well
+# when crossing a function boundary (i.e. getting passed to an opaque signal)
+
 
 @dataclass
 class ReturnValue:

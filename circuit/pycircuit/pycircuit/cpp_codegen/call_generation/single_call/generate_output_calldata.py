@@ -1,7 +1,6 @@
 from typing import Sequence, Set
 
 from pycircuit.circuit_builder.circuit import Component
-from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, ReturnValue
 from pycircuit.cpp_codegen.generation_metadata import AnnotatedComponent
 from pycircuit.cpp_codegen.type_names import (
@@ -19,7 +18,7 @@ def get_valid_path(component: AnnotatedComponent, output: str):
     if output_metadata.validity_index is None:
         return f"{component.component.name}_{output}_IV"
     else:
-        return f"outputs.is_valid[{output_metadata.validity_index}]"
+        return f"outputs_is_valid[{output_metadata.validity_index}]"
 
 
 def generate_is_valid_inits(

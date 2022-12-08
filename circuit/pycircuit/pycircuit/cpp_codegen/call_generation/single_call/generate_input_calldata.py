@@ -25,7 +25,7 @@ INPUT_NAME = "__input__"
 
 def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
     if c.parent == "external":
-        return f"externals.{c.output_name}"
+        return f"_externals.{c.output_name}"
     else:
         parent = meta.annotated_components[c.parent]
         if (
@@ -44,7 +44,7 @@ def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
 def get_valid_path_external(input: ComponentInput, gen_data: GenerationMetadata):
     if input.parent == "external":
         the_external = gen_data.circuit.external_inputs[input.output_name]
-        return f"externals.is_valid[{the_external.index}]"
+        return f"_externals.is_valid[{the_external.index}]"
     else:
         return get_valid_path(
             gen_data.annotated_components[input.parent], input.output_name

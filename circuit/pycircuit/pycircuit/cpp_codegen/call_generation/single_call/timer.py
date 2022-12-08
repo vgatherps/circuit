@@ -5,6 +5,7 @@ from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call impo
     generate_single_call,
 )
 from pycircuit.cpp_codegen.generation_metadata import (
+    LOCAL_DATA_LOAD_PREFIX,
     AnnotatedComponent,
     GenerationMetadata,
 )
@@ -51,11 +52,13 @@ def generate_timer_call_body_for(
         component,
         component.component.definition.timer_callback.call,
         gen_data,
-        postfix_args=["__timer_data__"],
     )
 
     return f"""
     {signature} {{
+
+{LOCAL_DATA_LOAD_PREFIX}
+
         {timer_callback}
         {all_children}
     }}

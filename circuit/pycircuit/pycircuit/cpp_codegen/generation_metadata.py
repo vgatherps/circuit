@@ -15,6 +15,12 @@ from pycircuit.cpp_codegen.call_generation.find_children_of import (
 )
 from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 
+LOCAL_DATA_LOAD_PREFIX = """
+Externals & __restrict _externals = externals;
+Objects & __restrict _objects = objects;
+auto & __restrict outputs_is_valid = outputs.is_valid;
+"""
+
 
 @dataclass
 class NonEphemeralData:
@@ -141,7 +147,7 @@ def generate_global_metadata(
             # TODO this is obviously wrong w.r.t. callsets
             call_root = f"{get_alias_for(component)}::"
         else:
-            object_name = f"objects.{component.name}"
+            object_name = f"_objects.{component.name}"
             call_root = f"{object_name}."
 
         output_metadata, validity_marker_count = generate_output_metadata_for(
