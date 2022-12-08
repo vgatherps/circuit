@@ -1,5 +1,6 @@
 from pycircuit.cpp_codegen.call_generation.init_generation.generate_single_init import (
-    generate_single_init_for, INPUT_JSON_NAME
+    INPUT_JSON_NAME,
+    generate_single_init_for,
 )
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
@@ -17,7 +18,7 @@ def generate_init_call(struct_name: str, gen_data: GenerationMetadata) -> str:
     # TODO what's the type of json
     return f"""
 {struct_name}::{struct_name}(nlohmann::json {INPUT_JSON_NAME})
- : externals(), outputs() {{
+ : externals(), outputs(), objects() {{
 {individual_init_calls}
 }}
 """

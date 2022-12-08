@@ -1,0 +1,1 @@
+target_sources(trade_pressure_lib PRIVATE decaying_sum.cc tick_aggregator.cc)

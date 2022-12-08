@@ -1,5 +1,8 @@
+import sys
+from dataclasses import dataclass
 from shutil import rmtree
 
+from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
     CallGroup,
     CircuitBuilder,
@@ -20,8 +23,13 @@ from pycircuit.trade_pressure.trade_pressure_config import (
 from .call_clang_format import call_clang_format
 from .tree_sum import tree_sum
 
-HEADER = "pressure.hh"
+HEADER = "pressure"
 STRUCT = "TradePressure"
+
+
+@dataclass
+class TradePressureOptions:
+    out_dir: str
 
 
 def generate_circuit_for_market_venue(
@@ -80,14 +88,22 @@ def generate_trade_pressure_circuit(
 # trigger the always-valid checks
 
 
+def generate_cmake_file(lib_name: str, cc_names) -> str:
+    ccs = " ".join(cc_names)
+    return f"""add_library({lib_name} {ccs})
+target_link_libraries({lib_name} PRIVATE cppcuit_lib nlohmann_json::nlohmann_json)"""
+
+
 def main():
+    args = ArgumentParser(TradePressureOptions).parse_args(sys.argv[1:])
+
+    out_dir = args.out_dir
     import os
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     definitions_str = open(f"{dir_path}/definitions.json").read()
     trade_pressure_str = open(f"{dir_path}/trade_pressure_config.json").read()
     loader_config_str = open(f"{dir_path}/loader.json").read()
-    out_dir = f"{dir_path}/example_gen"
     if os.path.exists(out_dir):
         rmtree(out_dir)
     os.mkdir(out_dir)
@@ -101,9 +117,12 @@ def main():
     generate_trade_pressure_circuit(circuit, trade_pressure)
 
     # This could be much better abstracted...
+    cc_names = []
     for (market, market_config) in trade_pressure.markets.items():
         for venue in market_config.venues.keys():
-            file_name = f"{out_dir}/{market}_{venue}_trades.cc"
+            local_name = f"{market}_{venue}_trades.cc"
+            cc_names.append(local_name)
+            file_name = f"{out_dir}/{local_name}"
             trades_call_name = f"{market}_{venue}_trades"
             content = generate_circuit_call(
                 CallStructOptions(
@@ -120,7 +139,7 @@ def main():
     struct_content = generate_circuit_struct_file(
         STRUCT, config=core_config, circuit=circuit
     )
-    with open(f"{out_dir}/{HEADER}", "w") as struct_file:
+    with open(f"{out_dir}/{HEADER}.hh", "w") as struct_file:
         struct_file.write(call_clang_format(struct_content))
 
     init_content = generate_circuit_init(
@@ -128,8 +147,14 @@ def main():
         config=core_config,
         circuit=circuit,
     )
+    cc_names.append("init.cc")
+
     with open(f"{out_dir}/init.cc", "w") as init_file:
         init_file.write(call_clang_format(init_content))
+
+    # TODO smarter parameterization
+    with open(f"{out_dir}/CMakeLists.txt", "w") as cmake_file:
+        cmake_file.write(generate_cmake_file(HEADER, cc_names))
 
 
 if __name__ == "__main__":

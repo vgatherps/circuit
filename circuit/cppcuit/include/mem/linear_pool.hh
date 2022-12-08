@@ -26,6 +26,7 @@ class LinearPoolStorage {
 
   void *add_blocks(std::size_t elem_size, std::size_t elem_alignment,
                    std::size_t block_count);
+
   void clear(Dtor destructor, std::size_t elem_size);
 
   // TODO add small free list to the front
@@ -65,7 +66,12 @@ class LinearPoolStorage {
 template <class T> class LinearPool {
   LinearPoolStorage storage;
 
+  static void destroy_t(void *v) {
+    T *t = reinterpret_cast<T *>(v);
+    t->~T();
+  }
+
 public:
   LinearPool() = default;
-  ~LinearPool() { storage.clear(); }
+  ~LinearPool() { storage.clear(destroy_t, sizeof(T)); }
 };

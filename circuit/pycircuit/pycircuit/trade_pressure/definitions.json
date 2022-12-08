@@ -13,7 +13,7 @@
             },
             "class_name": "AddComponent",
             "static_call": true,
-            "header": "basic_arithmetic.hh",
+            "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
                 "written_set": [],
                 "observes": [
@@ -43,7 +43,7 @@
             },
             "class_name": "SubComponent",
             "static_call": true,
-            "header": "basic_arithmetic.hh",
+            "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
                 "written_set": [],
                 "observes": [
@@ -73,7 +73,7 @@
             },
             "class_name": "MulComponent",
             "static_call": true,
-            "header": "basic_arithmetic.hh",
+            "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
                 "written_set": [],
                 "observes": [
@@ -103,7 +103,7 @@
             },
             "class_name": "DivComponent",
             "static_call": true,
-            "header": "basic_arithmetic.hh",
+            "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
                 "written_set": [],
                 "observes": [
@@ -141,6 +141,10 @@
             },
             "class_name": "SingleTickAggregator",
             "static_call": false,
+            "init_spec": {
+                "init_call": "Init",
+                "takes_params": true
+            },
             "header": "tick_aggregator.hh",
             "callsets": [
                 {

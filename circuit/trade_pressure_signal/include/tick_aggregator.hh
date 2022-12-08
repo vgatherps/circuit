@@ -20,6 +20,8 @@ struct Trade {
   bool is_last_event;
 };
 
+struct Tick {};
+
 // This part of the trade pressure signal aggregates the ticks per-market
 // and broadcasts an event whenever a 'tick' occurs
 //

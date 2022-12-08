@@ -1,4 +1,4 @@
-#include "signals/trade_pressure/tick_aggregator.hh"
+#include "tick_aggregator.hh"
 #include "math/fast_exp_64.hh"
 
 static double score_pricesize(double pricesize, double scale) {
