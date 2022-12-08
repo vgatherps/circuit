@@ -1,1 +1,1 @@
-add_library(mem_lib timer_queue.cc)
+target_sources(cppcuit_lib PRIVATE timer_queue.cc)

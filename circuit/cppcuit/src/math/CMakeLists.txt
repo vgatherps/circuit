@@ -1,1 +1,1 @@
-add_library(fast_exp_lib fast_exp_64.cc)
+target_sources(cppcuit_lib PRIVATE fast_exp_64.cc)
