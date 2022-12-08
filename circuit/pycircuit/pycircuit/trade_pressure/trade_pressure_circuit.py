@@ -4,6 +4,7 @@ from shutil import rmtree
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
+    TIME_TYPE,
     CallGroup,
     CircuitBuilder,
     CircuitData,
@@ -43,6 +44,7 @@ def generate_circuit_for_market_venue(
             "trade": circuit.get_external(trades_name, "Trade").output(),
             "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
             "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick").output(),
+            "time": circuit.get_external(f"time", TIME_TYPE).output(),
         },
     )
 

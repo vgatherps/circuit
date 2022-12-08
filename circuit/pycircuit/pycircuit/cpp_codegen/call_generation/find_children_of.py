@@ -37,7 +37,7 @@ def topologically_sort(
             if component.name in conservatively_called:
                 continue
 
-            if any(i.output() in used_outputs for i in component.triggering_inputs()):
+            if any(i.output() in used_outputs for i in component.inputs.values()):
                 potentially_written = {
                     ComponentOutput(parent=component.name, output=field)
                     for field in component.definition.outputs()

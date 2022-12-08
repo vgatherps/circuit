@@ -47,3 +47,21 @@ public:
     return top;
   }
 };
+
+class TimerHandle {
+  RawTimerQueue &queue;
+  void (*callback)(void *);
+
+public:
+  TimerHandle(RawTimerQueue &queue, void (*callback)(void *))
+      : queue(queue), callback(callback) {}
+
+  void schedule_call_at(std::uint64_t call_at_ns) {
+    RawTimerCall call = {
+        .callback = callback,
+        .call_at_ns = call_at_ns,
+    };
+
+    queue.add_event(call);
+  }
+};

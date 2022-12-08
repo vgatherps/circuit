@@ -8,6 +8,8 @@
 #include "cppcuit/side.hh"
 #include "cppcuit/signal_requirements.hh"
 
+#include "timer/timer_queue.hh"
+
 #include <nlohmann/json_fwd.hpp>
 
 struct Trade {
@@ -158,10 +160,12 @@ public:
     return outputs_valid;
   }
 
-  template <class O>
-    requires(HAS_REF_FIELD(O, NewTickScore, tick) &&
-             HAS_REF_FIELD(O, RunningTickScore, running))
-  OnTradeOutput init(O outputs, const nlohmann::json &j) {
+  template <class O, class M>
+    requires(HasTickRunning<O> && HAS_FIELD(M, TimerHandle, timer))
+  OnTradeOutput init(O outputs, M metadata, const nlohmann::json &) {
+    outputs.running = 0.0;
+    outputs.tick = 0.0;
+
     return {.tick = false};
   }
 };

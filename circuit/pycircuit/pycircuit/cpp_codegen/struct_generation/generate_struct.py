@@ -1,6 +1,9 @@
 from typing import List
 
 from pycircuit.circuit_builder.circuit import CircuitData, Component
+from pycircuit.cpp_codegen.call_generation.single_call.timer import (
+    generate_timer_signature,
+)
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
@@ -170,6 +173,12 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         generate_call_signature(call) + ";" for call in gen_data.call_endpoints
     )
 
+    timer_calls = "\n".join(
+        f"{generate_timer_signature(component)};"
+        for component in circuit.components.values()
+        if component.definition.timer_callback is not None
+    )
+
     return f"""
     struct {gen_data.struct_name} {{
         {usings}
@@ -183,8 +192,12 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {objects}
         Objects objects;
 
+        RawTimerQueue timer;
+
         {gen_data.struct_name}(nlohmann::json);
 
         {calls}
+
+        {timer_calls}
     }};
     """

@@ -1,10 +1,10 @@
 {
     "definitions": {
         "add": {
-            "input_specs": {
-                "a": {},
-                "b": {}
-            },
+            "inputs": [
+                "a",
+                "b"
+            ],
             "output_specs": {
                 "out": {
                     "ephemeral": true,
@@ -31,10 +31,10 @@
             }
         },
         "sub": {
-            "input_specs": {
-                "a": {},
-                "b": {}
-            },
+            "inputs": [
+                "a",
+                "b"
+            ],
             "output_specs": {
                 "out": {
                     "ephemeral": true,
@@ -61,10 +61,10 @@
             }
         },
         "mul": {
-            "input_specs": {
-                "a": {},
-                "b": {}
-            },
+            "inputs": [
+                "a",
+                "b"
+            ],
             "output_specs": {
                 "out": {
                     "ephemeral": true,
@@ -91,10 +91,10 @@
             }
         },
         "div": {
-            "input_specs": {
-                "a": {},
-                "b": {}
-            },
+            "inputs": [
+                "a",
+                "b"
+            ],
             "output_specs": {
                 "out": {
                     "ephemeral": true,
@@ -121,13 +121,12 @@
             }
         },
         "tick_aggregator": {
-            "input_specs": {
-                "trade": {},
-                "tick": {},
-                "fair": {
-                    "non_triggering": true
-                }
-            },
+            "inputs": [
+                "trade",
+                "tick",
+                "fair",
+                "time"
+            ],
             "output_specs": {
                 "running": {
                     "ephemeral": false,
@@ -143,7 +142,17 @@
             "static_call": false,
             "init_spec": {
                 "init_call": "init",
-                "takes_params": true
+                "takes_params": true,
+                "metadata": [
+                    "timer"
+                ]
+            },
+            "timer_callback": {
+                "observes": [
+                    "time"
+                ],
+                "written_set": [],
+                "callback": "decay"
             },
             "header": "tick_aggregator.hh",
             "callsets": [

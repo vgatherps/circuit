@@ -60,13 +60,6 @@ class Component:
     name: str
     index: int
 
-    def triggering_inputs(self) -> List[ComponentInput]:
-        return [
-            comp_input
-            for (input, comp_input) in self.inputs.items()
-            if not self.definition.d_input_specs[input].non_triggering
-        ]
-
     def output(self, which=None) -> ComponentOutput:
         if which is None:
             n_outputs = len(self.definition.output_specs)
@@ -106,6 +99,9 @@ class Component:
         for input in self.definition.inputs:
             if input not in self.inputs:
                 raise ValueError(f"Component {self.name} is missing input {input}")
+
+    def triggering_inputs(self) -> List[ComponentInput]:
+        return [self.inputs[inp] for inp in self.definition.triggering_inputs()]
 
 
 @dataclass
@@ -205,9 +201,11 @@ class CircuitBuilder(CircuitData):
 
     def get_external(self, name: str, type: str) -> ExternalInput:
         if name in self.external_inputs:
-            ext = self.external_inputs[type]
-            if type !=ext.type:
-                raise ValueError(f"External {name} requested with type {type} but already has type {ext.type}")
+            ext = self.external_inputs[name]
+            if type != ext.type:
+                raise ValueError(
+                    f"External {name} requested with type {type} but already has type {ext.type}"
+                )
             return ext
         ext = ExternalInput(type=type, name=name, index=self.running_external)
         self.running_external += 1

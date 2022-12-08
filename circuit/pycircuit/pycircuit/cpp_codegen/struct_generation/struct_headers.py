@@ -2,7 +2,7 @@ from typing import Set
 
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
-DEFAULT_HEADERS = ["optional_reference.hh"]
+DEFAULT_HEADERS = ["cppcuit/optional_reference.hh", "timer/timer_queue.hh"]
 STD_HEADERS = ["type_traits", "cstdint", "nlohmann/json_fwd.hpp"]
 
 

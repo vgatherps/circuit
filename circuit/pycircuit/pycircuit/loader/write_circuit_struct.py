@@ -39,9 +39,7 @@ def generate_circuit_struct_file(
 
     signal_includes = "\n".join(f'#include "{header}"' for header in signal_headers)
 
-    default_includes = "\n".join(
-        f'#include "{config.root_cppcuit_path}/{header}"' for header in DEFAULT_HEADERS
-    )
+    default_includes = "\n".join(f'#include "{header}"' for header in DEFAULT_HEADERS)
 
     std_includes = "\n".join(f"#include <{header}>" for header in STD_HEADERS)
 

@@ -47,7 +47,7 @@ GENERIC_CALLSET = CallSpec(
 
 def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
     return Definition(
-        input_specs=frozendict(
+        inputs=frozendict(
             {
                 "a": InputSpec(),
                 "b": InputSpec(),

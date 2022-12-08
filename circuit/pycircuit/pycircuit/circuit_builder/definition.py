@@ -48,17 +48,6 @@ class CallSpec(DataClassJsonMixin):
 
 
 @dataclass(eq=True, frozen=True)
-class PingInfo(DataClassJsonMixin):
-    ping_with_type: str
-    call: CallSpec
-
-
-@dataclass(eq=True, frozen=True)
-class InputSpec(DataClassJsonMixin):
-    non_triggering: bool = False
-
-
-@dataclass(eq=True, frozen=True)
 class OutputSpec(DataClassJsonMixin):
     ephemeral: bool
     type_path: str
@@ -76,13 +65,13 @@ class InitSpec(DataClassJsonMixin):
 
 @dataclass(eq=True, frozen=True)
 class Definition(DataClassJsonMixin):
-    input_specs: frozendict[str, InputSpec]
+    inputs: frozenset[str]
     output_specs: frozendict[str, OutputSpec]
     class_name: str
 
     header: str
 
-    timer_callback: Optional[PingInfo] = None
+    timer_callback: Optional[CallSpec] = None
 
     # This call is triggered if the written input set does not match
     # any specific triggerset
@@ -106,7 +95,7 @@ class Definition(DataClassJsonMixin):
 
     def validate_generics(self):
         for key in self.generics_order:
-            assert key in self.input_specs, "Generic input is not real input"
+            assert key in self.inputs, "Generic input is not real input"
 
         assert len(set(self.generics_order)) == len(
             self.generics_order
@@ -118,7 +107,7 @@ class Definition(DataClassJsonMixin):
                 f"A callset if both skippable but has outputs {callset.outputs} for {self.class_name}"
             )
         for written in callset.written_set:
-            if written not in self.input_specs:
+            if written not in self.inputs:
                 raise ValueError(
                     f"Written observable {written} in {self.class_name} is not an input"
                 )
@@ -130,7 +119,7 @@ class Definition(DataClassJsonMixin):
                 )
 
         for observed in callset.observes:
-            if observed not in self.input_specs:
+            if observed not in self.inputs:
                 raise ValueError(
                     f"Observable {observed} in {self.class_name} is not an input"
                 )
@@ -141,11 +130,11 @@ class Definition(DataClassJsonMixin):
 
     def validate_timer(self):
         if self.timer_callback is not None:
-            if self.timer_callback.call.skippable:
+            if self.timer_callback.skippable:
                 raise ValueError(
                     f"Signal {self.class_name} has a skippable timer callback"
                 )
-            self.validate_a_callset(self.timer_callback.call)
+            self.validate_a_callset(self.timer_callback)
 
     def validate(self):
         self.validate_generics()
@@ -155,25 +144,17 @@ class Definition(DataClassJsonMixin):
     def outputs(self) -> List[str]:
         return list(self.output_specs.keys())
 
+    def triggering_inputs(self) -> Set[str]:
+        triggering = set()
+
+        for callset in self.callsets:
+            triggering |= set(callset.written_set)
+
+        return triggering
+
     @property
     def d_output_specs(self) -> Dict[str, OutputSpec]:
         return self.output_specs
-
-    @property
-    def d_input_specs(self) -> Dict[str, InputSpec]:
-        return self.input_specs
-
-    @property
-    def inputs(self) -> Set[str]:
-        return set(self.input_specs.keys())
-
-    @property
-    def triggering_inputs(self) -> Set[str]:
-        return set(
-            input
-            for (input, spec) in self.d_input_specs.items()
-            if not spec.non_triggering
-        )
 
 
 @dataclass
