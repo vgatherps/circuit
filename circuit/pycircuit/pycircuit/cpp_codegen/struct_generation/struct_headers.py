@@ -3,7 +3,7 @@ from typing import Set
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
 DEFAULT_HEADERS = ["optional_reference.hh"]
-STD_HEADERS = ["type_traits"]
+STD_HEADERS = ["type_traits", "nlohmann/json_fwd.hpp"]
 
 
 def get_struct_headers_for(gen_data: GenerationMetadata) -> Set[str]:

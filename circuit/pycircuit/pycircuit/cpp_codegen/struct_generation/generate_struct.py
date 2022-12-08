@@ -120,6 +120,8 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {output}
         Outputs outputs;
 
+        {gen_data.struct_name}(nlohman::json);
+
         {calls}
     }};
     """

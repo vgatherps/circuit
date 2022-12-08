@@ -10,6 +10,8 @@ from pycircuit.cpp_codegen.call_generation.init_generation.generate_init_call im
 from pycircuit.cpp_codegen.generation_metadata import generate_global_metadata
 from pycircuit.loader.loader_config import CoreLoaderConfig
 
+INCLUDES = ["nlohmann/json.hpp"]
+
 
 @dataclass
 class CallOptions:
@@ -35,11 +37,12 @@ def generate_circuit_call(
     init_str = generate_init_call(struct_options.struct_name, gen_metadata)
 
     struct_include = f'#include "{struct_options.struct_header}.hh"'
-
+    default_includes = "\n".join(f"#include <{inc}>" for inc in INCLUDES)
     return f"""
-        {struct_include}
+{default_includes}
+{struct_include}
     
-        {init_str}
+{init_str}
     """
 
 
