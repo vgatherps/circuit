@@ -142,7 +142,7 @@
             "class_name": "SingleTickAggregator",
             "static_call": false,
             "init_spec": {
-                "init_call": "Init",
+                "init_call": "init",
                 "takes_params": true
             },
             "header": "tick_aggregator.hh",

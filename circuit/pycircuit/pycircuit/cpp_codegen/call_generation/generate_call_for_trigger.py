@@ -8,6 +8,9 @@ from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
     generate_call_signature,
 )
+from pycircuit.cpp_codegen.call_generation.generate_extra_valid_vars import (
+    generate_extra_validity_references,
+)
 
 
 def generate_external_call_body_for(
@@ -15,6 +18,7 @@ def generate_external_call_body_for(
 ) -> str:
 
     children_for_call = find_all_children_of(meta.triggered, gen_data.circuit)
+    extra_validity = generate_extra_validity_references(children_for_call, gen_data)
     all_children = "\n".join(
         generate_single_call(
             gen_data.annotated_components[called_component.component.name],
@@ -29,6 +33,7 @@ def generate_external_call_body_for(
     return f"""
     {signature} {{
 {LOCAL_DATA_LOAD_PREFIX}
+{extra_validity}
 {all_children}
     }}
     """

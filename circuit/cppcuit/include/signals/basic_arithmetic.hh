@@ -14,7 +14,7 @@ public:
   template <class I, class O>
     requires HAS_OPT_REF(I, A, a) && HAS_OPT_REF(I, B, b) &&
              HAS_REF_FIELD(O, Output, out)
-  static bool call(I inputs, Output &o) {
+  static bool call(I inputs, O &o) {
     if (inputs.a.valid() && inputs.b.valid()) {
       o.out = Op::call(*inputs.a, *inputs.b);
       return true;

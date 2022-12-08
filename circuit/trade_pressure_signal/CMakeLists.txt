@@ -5,6 +5,7 @@ project(trade_pressure_signal VERSION 0.1.0)
 
 include(CTest)
 include(FetchContent)
+
 set(JSON_MultipleHeaders ON)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_MakeAvailable(json)
@@ -18,9 +19,9 @@ include_directories(codegen)
 
 add_library(trade_pressure_lib "")
 
+target_link_libraries(trade_pressure_lib PRIVATE cppcuit_lib)
+target_link_libraries(trade_pressure_lib PRIVATE pressure_lib)
+target_link_libraries(trade_pressure_lib PRIVATE nlohmann_json::nlohmann_json)
+
 add_subdirectory(src)
 add_subdirectory(codegen/trade_pressure)
-
-target_link_libraries(trade_pressure_lib cppcuit_lib)
-target_link_libraries(trade_pressure_lib pressure_lib)
-target_link_libraries(trade_pressure_lib json)

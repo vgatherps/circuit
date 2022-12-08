@@ -1,5 +1,6 @@
 from pycircuit.cpp_codegen.call_generation.find_children_of import (
     find_all_children_of_from_outputs,
+    CalledComponent,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call import (
     generate_single_call,
@@ -8,6 +9,9 @@ from pycircuit.cpp_codegen.generation_metadata import (
     LOCAL_DATA_LOAD_PREFIX,
     AnnotatedComponent,
     GenerationMetadata,
+)
+from pycircuit.cpp_codegen.call_generation.generate_extra_valid_vars import (
+    generate_extra_validity_references,
 )
 
 
@@ -37,6 +41,14 @@ def generate_timer_call_body_for(
 
     children_for_call = find_all_children_of_from_outputs(gen_data.circuit, all_outputs)
 
+    first_called = CalledComponent(
+        component=component.component,
+        callset=component.component.definition.timer_callback.call,
+    )
+    extra_validity = generate_extra_validity_references(
+        [first_called] + children_for_call, gen_data
+    )
+
     all_children = "\n".join(
         generate_single_call(
             gen_data.annotated_components[child_component.component.name],
@@ -58,6 +70,7 @@ def generate_timer_call_body_for(
     {signature} {{
 
 {LOCAL_DATA_LOAD_PREFIX}
+{extra_validity}
 
         {timer_callback}
         {all_children}

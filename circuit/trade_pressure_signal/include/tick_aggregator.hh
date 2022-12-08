@@ -8,6 +8,8 @@
 #include "cppcuit/side.hh"
 #include "cppcuit/signal_requirements.hh"
 
+#include <nlohmann/json_fwd.hpp>
+
 struct Trade {
   double price, size;
   std::uint64_t exchange_time_ns;
@@ -95,10 +97,10 @@ public:
   // REQUIRED TODOS FOR THIS ONE:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
-  requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
-           HAS_REF_FIELD(O, NewTickScore, tick) &&
-           HAS_REF_FIELD(O, RunningTickScore, running)) OnTradeOutput
-      on_trade(I inputs, O outputs) {
+    requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
+             HAS_REF_FIELD(O, NewTickScore, tick) &&
+             HAS_REF_FIELD(O, RunningTickScore, running))
+  OnTradeOutput on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};
 
@@ -109,7 +111,7 @@ public:
 
     if (inputs.trade.valid()) [[likely]] {
 
-      Trade &trade = *inputs.trade;
+      const Trade &trade = *inputs.trade;
 
       // we only do the real computation if the fair is valid, but as a safety
       // check, forward ticks regardless
@@ -135,9 +137,9 @@ public:
   // Takes a dummy tick input
   // Sets running score to zero and potentially outputs a current tick
   template <class I, class O>
-  requires(HAS_OPT_REF(I, double, tick) && HAS_REF_FIELD(O, double, tick) &&
-           HAS_REF_FIELD(O, double, running)) OnTradeOutput
-      on_end_tick(I inputs, O outputs) {
+    requires(HAS_OPT_REF(I, double, tick) && HAS_REF_FIELD(O, double, tick) &&
+             HAS_REF_FIELD(O, double, running))
+  OnTradeOutput on_end_tick(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid;
 
@@ -151,5 +153,12 @@ public:
     outputs.running = 0;
 
     return outputs_valid;
+  }
+
+  template <class O>
+    requires(HAS_REF_FIELD(O, NewTickScore, tick) &&
+             HAS_REF_FIELD(O, RunningTickScore, running))
+  OnTradeOutput init(O outputs, const nlohmann::json &j) {
+    return {.tick = false};
   }
 };
