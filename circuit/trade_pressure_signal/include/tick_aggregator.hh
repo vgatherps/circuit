@@ -87,6 +87,11 @@ public:
   using RunningTickScore = double;
   using NewTickScore = double;
 
+  template <class O>
+  constexpr static bool HasTickRunning =
+      HAS_REF_FIELD(O, NewTickScore, tick) &&
+      HAS_REF_FIELD(O, RunningTickScore, running);
+
   struct OnTradeOutput {
     bool tick;
   };
@@ -98,8 +103,7 @@ public:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
     requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
-             HAS_REF_FIELD(O, NewTickScore, tick) &&
-             HAS_REF_FIELD(O, RunningTickScore, running))
+             HasTickRunning<O>)
   OnTradeOutput on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};
@@ -137,8 +141,7 @@ public:
   // Takes a dummy tick input
   // Sets running score to zero and potentially outputs a current tick
   template <class I, class O>
-    requires(HAS_OPT_REF(I, double, tick) && HAS_REF_FIELD(O, double, tick) &&
-             HAS_REF_FIELD(O, double, running))
+    requires(HAS_OPT_REF(I, double, tick) && HasTickRunning<O>)
   OnTradeOutput on_end_tick(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid;
