@@ -28,7 +28,7 @@ class InitStructOptions:
     struct_header: str
 
 
-def generate_circuit_call(
+def generate_circuit_init(
     struct_options: InitStructOptions, config: CoreLoaderConfig, circuit: CircuitData
 ) -> str:
 
@@ -58,7 +58,7 @@ def main():
         struct_name=args.struct_name,
     )
 
-    print(generate_circuit_call(struct, config, circuit))
+    print(generate_circuit_init(struct, config, circuit))
 
 
 if __name__ == "__main__":

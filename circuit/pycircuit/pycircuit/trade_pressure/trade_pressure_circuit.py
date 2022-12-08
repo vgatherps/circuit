@@ -1,3 +1,5 @@
+from shutil import rmtree
+
 from pycircuit.circuit_builder.circuit import (
     CallGroup,
     CircuitBuilder,
@@ -7,15 +9,15 @@ from pycircuit.circuit_builder.circuit import (
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.loader.loader_config import CoreLoaderConfig
 from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circuit_call
+from pycircuit.loader.write_circuit_init import InitStructOptions, generate_circuit_init
 from pycircuit.loader.write_circuit_struct import generate_circuit_struct_file
-
-core_confog = CoreLoaderConfig
 from pycircuit.trade_pressure.trade_pressure_config import (
     TradePressureConfig,
     TradePressureMarketConfig,
     TradePressureVenueConfig,
 )
 
+from .call_clang_format import call_clang_format
 from .tree_sum import tree_sum
 
 HEADER = "pressure.hh"
@@ -87,7 +89,7 @@ def main():
     loader_config_str = open(f"{dir_path}/loader.json").read()
     out_dir = f"{dir_path}/example_gen"
     if os.path.exists(out_dir):
-        os.rmdir(out_dir)
+        rmtree(out_dir)
     os.mkdir(out_dir)
 
     definitions = Definitions.from_json(definitions_str)
@@ -98,6 +100,7 @@ def main():
 
     generate_trade_pressure_circuit(circuit, trade_pressure)
 
+    # This could be much better abstracted...
     for (market, market_config) in trade_pressure.markets.items():
         for venue in market_config.venues.keys():
             file_name = f"{out_dir}/{market}_{venue}_trades.cc"
@@ -112,7 +115,21 @@ def main():
                 circuit=circuit,
             )
             with open(file_name, "w") as write_to:
-                write_to.write(content)
+                write_to.write(call_clang_format(content))
+
+    struct_content = generate_circuit_struct_file(
+        STRUCT, config=core_config, circuit=circuit
+    )
+    with open(f"{out_dir}/{HEADER}", "w") as struct_file:
+        struct_file.write(call_clang_format(struct_content))
+
+    init_content = generate_circuit_init(
+        InitStructOptions(struct_name=STRUCT, struct_header=HEADER),
+        config=core_config,
+        circuit=circuit,
+    )
+    with open(f"{out_dir}/init.cc", "w") as init_file:
+        init_file.write(call_clang_format(init_content))
 
 
 if __name__ == "__main__":
