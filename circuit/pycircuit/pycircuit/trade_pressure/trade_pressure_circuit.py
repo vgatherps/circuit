@@ -18,6 +18,9 @@ from pycircuit.trade_pressure.trade_pressure_config import (
 
 from .tree_sum import tree_sum
 
+HEADER = "pressure.hh"
+STRUCT = "TradePressure"
+
 
 def generate_circuit_for_market_venue(
     circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
@@ -82,6 +85,11 @@ def main():
     definitions_str = open(f"{dir_path}/definitions.json").read()
     trade_pressure_str = open(f"{dir_path}/trade_pressure_config.json").read()
     loader_config_str = open(f"{dir_path}/loader.json").read()
+    out_dir = f"{dir_path}/example_gen"
+    if os.path.exists(out_dir):
+        os.rmdir(out_dir)
+    os.mkdir(out_dir)
+
     definitions = Definitions.from_json(definitions_str)
     trade_pressure = TradePressureConfig.from_json(trade_pressure_str)
     core_config = CoreLoaderConfig.from_json(loader_config_str)
@@ -90,17 +98,21 @@ def main():
 
     generate_trade_pressure_circuit(circuit, trade_pressure)
 
-    a_call_str = generate_circuit_call(
-        CallStructOptions(
-            struct_name="pressure",
-            struct_header="pressure.hh",
-            call_name="SPY_BATS_trades",
-        ),
-        config=core_config,
-        circuit=circuit,
-    )
-
-    print(a_call_str)
+    for (market, market_config) in trade_pressure.markets.items():
+        for venue in market_config.venues.keys():
+            file_name = f"{out_dir}/{market}_{venue}_trades.cc"
+            trades_call_name = f"{market}_{venue}_trades"
+            content = generate_circuit_call(
+                CallStructOptions(
+                    struct_name=STRUCT,
+                    struct_header=HEADER,
+                    call_name=trades_call_name,
+                ),
+                config=core_config,
+                circuit=circuit,
+            )
+            with open(file_name, "w") as write_to:
+                write_to.write(content)
 
 
 if __name__ == "__main__":
