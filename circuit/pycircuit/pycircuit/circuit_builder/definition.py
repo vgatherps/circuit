@@ -90,11 +90,18 @@ class OutputSpec(DataClassJsonMixin):
         always_valid: Whether the output can always be considered valid. This implies
                       that the components will not be able to set validity,
                       and as an optimization, pycircuit can statically mark as valid
+
+        assume_invalid: Whether the output can be assumed invalid at the start of each
+                        call. This saves storage in validity space, in addition to impacting
+                        correctness for edge-triggered outputs. If an output is ephemeral
+                        and can always be assumed invalid, it will be default-constructed
+                        as an invalid variable in trees where it is not written.
     """
 
     ephemeral: bool
     type_path: str
     always_valid: bool = False
+    assume_invalid: bool = False
 
     # TODO invalid_unless_written
     # for something like tick - implies that it should be considered invalid
@@ -233,9 +240,17 @@ class Definition(DataClassJsonMixin):
                 )
             self.validate_a_callset(self.timer_callset)
 
+    def validate_outputs(self):
+        for (output, output_spec) in self.d_output_specs.items():
+            if output_spec.always_valid and output_spec.assume_invalid:
+                raise ValueError(
+                    f"Output {output} of {self.class_name} is both always_valid and assumed to be invalid"
+                )
+
     def validate(self):
         self.validate_generics()
         self.validate_callsets()
+        self.validate_outputs()
         self.validate_timer()
 
     def outputs(self) -> List[str]:
