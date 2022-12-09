@@ -134,7 +134,8 @@
                 },
                 "tick": {
                     "ephemeral": true,
-                    "type_path": "NewTickScore"
+                    "type_path": "NewTickScore",
+                    "assume_invalid": true
                 }
             },
             "class_name": "SingleTickAggregator",
@@ -207,7 +208,7 @@
                     ]
                 }
             ],
-            "timer_callback": {
+            "timer_callset": {
                 "written_set": [],
                 "observes": [
                     "time"

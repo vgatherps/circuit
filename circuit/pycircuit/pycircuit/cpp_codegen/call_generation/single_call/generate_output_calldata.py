@@ -28,6 +28,7 @@ def generate_is_valid_inits(
     is_valid_init_lines = []
 
     for output in used_outputs:
+        # This is already correct for always-invalid outputs
         output_metadata = annotated_component.output_data[output]
         if output_metadata.validity_index is None:
             if annotated_component.component.definition.d_output_specs[

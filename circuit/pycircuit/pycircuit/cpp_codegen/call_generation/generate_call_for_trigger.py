@@ -18,12 +18,21 @@ def generate_external_call_body_for(
 ) -> str:
 
     children_for_call = find_all_children_of(meta.triggered, gen_data.circuit)
+
+    # Dedup a bit here
+    all_outputs = {
+        child.component.output(output)
+        for child in children_for_call
+        for output in child.callset.outputs
+    }
+
     extra_validity = generate_extra_validity_references(children_for_call, gen_data)
     all_children = "\n".join(
         generate_single_call(
             gen_data.annotated_components[called_component.component.name],
             called_component.callset,
             gen_data,
+            all_outputs,
         )
         for called_component in children_for_call
     )

@@ -1,6 +1,6 @@
 from typing import List, Set
 
-from pycircuit.circuit_builder.circuit import Component, ComponentOutput
+from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentOutput
 from pycircuit.cpp_codegen.call_generation.find_children_of import CalledComponent
 
 
@@ -17,7 +17,7 @@ def is_ephemeral(
         must_store = False
 
     return (
-        component_output not in non_ephemeral_outputs
+        (component_output not in non_ephemeral_outputs or output_data.assume_invalid)
         and not must_store
         and output_data.ephemeral
     )
@@ -29,6 +29,11 @@ def find_nonephemeral_outputs(
     own_component_names = {
         called_component.component.name for called_component in called_components
     }
+
+    # Filter out always-invalid outputs. They're ephemeral
+    # TODO this is a hack, this filtering here is depended upon in a spaghetti-like fashion
+    # throughout the codebase to ensure that invalidity always works.
+
     non_ephemeral_outputs = set()
     for called_component in called_components:
 

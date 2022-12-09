@@ -1,4 +1,6 @@
-from pycircuit.circuit_builder.circuit import ComponentInput
+from typing import Set
+
+from pycircuit.circuit_builder.circuit import ComponentInput, ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData
 from pycircuit.cpp_codegen.call_generation.callset import get_inputs_for_callset
@@ -22,23 +24,35 @@ from pycircuit.cpp_codegen.type_names import get_type_name_for_input
 INPUT_STRUCT_NAME = "__INPUT__"
 INPUT_NAME = "__input__"
 
+# TODO main thing we must do - figure out if an output is:
+# 1. ephemeral
+# 2. assume_invalid
+# 3. not written this cycle.
+#
+# If so, then we just initialize the input with a nullptr
 
-def get_parent_name(c: ComponentInput, meta: GenerationMetadata) -> str:
+
+def get_parent_name(
+    c: ComponentInput, meta: GenerationMetadata, written_outputs: Set[ComponentOutput]
+) -> str:
     if c.parent == "external":
         return f"_externals.{c.output_name}"
     else:
         parent = meta.annotated_components[c.parent]
-        if (
-            meta.annotated_components[c.parent]
-            .output_data[c.output_name]
-            .is_value_ephemeral
-        ):
-            root_name = f"{parent.component.name}_{c.output_name}_EV__"
+
+        output_spec = parent.output_data[c.output_name]
+        if output_spec.is_value_ephemeral:
+            output_def = parent.component.definition.d_output_specs[c.output_name]
+            if output_def.assume_invalid and c.output() not in written_outputs:
+                root_name = "nullptr"
+            else:
+                root_name = f"{parent.component.name}_{c.output_name}_EV__"
+
         else:
             # TODO post-refactor nest this struct
             root_name = f"outputs.{c.parent}_{c.output_name}"
 
-        return f"{root_name}"
+        return root_name
 
 
 def get_valid_path_external(input: ComponentInput, gen_data: GenerationMetadata):
@@ -59,6 +73,7 @@ def generate_input_calldata(
     annotated_component: AnnotatedComponent,
     callset: CallSpec,
     gen_data: GenerationMetadata,
+    all_written: Set[ComponentOutput],
 ) -> CallData:
     # TODO How to deal with generics? Can/should just do in order
 
@@ -66,7 +81,7 @@ def generate_input_calldata(
 
     inputs = get_inputs_for_callset(callset, component)
 
-    input_names = [f"{get_parent_name(c, gen_data)}" for c in inputs]
+    input_names = [f"{get_parent_name(c, gen_data, all_written)}" for c in inputs]
 
     all_type_names = [get_type_name_for_input(component, c.input_name) for c in inputs]
 

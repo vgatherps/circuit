@@ -3,7 +3,7 @@ from pycircuit.cpp_codegen.call_generation.find_children_of import (
     CalledComponent,
     find_all_children_of_from_outputs,
 )
-from pycircuit.cpp_codegen.call_generation.generate_extra_valid_vars import (
+from pycircuit.cpp_codegen.call_generation.generate_extra_vars import (
     generate_extra_validity_references,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call import (
@@ -38,11 +38,19 @@ def generate_timer_call_body_for(
             f"Component {component.name} of type {component.definition.class_name} has no timer callback"
         )
 
-    all_outputs = {
+    all_outputs_of_timer = {
         component.output(which) for which in component.definition.timer_callset.outputs
     }
 
-    children_for_call = find_all_children_of_from_outputs(gen_data.circuit, all_outputs)
+    children_for_call = find_all_children_of_from_outputs(
+        gen_data.circuit, all_outputs_of_timer
+    )
+
+    all_outputs = all_outputs_of_timer | {
+        child.component.output(output)
+        for child in children_for_call
+        for output in child.callset.outputs
+    }
 
     first_called = CalledComponent(
         component=component,
@@ -57,6 +65,7 @@ def generate_timer_call_body_for(
             gen_data.annotated_components[child_component.component.name],
             child_component.callset,
             gen_data,
+            all_outputs,
         )
         for child_component in children_for_call
     )
@@ -64,9 +73,7 @@ def generate_timer_call_body_for(
     signature = generate_timer_signature(component, prefix=f"{gen_data.struct_name}::")
 
     timer_callback = generate_single_call(
-        annotated_component,
-        component.definition.timer_callset,
-        gen_data,
+        annotated_component, component.definition.timer_callset, gen_data, all_outputs
     )
 
     return f"""

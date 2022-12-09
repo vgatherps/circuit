@@ -81,11 +81,22 @@ class Component:
 
         self.definition.validate()
 
-        for output in self.output_options:
+        for (output, output_options) in self.output_options.items():
             if output not in self.definition.output_specs:
                 raise ValueError(
                     f"Component {self.name} has output options for {output} which is not an output"
                 )
+
+            # TODO maybe we preserve this with the same mechanism cantor did
+            # allow a callback to be done intra-invalidate?
+            # feels dodgy, like this one better. almost always the right thing
+            if output_options.force_stored:
+                # Could let this pass if the output happens to not be ephemeral, but imo
+                # that's asking for magic troubles down the line
+                if self.definition.d_output_specs[output].assume_invalid:
+                    raise ValueError(
+                        f"Component {self.name} requested output {output} be stored, despite being assumed_invalid"
+                    )
 
         for (input, comp_input) in self.inputs.items():
             # this really only possible via api misuse, no point in real exception

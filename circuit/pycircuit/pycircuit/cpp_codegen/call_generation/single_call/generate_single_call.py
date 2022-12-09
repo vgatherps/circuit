@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Set
 
+from pycircuit.circuit_builder.circuit import ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, assemble_call_from
 from pycircuit.cpp_codegen.call_generation.single_call.generate_input_calldata import (
@@ -21,6 +22,7 @@ def generate_single_call(
     annotated_component: AnnotatedComponent,
     callset: CallSpec,
     gen_data: GenerationMetadata,
+    all_written: Set[ComponentOutput],
 ) -> str:
     if callset.callback is None:
         raise ValueError("Call generation called for a callset with no callback")
@@ -28,7 +30,9 @@ def generate_single_call(
     call_data = []
 
     if callset.inputs():
-        input_data = generate_input_calldata(annotated_component, callset, gen_data)
+        input_data = generate_input_calldata(
+            annotated_component, callset, gen_data, all_written
+        )
         call_data.append(input_data)
 
     if callset.outputs:
