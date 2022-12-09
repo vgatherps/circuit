@@ -35,7 +35,7 @@ def test_single_validity_deconstruction_nonephemeral():
     deconstructed_valid = deconstruct_valid_output(annotated, {OUT_B})
     assert (
         deconstructed_valid
-        == f"outputs.is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME};"
+        == f"outputs_is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME};"
     )
 
 
@@ -53,7 +53,7 @@ def test_both_validity_deconstruction():
     deconstructed_valid = deconstruct_valid_output(annotated, [OUT_B, OUT_A])
     assert (
         deconstructed_valid
-        == f"""outputs.is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME}.{OUT_B};
+        == f"""outputs_is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME}.{OUT_B};
 {COMPONENT_NAME}_{OUT_A}_IV = {VALID_DATA_NAME}.{OUT_A};"""
     )
 
@@ -65,6 +65,6 @@ def test_multi_validity_deconstruction_always_valid(is_c_ephemeral):
     deconstructed_valid = deconstruct_valid_output(annotated, [OUT_C, OUT_B, OUT_A])
     assert (
         deconstructed_valid
-        == f"""outputs.is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME}.{OUT_B};
+        == f"""outputs_is_valid[{OUT_B_VALID_INDEX}] = {VALID_DATA_NAME}.{OUT_B};
 {COMPONENT_NAME}_{OUT_A}_IV = {VALID_DATA_NAME}.{OUT_A};"""
     )

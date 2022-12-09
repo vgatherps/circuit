@@ -4,7 +4,6 @@ from pycircuit.circuit_builder.definition import (
     CallSpec,
     Definition,
     InitSpec,
-    InputSpec,
     OutputSpec,
 )
 from pycircuit.cpp_codegen.generation_metadata import AnnotatedComponent, OutputMetadata
@@ -47,12 +46,12 @@ GENERIC_CALLSET = CallSpec(
 
 def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
     return Definition(
-        inputs=frozendict(
-            {
-                "a": InputSpec(),
-                "b": InputSpec(),
-                "c": InputSpec(),
-            }
+        inputs=frozenset(
+            [
+                "a",
+                "b",
+                "c",
+            ]
         ),
         output_specs=frozendict(
             {
