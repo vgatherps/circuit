@@ -1,6 +1,7 @@
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
 from pycircuit.cpp_codegen.call_generation.generate_extra_vars import (
+    generate_default_value_generators,
     generate_extra_validity_references,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call import (
@@ -27,6 +28,10 @@ def generate_external_call_body_for(
     }
 
     extra_validity = generate_extra_validity_references(children_for_call, gen_data)
+    default_values = generate_default_value_generators(
+        children_for_call, gen_data, all_outputs
+    )
+
     all_children = "\n".join(
         generate_single_call(
             gen_data.annotated_components[called_component.component.name],
@@ -43,6 +48,7 @@ def generate_external_call_body_for(
     {signature} {{
 {LOCAL_DATA_LOAD_PREFIX}
 {extra_validity}
+{default_values}
 {all_children}
     }}
     """

@@ -1,8 +1,10 @@
-from typing import List
+from typing import List, Set
 
+from pycircuit.circuit_builder.circuit import ComponentOutput
 from pycircuit.circuit_builder.definition import OutputSpec
 from pycircuit.cpp_codegen.call_generation.find_children_of import CalledComponent
 from pycircuit.cpp_codegen.call_generation.single_call.generate_output_calldata import (
+    generate_output_init,
     get_valid_path,
 )
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
@@ -57,3 +59,44 @@ def generate_extra_validity_references(
     ]
 
     return "\n".join(static_valid_defs + static_invalid_defs)
+
+
+def generate_default_value_generators(
+    children_for_call: List[CalledComponent],
+    metadata: GenerationMetadata,
+    written_outputs: Set[ComponentOutput],
+) -> str:
+    requested_inputs = [
+        child.component.inputs[input]
+        for child in children_for_call
+        for input in child.callset.written_set | child.callset.observes
+    ]
+
+    unwritten_inputs = [
+        input
+        for input in requested_inputs
+        if input.output() not in written_outputs and input.parent != "external"
+    ]
+
+    annotated_unwritten = [
+        (input, metadata.annotated_components[input.parent])
+        for input in unwritten_inputs
+    ]
+
+    unwritten_assumed_default_inputs = [
+        (input, annotated)
+        for (input, annotated) in annotated_unwritten
+        if annotated.component.definition.d_output_specs[
+            input.output_name
+        ].assume_default
+    ]
+
+    all_lines: List[str] = sum(
+        [
+            generate_output_init(annotated, input.output_name)
+            for (input, annotated) in unwritten_assumed_default_inputs
+        ],
+        [],
+    )
+
+    return "\n".join(all_lines)

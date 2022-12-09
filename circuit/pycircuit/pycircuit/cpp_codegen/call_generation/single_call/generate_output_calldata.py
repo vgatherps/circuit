@@ -1,4 +1,4 @@
-from typing import Sequence, Set
+from typing import List, Sequence, Set
 
 from pycircuit.circuit_builder.circuit import Component
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, ReturnValue
@@ -96,35 +96,41 @@ def generate_local_output_ref_name(component_name: str, output_name: str) -> str
     return f"{component_name}_{output_name}"
 
 
+def generate_output_init(
+    annotated_component: AnnotatedComponent, output: str
+) -> List[str]:
+    output_metadata = annotated_component.output_data[output]
+
+    definition = annotated_component.component.definition
+    name = annotated_component.component.name
+    class_name = get_alias_for(annotated_component.component)
+
+    output_class = definition.d_output_specs[output].type_path
+    type_header = f"{class_name}::{output_class}"
+    var_name = generate_local_output_ref_name(name, output)
+
+    reference_header = f"{type_header}& {var_name}"
+
+    if output_metadata.is_value_ephemeral:
+
+        init_var_name = f"{var_name}_EV__"
+        return [
+            f"{type_header} {init_var_name}{{}};",
+            f"{reference_header} = {init_var_name};",
+        ]
+    else:
+        return [f"{reference_header} = this->outputs.{name}_{output};"]
+
+
 def generate_value_inits(
     annotated_component: AnnotatedComponent, used_outputs: Sequence[str]
 ):
     used_outputs = list(used_outputs)
     output_lines = []
 
-    definition = annotated_component.component.definition
-    name = annotated_component.component.name
-    class_name = get_alias_for(annotated_component.component)
     for output in used_outputs:
-        output_metadata = annotated_component.output_data[output]
 
-        output_class = definition.d_output_specs[output].type_path
-        type_header = f"{class_name}::{output_class}"
-        var_name = generate_local_output_ref_name(name, output)
-
-        reference_header = f"{type_header}& {var_name}"
-
-        if output_metadata.is_value_ephemeral:
-
-            init_var_name = f"{var_name}_EV__"
-            output_line = [
-                f"{type_header} {init_var_name}{{}};",
-                f"{reference_header} = {init_var_name};",
-            ]
-        else:
-            output_line = [f"{reference_header} = this->outputs.{name}_{output};"]
-
-        output_lines += output_line
+        output_lines += generate_output_init(annotated_component, output)
 
     return "\n".join(output_lines)
 

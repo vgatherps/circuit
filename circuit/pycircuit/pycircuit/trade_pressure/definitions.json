@@ -135,7 +135,8 @@
                 "tick": {
                     "ephemeral": true,
                     "type_path": "NewTickScore",
-                    "assume_invalid": true
+                    "always_valid": true,
+                    "assume_default": true
                 }
             },
             "class_name": "SingleTickAggregator",

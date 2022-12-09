@@ -4,6 +4,7 @@ from pycircuit.cpp_codegen.call_generation.find_children_of import (
     find_all_children_of_from_outputs,
 )
 from pycircuit.cpp_codegen.call_generation.generate_extra_vars import (
+    generate_default_value_generators,
     generate_extra_validity_references,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call import (
@@ -59,6 +60,9 @@ def generate_timer_call_body_for(
     extra_validity = generate_extra_validity_references(
         [first_called] + children_for_call, gen_data
     )
+    default_values = generate_default_value_generators(
+        children_for_call, gen_data, all_outputs
+    )
 
     all_children = "\n".join(
         generate_single_call(
@@ -81,8 +85,8 @@ def generate_timer_call_body_for(
 
 {LOCAL_DATA_LOAD_PREFIX}
 {extra_validity}
-
-        {timer_callback}
-        {all_children}
+{default_values}
+{timer_callback}
+{all_children}
     }}
     """

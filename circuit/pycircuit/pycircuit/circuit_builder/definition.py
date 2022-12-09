@@ -96,20 +96,16 @@ class OutputSpec(DataClassJsonMixin):
                         correctness for edge-triggered outputs. If an output is ephemeral
                         and can always be assumed invalid, it will be default-constructed
                         as an invalid variable in trees where it is not written.
+
+        assume_default: Forcibly specifies that said input contains the default value
+                        if it has not been written to
     """
 
     ephemeral: bool
     type_path: str
     always_valid: bool = False
     assume_invalid: bool = False
-
-    # TODO invalid_unless_written
-    # for something like tick - implies that it should be considered invalid
-    # unless a previous component wrote it!
-    # This is requires for the mix of decaying sum and tick aggregator to work
-    # properly, and is a huge optimization. If the output is ephemeral,
-    # this implies that the output will *never* be stored as it will provably be invalid
-    # in calls where it's not written
+    assume_default: bool = False
 
 
 @dataclass(eq=True, frozen=True)
@@ -245,6 +241,16 @@ class Definition(DataClassJsonMixin):
             if output_spec.always_valid and output_spec.assume_invalid:
                 raise ValueError(
                     f"Output {output} of {self.class_name} is both always_valid and assumed to be invalid"
+                )
+
+            if output_spec.assume_default and not output_spec.always_valid:
+                raise ValueError(
+                    f"Output {output} of {self.class_name} is both assumed to be default and is not always valid"
+                )
+
+            if output_spec.assume_default and not output_spec.ephemeral:
+                raise ValueError(
+                    f"Output {output} of {self.class_name} is both assumed to be default and is ephemeral"
                 )
 
     def validate(self):
