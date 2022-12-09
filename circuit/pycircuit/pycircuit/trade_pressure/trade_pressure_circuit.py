@@ -159,7 +159,7 @@ def main():
 
     # Fill out some timer calls
     for component in circuit.components.values():
-        timer = component.definition.timer_callback
+        timer = component.definition.timer_callset
         if timer is None:
             continue
         fname = f"{component.name}_timer_callback.cc"

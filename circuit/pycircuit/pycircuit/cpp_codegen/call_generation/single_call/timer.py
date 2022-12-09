@@ -17,12 +17,12 @@ from pycircuit.cpp_codegen.generation_metadata import (
 
 
 def generate_timer_name(component: Component):
-    assert component.definition.timer_callback is not None
+    assert component.definition.timer_callset is not None
     return f"{component.name}TimerCallback"
 
 
 def generate_timer_signature(component: Component, prefix: str = ""):
-    assert component.definition.timer_callback is not None
+    assert component.definition.timer_callset is not None
     name = generate_timer_name(component)
     return f"void {prefix}{name}()"
 
@@ -33,20 +33,20 @@ def generate_timer_call_body_for(
 
     component = annotated_component.component
 
-    if component.definition.timer_callback is None:
+    if component.definition.timer_callset is None:
         raise ValueError(
             f"Component {component.name} of type {component.definition.class_name} has no timer callback"
         )
 
     all_outputs = {
-        component.output(which) for which in component.definition.timer_callback.outputs
+        component.output(which) for which in component.definition.timer_callset.outputs
     }
 
     children_for_call = find_all_children_of_from_outputs(gen_data.circuit, all_outputs)
 
     first_called = CalledComponent(
         component=component,
-        callset=component.definition.timer_callback,
+        callset=component.definition.timer_callset,
     )
     extra_validity = generate_extra_validity_references(
         [first_called] + children_for_call, gen_data
@@ -65,7 +65,7 @@ def generate_timer_call_body_for(
 
     timer_callback = generate_single_call(
         annotated_component,
-        component.definition.timer_callback,
+        component.definition.timer_callset,
         gen_data,
     )
 

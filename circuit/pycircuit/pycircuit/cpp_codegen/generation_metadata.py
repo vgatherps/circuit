@@ -100,14 +100,14 @@ def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:
     # find timer subgraphs
 
     for component in circuit.components.values():
-        if component.definition.timer_callback is not None:
+        if component.definition.timer_callset is not None:
             timer_outputs = {
                 component.output(out)
-                for out in component.definition.timer_callback.outputs
+                for out in component.definition.timer_callset.outputs
             }
             timer_children = find_all_children_of_from_outputs(circuit, timer_outputs)
             called_component = CalledComponent(
-                callset=component.definition.timer_callback, component=component
+                callset=component.definition.timer_callset, component=component
             )
             all_timer_calls = [called_component] + timer_children
             called.append(all_timer_calls)

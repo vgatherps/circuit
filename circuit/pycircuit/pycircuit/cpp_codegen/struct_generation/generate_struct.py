@@ -176,7 +176,7 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
     timer_calls = "\n".join(
         f"{generate_timer_signature(component)};"
         for component in circuit.components.values()
-        if component.definition.timer_callback is not None
+        if component.definition.timer_callset is not None
     )
 
     return f"""

@@ -107,6 +107,17 @@ class OutputSpec(DataClassJsonMixin):
 
 @dataclass(eq=True, frozen=True)
 class InitSpec(DataClassJsonMixin):
+    """Specifies how a component should be initialized (if at all)
+
+    Attributes:
+
+        init_call: The function to call for initialization
+
+        metadata: List of metadatas to be passed to initialization
+
+        takes_params: Whether or not json parameters should be passed in
+    """
+
     init_call: str
     metadata: frozenset[Metadata] = field(
         default_factory=frozenset, metadata=config(decoder=decode_metadata)
@@ -116,25 +127,54 @@ class InitSpec(DataClassJsonMixin):
 
 @dataclass(eq=True, frozen=True)
 class Definition(DataClassJsonMixin):
+    """Specifies all information about a single component
 
-    # Describes the list of valid inputs the signal can take
+    Attributes:
+
+        inputs: List of all input names
+
+        output_specs: Dictionary of all outputs with their specifications
+
+        class_name: Name of the component class
+
+        header: Header file that must be included to get class definition
+
+        callsets: A list of the possible triggers (aka callsets) for the component
+
+        generic_callset: Callset to be called if there's no matching callset in a trigger
+
+        timer_callset: Callset to be called by the timer queue
+
+        generics_order: Order of generics to be given to class template
+                        from each input. For example, the add call takes two generics
+                        for each input (a and b). It would have generics order
+                        {'a': 0, 'b': 1}, and the class definition would be
+                        AddClass<a_type, b_type> instead of AddClass
+
+        static_call: Whether or not the class should be called statically or on an object.
+                     Classes that are called statically *will not* have a component object
+                     stored in the circuit.
+
+        init_spec: If the component requires nontrivial initialization, this specifies
+                   how said initialization should be carried out.
+                   This is distinct from static call - a component that simply writes a constant
+                   into a circuit output would get called at init, but never get
+                   called by the circuit and shouldn't ever use up any storage
+    """
+
     inputs: frozenset[str]
 
-    # Describes the possible outputs and details about them
     output_specs: frozendict[str, OutputSpec]
 
-    # Class name of the calling component
     class_name: str
 
     header: str
 
-    timer_callback: Optional[CallSpec] = None
+    callsets: frozenset[CallSpec] = frozenset()
 
-    # This call is triggered if the written input set does not match
-    # any specific triggerset
     generic_callset: Optional[CallSpec] = None
 
-    callsets: frozenset[CallSpec] = frozenset()
+    timer_callset: Optional[CallSpec] = None
 
     # On a call, we take the list of written inputs and see if they match against
 
@@ -186,12 +226,12 @@ class Definition(DataClassJsonMixin):
             self.validate_a_callset(callset)
 
     def validate_timer(self):
-        if self.timer_callback is not None:
-            if self.timer_callback.skippable:
+        if self.timer_callset is not None:
+            if self.timer_callset.skippable:
                 raise ValueError(
                     f"Signal {self.class_name} has a skippable timer callback"
                 )
-            self.validate_a_callset(self.timer_callback)
+            self.validate_a_callset(self.timer_callset)
 
     def validate(self):
         self.validate_generics()
