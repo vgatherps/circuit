@@ -24,14 +24,25 @@ def generate_single_call(
 ) -> str:
     if callset.callback is None:
         raise ValueError("Call generation called for a callset with no callback")
-    input_data = generate_input_calldata(annotated_component, callset, gen_data)
-    output_data = generate_output_calldata(annotated_component, set(callset.outputs))
-    call_path = f"{annotated_component.call_root}{callset.callback}"
 
-    call_data = [input_data, output_data]
+    call_data = []
+
+    if callset.inputs():
+        input_data = generate_input_calldata(annotated_component, callset, gen_data)
+        call_data.append(input_data)
+
+    if callset.outputs:
+        output_data = generate_output_calldata(
+            annotated_component, set(callset.outputs)
+        )
+        call_data.append(output_data)
+
     if callset.metadata:
         metadata = generate_metadata_calldata(
             annotated_component, set(callset.metadata), gen_data
         )
         call_data.append(metadata)
+
+    call_path = f"{annotated_component.call_root}{callset.callback}"
+
     return assemble_call_from(call_path, call_data)

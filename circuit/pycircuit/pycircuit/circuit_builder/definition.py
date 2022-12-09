@@ -46,6 +46,9 @@ class CallSpec(DataClassJsonMixin):
     def skippable(self):
         return self.callback is None
 
+    def inputs(self) -> Set[str]:
+        return set(self.written_set | self.observes)
+
 
 @dataclass(eq=True, frozen=True)
 class OutputSpec(DataClassJsonMixin):
