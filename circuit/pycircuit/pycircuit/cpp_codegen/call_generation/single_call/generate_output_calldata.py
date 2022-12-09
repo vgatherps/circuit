@@ -177,10 +177,15 @@ def generate_output_calldata(
         {OUTPUT_STRUCT_NAME} {OUTPUT_NAME} {output_struct_inits};
     """
 
+    if validity_deconstruction:
+        ret = ReturnValue(name=VALID_DATA_NAME)
+    else:
+        ret = None
+
     return CallData(
         global_prefix="\n".join([value_inits, is_valid_inits]),
         local_prefix=call_prefix,
-        static_return_type=ReturnValue(name=VALID_DATA_NAME),
+        static_return_type=ret,
         local_postfix=validity_deconstruction,
         call_params=[OUTPUT_NAME],
     )

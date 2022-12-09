@@ -34,27 +34,75 @@ def decode_metadata(metas: List[Any]) -> frozenset[Metadata]:
 
 @dataclass(eq=True, frozen=True)
 class CallSpec(DataClassJsonMixin):
+    """A class describing a single call for a signal:
+
+    Attributes:
+        written_set: The set of inputs that must be written
+                     for this component to be called
+
+        observes: Inputs that will be passed to the signal (and ordered with),
+                  but will not force triggering
+
+        callback: The actual function to call. If it's null the signal isn't called
+                   nullability probably made more sense in a callspecless-world
+
+        metadata: Extra metadata about the environment to pass in. For example,
+                  you can pass in a handle to schedule timer events on
+                  the component.
+
+        outputs: The set of outputs that are written to / triggered by the component
+    """
+
     written_set: frozenset[str]
+
     observes: frozenset[str]
+
     callback: Optional[str]
+
     metadata: frozenset[Metadata] = field(
         default_factory=frozenset, metadata=config(decoder=decode_metadata)
     )
+
     outputs: frozenset[str] = frozenset()
 
     @property
     def skippable(self):
+        """Returns whether the callback can be skipped"""
         return self.callback is None
 
     def inputs(self) -> Set[str]:
+        "Convenience function to get the whole list of inputs"
         return set(self.written_set | self.observes)
 
 
 @dataclass(eq=True, frozen=True)
 class OutputSpec(DataClassJsonMixin):
+    """Class containing information about a single given output.
+
+    Attributes:
+
+        ephemeral: Whether or not the output state must be stored across calls.
+                   Pycircuit makes no guarantees about whether the value will be reset or not
+                   if it's ephemeral, it's purely used as a possible optimization.
+
+        type_path: Field of the parent class that describes the type
+
+        always_valid: Whether the output can always be considered valid. This implies
+                      that the components will not be able to set validity,
+                      and as an optimization, pycircuit can statically mark as valid
+    """
+
     ephemeral: bool
     type_path: str
     always_valid: bool = False
+
+    # TODO invalid_unless_written
+    # for something like tick - implies that it should be considered invalid
+    # unless a previous component wrote it!
+    # This is requires for the mix of decaying sum and tick aggregator to work
+    # properly, and is a huge optimization. If the output is ephemeral,
+    # this implies that the output will *never* be stored as it will provably be invalid
+    # in calls where it's not written
 
 
 @dataclass(eq=True, frozen=True)
@@ -68,8 +116,14 @@ class InitSpec(DataClassJsonMixin):
 
 @dataclass(eq=True, frozen=True)
 class Definition(DataClassJsonMixin):
+
+    # Describes the list of valid inputs the signal can take
     inputs: frozenset[str]
+
+    # Describes the possible outputs and details about them
     output_specs: frozendict[str, OutputSpec]
+
+    # Class name of the calling component
     class_name: str
 
     header: str

@@ -170,6 +170,56 @@
                     ]
                 }
             ]
+        },
+        "decaying_sum": {
+            "inputs": [
+                "tick",
+                "time"
+            ],
+            "output_specs": {
+                "running_sum": {
+                    "ephemeral": false,
+                    "type_path": "RunningTickScore",
+                    "always_valid": true
+                }
+            },
+            "class_name": "DecayingSum",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true,
+                "metadata": [
+                    "timer"
+                ]
+            },
+            "header": "decaying_sum.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "tick"
+                    ],
+                    "observes": [
+                        "time"
+                    ],
+                    "callback": "on_tick",
+                    "outputs": [
+                        "running_sum"
+                    ]
+                }
+            ],
+            "timer_callback": {
+                "written_set": [],
+                "observes": [
+                    "time"
+                ],
+                "callback": "decay",
+                "outputs": [
+                    "running_sum"
+                ],
+                "metadata": [
+                    "timer"
+                ]
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
+from typing import List, Tuple
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
@@ -8,6 +9,8 @@ from pycircuit.circuit_builder.circuit import (
     CallGroup,
     CircuitBuilder,
     CircuitData,
+    Component,
+    ComponentOutput,
     OutputOptions,
 )
 from pycircuit.circuit_builder.definition import Definitions
@@ -39,7 +42,7 @@ class TradePressureOptions:
 
 def generate_circuit_for_market_venue(
     circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
-):
+) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
     raw_venue_pressure = circuit.make_component(
         definition_name="tick_aggregator",
@@ -69,22 +72,35 @@ def generate_circuit_for_market(
         all_ticks.append(tick)
         all_running.append(running)
 
-    return all_running + all_ticks
+    per_market_ticks_sum = tree_sum(circuit, all_ticks)
+    per_market_running_sum = tree_sum(circuit, all_running)
+
+    per_market_decaying_ticks_sum = circuit.make_component(
+        definition_name="decaying_sum",
+        name=f"{market}_decaying_tick_sum",
+        inputs={
+            "tick": per_market_ticks_sum,
+            "time": circuit.get_external("time", TIME_TYPE).output(),
+        },
+    )
+
+    circuit.make_component(
+        definition_name="add",
+        name=f"{market}_sum_tick_running",
+        inputs={
+            "a": per_market_decaying_ticks_sum.output(),
+            "b": per_market_running_sum,
+        },
+        output_options={"out": OutputOptions(force_stored=True)},
+    )
 
 
 def generate_trade_pressure_circuit(
     circuit: CircuitBuilder, config: TradePressureConfig
 ) -> CircuitData:
 
-    all_sums = []
     for (market, market_config) in config.markets.items():
-        all_sums += generate_circuit_for_market(circuit, market, market_config)
-
-    total_sum = tree_sum(circuit, all_sums)
-
-    circuit.components[total_sum.parent].output_options["out"] = OutputOptions(
-        force_stored=True
-    )
+        generate_circuit_for_market(circuit, market, market_config)
 
     return circuit
 
