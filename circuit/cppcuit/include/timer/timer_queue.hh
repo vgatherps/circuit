@@ -58,8 +58,8 @@ public:
 
   void schedule_call_at(std::uint64_t call_at_ns) {
     RawTimerCall call = {
-        .callback = callback,
         .call_at_ns = call_at_ns,
+        .callback = callback,
     };
 
     queue.add_event(call);
