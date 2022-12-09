@@ -1,9 +1,7 @@
 from typing import List
 
 from pycircuit.circuit_builder.circuit import CircuitData, Component
-from pycircuit.cpp_codegen.call_generation.single_call.timer import (
-    generate_timer_signature,
-)
+from pycircuit.cpp_codegen.call_generation.timer import generate_timer_signature
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,

@@ -8,9 +8,7 @@ from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
     generate_external_call_body_for,
 )
-from pycircuit.cpp_codegen.call_generation.single_call.timer import (
-    generate_timer_call_body_for,
-)
+from pycircuit.cpp_codegen.call_generation.timer import generate_timer_call_body_for
 from pycircuit.cpp_codegen.generation_metadata import generate_global_metadata
 from pycircuit.loader.loader_config import CoreLoaderConfig
 

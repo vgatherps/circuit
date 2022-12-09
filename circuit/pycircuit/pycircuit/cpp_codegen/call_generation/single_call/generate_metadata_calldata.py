@@ -28,9 +28,7 @@ class MetaVar:
 
 
 def create_timer_field(component: Component, struct_name: str) -> MetaVar:
-    from pycircuit.cpp_codegen.call_generation.single_call.timer import (
-        generate_timer_name,
-    )
+    from pycircuit.cpp_codegen.call_generation.timer import generate_timer_name
 
     timer_callback_name = generate_timer_name(component)
     timer_handle_type = f"TimerHandle"

@@ -7,12 +7,21 @@ from pycircuit.cpp_codegen.call_generation.single_call.generate_output_calldata 
 )
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
-
 # This is sort of duplicated?
 # For always valid outputs that *are not* written as part of the call tree
 # Generate something referencing true
+
 # TODO does it make sense to generate all these validity vars upfront,
 # and not worry about it in the function logic?
+
+# TODO maybe not here but ALSO need to generate default constructed values for
+# always invalid inputs which are read but not used
+# or, don't, and just directly construct an optional reference with a nullptr
+# The above would be cumbersome due to how generation is done now. IMO more
+# evidence for one day generating all of the variables up front, as long
+# as it doesn't confuse compilers
+
+
 def generate_extra_validity_references(
     children_for_call: List[CalledComponent], metadata: GenerationMetadata
 ) -> str:

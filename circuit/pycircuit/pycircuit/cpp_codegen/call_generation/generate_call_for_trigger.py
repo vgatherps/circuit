@@ -1,5 +1,8 @@
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
+from pycircuit.cpp_codegen.call_generation.generate_extra_vars import (
+    generate_extra_validity_references,
+)
 from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call import (
     generate_single_call,
 )
@@ -7,9 +10,6 @@ from pycircuit.cpp_codegen.generation_metadata import (
     LOCAL_DATA_LOAD_PREFIX,
     GenerationMetadata,
     generate_call_signature,
-)
-from pycircuit.cpp_codegen.call_generation.generate_extra_valid_vars import (
-    generate_extra_validity_references,
 )
 
 

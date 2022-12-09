@@ -23,11 +23,6 @@ auto & __restrict outputs_is_valid = outputs.is_valid;
 
 
 @dataclass
-class NonEphemeralData:
-    validity_index: int
-
-
-@dataclass
 class OutputMetadata:
     validity_index: Optional[int]
     is_value_ephemeral: bool
@@ -71,7 +66,8 @@ def generate_output_metadata_for(
     for output in component.definition.outputs():
         ephemeral = is_ephemeral(component, output, all_non_ephemeral_outputs)
         always_valid = component.definition.d_output_specs[output].always_valid
-        if ephemeral or always_valid:
+        assume_invalid = component.definition.d_output_specs[output].assume_invalid
+        if ephemeral or always_valid or assume_invalid:
             this_output_metadata = OutputMetadata(
                 validity_index=None, is_value_ephemeral=ephemeral
             )
@@ -124,7 +120,6 @@ def generate_global_metadata(
 
     for children in all_subgraphs:
         all_non_ephemeral_component_outputs |= find_nonephemeral_outputs(children)
-
     # TODO we must ALSO find everybody who could get observed as part of a timer callback
     # or mailbox, when the parent is not triggered
 
