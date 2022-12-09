@@ -150,6 +150,9 @@ class Definition(DataClassJsonMixin):
         for callset in self.callsets:
             triggering |= set(callset.written_set)
 
+        if self.generic_callset is not None:
+            triggering |= self.generic_callset.written_set
+
         return triggering
 
     @property

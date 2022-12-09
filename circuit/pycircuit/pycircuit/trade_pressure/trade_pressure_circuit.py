@@ -15,6 +15,10 @@ from pycircuit.loader.loader_config import CoreLoaderConfig
 from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circuit_call
 from pycircuit.loader.write_circuit_init import InitStructOptions, generate_circuit_init
 from pycircuit.loader.write_circuit_struct import generate_circuit_struct_file
+from pycircuit.loader.write_timer_call import (
+    TimerCallStructOptions,
+    generate_timer_call,
+)
 from pycircuit.trade_pressure.trade_pressure_config import (
     TradePressureConfig,
     TradePressureMarketConfig,
@@ -137,6 +141,26 @@ def main():
             )
             with open(file_name, "w") as write_to:
                 write_to.write(call_clang_format(content))
+
+    # Fill out some timer calls
+    for component in circuit.components.values():
+        timer = component.definition.timer_callback
+        if timer is None:
+            continue
+        fname = f"{component.name}_timer_callback.cc"
+
+        cc_names.append(fname)
+
+        call = generate_timer_call(
+            TimerCallStructOptions(
+                struct_name=STRUCT, struct_header=HEADER, component_name=component.name
+            ),
+            core_config,
+            circuit,
+        )
+
+        with open(f"{out_dir}/{fname}", "w") as timer_file:
+            timer_file.write(call_clang_format(call))
 
     struct_content = generate_circuit_struct_file(
         STRUCT, config=core_config, circuit=circuit

@@ -160,9 +160,9 @@ public:
     return outputs_valid;
   }
 
-  template <class O, class M>
-    requires(HasTickRunning<O> && HAS_FIELD(M, TimerHandle, timer))
-  OnTradeOutput init(O outputs, M metadata, const nlohmann::json &) {
+  template <class O>
+    requires(HasTickRunning<O>)
+  OnTradeOutput init(O outputs, const nlohmann::json &) {
     outputs.running = 0.0;
     outputs.tick = 0.0;
 

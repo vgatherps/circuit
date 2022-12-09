@@ -15,8 +15,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
@@ -45,8 +45,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
@@ -75,8 +75,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
@@ -105,8 +105,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
@@ -124,8 +124,7 @@
             "inputs": [
                 "trade",
                 "tick",
-                "fair",
-                "time"
+                "fair"
             ],
             "output_specs": {
                 "running": {
@@ -142,17 +141,7 @@
             "static_call": false,
             "init_spec": {
                 "init_call": "init",
-                "takes_params": true,
-                "metadata": [
-                    "timer"
-                ]
-            },
-            "timer_callback": {
-                "observes": [
-                    "time"
-                ],
-                "written_set": [],
-                "callback": "decay"
+                "takes_params": true
             },
             "header": "tick_aggregator.hh",
             "callsets": [

@@ -30,6 +30,8 @@ def generate_single_call(
 
     call_data = [input_data, output_data]
     if callset.metadata:
-        metadata = generate_metadata_calldata(annotated_component, callset, gen_data)
+        metadata = generate_metadata_calldata(
+            annotated_component, set(callset.metadata), gen_data
+        )
         call_data.append(metadata)
     return assemble_call_from(call_path, call_data)
