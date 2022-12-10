@@ -224,6 +224,9 @@ class Definition(DataClassJsonMixin):
                     f"Observable {observed} in {self.class_name} is not an input"
                 )
 
+        if callset.callback is None and len(callset.outputs) > 0:
+            raise ValueError("A non-triggering callback has outputs listed")
+
     def validate_callsets(self):
         for callset in self.callsets:
             self.validate_a_callset(callset)

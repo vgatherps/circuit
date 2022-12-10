@@ -16,6 +16,7 @@ from pycircuit.circuit_builder.circuit import (
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.loader.loader_config import CoreLoaderConfig
 from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circuit_call
+from pycircuit.loader.write_circuit_dot import generate_circuit_dot
 from pycircuit.loader.write_circuit_init import InitStructOptions, generate_circuit_init
 from pycircuit.loader.write_circuit_struct import generate_circuit_struct_file
 from pycircuit.loader.write_timer_call import (
@@ -145,17 +146,28 @@ def main():
             cc_names.append(local_name)
             file_name = f"{out_dir}/{local_name}"
             trades_call_name = f"{market}_{venue}_trades"
+
+            options = CallStructOptions(
+                struct_name=STRUCT,
+                struct_header=HEADER,
+                call_name=trades_call_name,
+            )
             content = generate_circuit_call(
-                CallStructOptions(
-                    struct_name=STRUCT,
-                    struct_header=HEADER,
-                    call_name=trades_call_name,
-                ),
+                struct_options=options,
                 config=core_config,
                 circuit=circuit,
             )
             with open(file_name, "w") as write_to:
                 write_to.write(call_clang_format(content))
+
+            dot_content = generate_circuit_dot(
+                struct_options=options,
+                config=core_config,
+                circuit=circuit,
+            )
+
+            with open(f"{out_dir}/{market}_{venue}_trades.dot", "w") as write_to:
+                write_to.write(dot_content)
 
     # Fill out some timer calls
     for component in circuit.components.values():

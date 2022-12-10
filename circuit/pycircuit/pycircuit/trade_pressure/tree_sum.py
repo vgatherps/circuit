@@ -28,7 +28,7 @@ def tree_sum(circuit: CircuitBuilder, roots: List[ComponentOutput]):
         for i in range(0, even(len(roots)), 2):
             new_roots.append(do_add(circuit, roots[i], roots[i + 1]))
 
-        if len(roots) % 1 != 0:
+        if (len(roots) % 2) != 0:
             new_roots[-1] = do_add(circuit, roots[-1], new_roots[-1])
 
         roots = new_roots
