@@ -106,6 +106,14 @@ class OutputSpec(DataClassJsonMixin):
     always_valid: bool = False
     assume_invalid: bool = False
     assume_default: bool = False
+    default_constructor: Optional[str] = None
+
+    # TODO should we do this for normal struct generation as well?
+    def get_ctor(self) -> str:
+        if self.default_constructor is not None:
+            return self.default_constructor
+        else:
+            return "{}"
 
 
 @dataclass(eq=True, frozen=True)
@@ -253,7 +261,12 @@ class Definition(DataClassJsonMixin):
 
             if output_spec.assume_default and not output_spec.ephemeral:
                 raise ValueError(
-                    f"Output {output} of {self.class_name} is both assumed to be default and is ephemeral"
+                    f"Output {output} of {self.class_name} is both assumed to be default and is not ephemeral"
+                )
+
+            if output_spec.default_constructor and not output_spec.assume_default:
+                raise ValueError(
+                    f"Output {output} of {self.class_name} has a default constructor but is not assumed to be default"
                 )
 
     def validate(self):

@@ -115,7 +115,7 @@ def generate_output_init(
 
         init_var_name = f"{var_name}_EV__"
         return [
-            f"{type_header} {init_var_name}{{}};",
+            f"{type_header} {init_var_name}{definition.d_output_specs[output].get_ctor()};",
             f"{reference_header} = {init_var_name};",
         ]
     else:
