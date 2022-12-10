@@ -83,7 +83,6 @@ def basic_component() -> Component:
         name="test",
         index=OUT_B_VALID_INDEX,
     )
-    comp.validate()
     return comp
 
 

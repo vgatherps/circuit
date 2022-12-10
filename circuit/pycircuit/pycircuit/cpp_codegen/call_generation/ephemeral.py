@@ -17,9 +17,10 @@ def is_ephemeral(
         must_store = False
 
     needs_write = output_data.assume_invalid or output_data.assume_default
+
+    print(needs_write)
     return (
-        component_output not in non_ephemeral_outputs
-        or needs_write
+        (component_output not in non_ephemeral_outputs or needs_write)
         and not must_store
         and output_data.ephemeral
     )

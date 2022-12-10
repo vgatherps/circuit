@@ -42,6 +42,7 @@ class ExternalInput(DataClassJsonMixin):
     type: str
     name: str
     index: int
+    must_trigger: bool = False
 
     def output(self) -> ComponentOutput:
         return ComponentOutput(parent="external", output=self.name)
@@ -77,7 +78,7 @@ class Component:
             output=which,
         )
 
-    def validate(self):
+    def validate(self, circuit: "CircuitData"):
 
         self.definition.validate()
 
@@ -106,6 +107,24 @@ class Component:
                 raise ValueError(
                     f"Component {self.name} has input {input} which is not in definitions"
                 )
+
+            if comp_input.parent == "external":
+                external = circuit.external_inputs[comp_input.output_name]
+
+                if external.must_trigger:
+                    in_callset = False
+                    for callset in list(self.definition.callsets) + [
+                        self.definition.timer_callset,
+                        self.definition.generic_callset,
+                    ]:
+                        if callset:
+                            in_callset |= comp_input.input_name in callset.observes
+
+                    if in_callset:
+                        raise ValueError(
+                            f"Component {self.name} has input {input} which links to a an external "
+                            "that requires triggering, and is not triggered"
+                        )
 
         for input in self.definition.inputs:
             if input not in self.inputs:
@@ -169,12 +188,12 @@ class CircuitData:
             call_groups=partial.call_groups,
         )
 
-        for component in data.components.values():
-            component.validate()
+        data.validate()
 
         return data
 
     def to_dict(self) -> Dict[str, Any]:
+        self.validate()
         def_to_name = {
             defin: defin_name for (defin_name, defin) in self.definitions.items()
         }
@@ -196,6 +215,10 @@ class CircuitData:
 
         return partial.to_dict()
 
+    def validate(self):
+        for component in self.components.values():
+            component.validate(self)
+
 
 class CircuitBuilder(CircuitData):
     def __init__(self, definitions: Dict[str, Definition]):
@@ -210,15 +233,22 @@ class CircuitBuilder(CircuitData):
 
         self.get_external("time", TIME_TYPE)
 
-    def get_external(self, name: str, type: str) -> ExternalInput:
+    def get_external(
+        self, name: str, type: str, must_trigger: bool = False
+    ) -> ExternalInput:
         if name in self.external_inputs:
             ext = self.external_inputs[name]
-            if type != ext.type:
+            candidate_external = ExternalInput(
+                name=name, type=type, index=ext.index, must_trigger=must_trigger
+            )
+            if candidate_external != ext:
                 raise ValueError(
-                    f"External {name} requested with type {type} but already has type {ext.type}"
+                    f"External {name} requested at {candidate_external} but already exists as {ext}"
                 )
             return ext
-        ext = ExternalInput(type=type, name=name, index=self.running_external)
+        ext = ExternalInput(
+            type=type, name=name, index=self.running_external, must_trigger=must_trigger
+        )
         self.running_external += 1
         self.external_inputs[name] = ext
         return ext
@@ -259,5 +289,5 @@ class CircuitBuilder(CircuitData):
         )
         self.components[name] = comp
         self.running_index += 1
-        comp.validate()
+        comp.validate(self)
         return comp
