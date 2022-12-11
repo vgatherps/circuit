@@ -18,7 +18,7 @@ def test_call_struct():
             "test", CallStruct.from_input_dict({"a": "a_type", "b": "b_type"})
         )
         == f"""struct test {{
-a_type a;
-b_type b;
+Optionally<a_type>::Optional a;
+Optionally<b_type>::Optional b;
 }};"""
     )

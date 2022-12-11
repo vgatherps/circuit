@@ -163,7 +163,8 @@ def generate_usings_for(
 def generate_single_input_struct(struct_name: str, struct: CallStruct) -> str:
 
     struct_lines = "\n".join(
-        f"{type} {name};" for (name, type) in struct.d_inputs.items()
+        f"Optionally<{type}>::Optional {name};"
+        for (name, type) in struct.d_inputs.items()
     )
     return f"""struct {struct_name} {{
 {struct_lines}

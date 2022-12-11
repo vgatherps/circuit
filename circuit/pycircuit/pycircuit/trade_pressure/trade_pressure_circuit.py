@@ -55,7 +55,10 @@ def generate_circuit_for_market_venue(
         },
     )
 
-    circuit.add_call_group(trades_name, CallGroup(inputs={trades_name}))
+    circuit.add_call_group(
+        trades_name,
+        CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
+    )
 
     return raw_venue_pressure.output("tick"), raw_venue_pressure.output("running")
 
@@ -135,6 +138,8 @@ def main():
     core_config = CoreLoaderConfig.from_json(loader_config_str)
 
     circuit = CircuitBuilder(definitions=definitions.definitions)
+
+    circuit.add_call_struct_from("TradeUpdate", trade="Trade")
 
     generate_trade_pressure_circuit(circuit, trade_pressure)
 

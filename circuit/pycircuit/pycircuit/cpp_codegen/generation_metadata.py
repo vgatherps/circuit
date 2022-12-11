@@ -26,6 +26,9 @@ Objects & __restrict _objects = objects;
 auto & __restrict outputs_is_valid = outputs.is_valid;
 """
 
+TIME_VAR = "__time_var__"
+STRUCT_VAR = "__strut_var_"
+
 
 @dataclass
 class OutputMetadata:
@@ -88,20 +91,10 @@ def generate_output_metadata_for(
 
 
 def generate_call_signature(meta: CallMetaData, circuit: CircuitData, prefix: str = ""):
-    args = [f"{TIME_TYPE} time"]
+    call = circuit.call_groups[meta.call_name]
+    struct = call.struct
 
-    # todo this must have a stable order
-    # todo should generate and pass via an input struct
-    for called in meta.triggered:
-        type_var = circuit.external_inputs[called].type
-
-        arg_type = f"Optionally<{type_var}>::Optional"
-
-        args.append(f"{arg_type} {called}")
-
-    args_str = ", ".join(args)
-
-    return f"void {prefix}{meta.call_name}({args_str})"
+    return f"void {prefix}{meta.call_name}({TIME_TYPE} {TIME_VAR}, InputTypes::{struct} {STRUCT_VAR})"
 
 
 def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:
@@ -132,6 +125,7 @@ def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:
 def generate_global_metadata(
     circuit: CircuitData, call_metas: List[CallMetaData], struct_name: str
 ) -> GenerationMetadata:
+    circuit.validate()
     all_non_ephemeral_component_outputs: Set[ComponentOutput] = set()
 
     all_subgraphs = find_all_subgraphs(circuit)

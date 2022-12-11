@@ -152,6 +152,10 @@ class CallStruct(DataClassJsonMixin):
     def from_input_dict(inputs: Dict[str, str]) -> "CallStruct":
         return CallStruct(inputs=frozendict(inputs))
 
+    @staticmethod
+    def from_inputs(**fields: str) -> "CallStruct":
+        return CallStruct(inputs=frozendict(fields))
+
     @property
     def d_inputs(self) -> Dict[str, str]:
         return self.inputs
@@ -161,6 +165,10 @@ class CallStruct(DataClassJsonMixin):
 class CallGroup(DataClassJsonMixin):
     struct: str
     external_field_mapping: Dict[str, str]
+
+    @property
+    def inputs(self) -> Set[str]:
+        return set(self.external_field_mapping.values())
 
 
 @dataclass
@@ -311,10 +319,16 @@ class CircuitBuilder(CircuitData):
                     f"Trying to add call struct {name} {struct},"
                     f" but different one {existing} existed"
                 )
+        self.call_structs[name] = struct
+
+    def add_call_struct_from(self, name: str, **fields: str):
+        self.add_call_struct(name, CallStruct.from_inputs(**fields))
 
     def add_call_group(self, name: str, group: CallGroup):
         if name in self.call_groups:
             raise ValueError(f"Circuit builder already has call group {name}")
+
+        self.validate_call_group(name, group)
 
         self.call_groups[name] = group
 
