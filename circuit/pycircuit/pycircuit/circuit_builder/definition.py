@@ -239,11 +239,23 @@ class Definition(DataClassJsonMixin):
         for callset in self.callsets:
             self.validate_a_callset(callset)
 
+        if self.generic_callset is not None:
+            if self.generic_callset.written_set:
+                raise ValueError(
+                    f"Signal {self.class_name} has a generic callset with a nonempty written set "
+                    "- all inputs must be observables"
+                )
+
     def validate_timer(self):
         if self.timer_callset is not None:
             if self.timer_callset.skippable:
                 raise ValueError(
                     f"Signal {self.class_name} has a skippable timer callback"
+                )
+            if self.timer_callset.written_set:
+                raise ValueError(
+                    f"Signal {self.class_name} has a timer with a nonempty written set "
+                    "- all inputs must be observables"
                 )
             self.validate_a_callset(self.timer_callset)
 

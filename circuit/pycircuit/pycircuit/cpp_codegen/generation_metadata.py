@@ -2,7 +2,12 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
-from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentOutput
+from pycircuit.circuit_builder.circuit import (
+    TIME_TYPE,
+    CircuitData,
+    Component,
+    ComponentOutput,
+)
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.ephemeral import (
     find_nonephemeral_outputs,
@@ -82,8 +87,21 @@ def generate_output_metadata_for(
     return output_metadata, validity_market_count
 
 
-def generate_call_signature(meta: CallMetaData, prefix: str = ""):
-    return f"void {prefix}{meta.call_name}()"
+def generate_call_signature(meta: CallMetaData, circuit: CircuitData, prefix: str = ""):
+    args = [f"{TIME_TYPE} time"]
+
+    # todo this must have a stable order
+    # todo should generate and pass via an input struct
+    for called in meta.triggered:
+        type_var = circuit.external_inputs[called].type
+
+        arg_type = f"Optionally<{type_var}>::Optional"
+
+        args.append(f"{arg_type} {called}")
+
+    args_str = ", ".join(args)
+
+    return f"void {prefix}{meta.call_name}({args_str})"
 
 
 def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:

@@ -42,13 +42,13 @@ def generate_external_call_body_for(
         for called_component in children_for_call
     )
 
-    signature = generate_call_signature(meta, prefix=f"{gen_data.struct_name}::")
+    signature = generate_call_signature(
+        meta, gen_data.circuit, prefix=f"{gen_data.struct_name}::"
+    )
 
-    return f"""
-    {signature} {{
+    return f"""{signature} {{
 {LOCAL_DATA_LOAD_PREFIX}
 {extra_validity}
 {default_values}
 {all_children}
-    }}
-    """
+}}"""

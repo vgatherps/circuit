@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Set
 
 from dataclasses_json import DataClassJsonMixin
+from frozendict import frozendict
 from pycircuit.circuit_builder.definition import Definition
 from typing_extensions import Protocol
 
@@ -143,9 +144,23 @@ class _PartialComponent(DataClassJsonMixin):
     index: int
 
 
+@dataclass(eq=True, frozen=True)
+class CallStruct(DataClassJsonMixin):
+    inputs: frozendict[str, str]
+
+    @staticmethod
+    def from_input_dict(inputs: Dict[str, str]) -> "CallStruct":
+        return CallStruct(inputs=frozendict(inputs))
+
+    @property
+    def d_inputs(self) -> Dict[str, str]:
+        return self.inputs
+
+
 @dataclass
 class CallGroup(DataClassJsonMixin):
-    inputs: Set[str]
+    struct: str
+    external_field_mapping: Dict[str, str]
 
 
 @dataclass
@@ -154,6 +169,7 @@ class _PartialJsonCircuit(DataClassJsonMixin):
     components: Dict[str, _PartialComponent]
     definitions: Dict[str, Definition]
     call_groups: Dict[str, CallGroup]
+    call_structs: Dict[str, CallStruct]
 
 
 # TODO going to be A TON of wasted space here
@@ -163,6 +179,7 @@ class CircuitData:
     components: Dict[str, Component]
     definitions: Dict[str, Definition]
     call_groups: Dict[str, CallGroup]
+    call_structs: Dict[str, CallStruct]
 
     @staticmethod
     def from_dict(the_json: Dict[str, Any]) -> "CircuitData":
@@ -186,6 +203,7 @@ class CircuitData:
                 for (comp_name, comp) in partial.components.items()
             },
             call_groups=partial.call_groups,
+            call_structs=partial.call_structs,
         )
 
         data.validate()
@@ -201,6 +219,7 @@ class CircuitData:
             definitions=self.definitions,
             externals=self.external_inputs,
             call_groups=self.call_groups,
+            call_structs=self.call_structs,
             components={
                 comp_name: _PartialComponent(
                     name=comp.name,
@@ -215,9 +234,39 @@ class CircuitData:
 
         return partial.to_dict()
 
+    def validate_call_group(self, name: str, group: CallGroup):
+        if group.struct not in self.call_structs:
+            raise ValueError(
+                f"Call group {name} requested nonexstent input struct {group.struct}"
+            )
+        struct = self.call_structs[group.struct]
+        for (struct_field, external_name) in group.external_field_mapping.items():
+            if struct_field not in struct.d_inputs:
+                raise ValueError(
+                    f"Call group {name} requested field {struct_field} from struct {group.struct} but does not exist"
+                )
+
+            if external_name not in self.external_inputs:
+                raise ValueError(
+                    f"Call group {name} requested external {external_name} but does not exist"
+                )
+
+            external_type = self.external_inputs[external_name].type
+
+            field_type = struct.d_inputs[struct_field]
+
+            if external_type != field_type:
+                raise ValueError(
+                    f"Call group {name} mapped field {struct_field} to external {external_name} with "
+                    f"different types {field_type} and {external_type}"
+                )
+
     def validate(self):
         for component in self.components.values():
             component.validate(self)
+
+        for name, group in self.call_groups.items():
+            self.validate_call_group(name, group)
 
 
 class CircuitBuilder(CircuitData):
@@ -227,6 +276,7 @@ class CircuitBuilder(CircuitData):
             components=OrderedDict(),
             definitions=definitions,
             call_groups={},
+            call_structs={},
         )
         self.running_index = 0
         self.running_external = 0
@@ -253,12 +303,19 @@ class CircuitBuilder(CircuitData):
         self.external_inputs[name] = ext
         return ext
 
+    def add_call_struct(self, name: str, struct: CallStruct):
+        if name in self.call_structs:
+            existing = self.call_structs[name]
+            if struct != existing:
+                raise ValueError(
+                    f"Trying to add call struct {name} {struct},"
+                    f" but different one {existing} existed"
+                )
+
     def add_call_group(self, name: str, group: CallGroup):
         if name in self.call_groups:
             raise ValueError(f"Circuit builder already has call group {name}")
-        for ext in group.inputs:
-            if ext not in self.external_inputs:
-                raise ValueError(f"Call group {name} looks for missing input {ext}")
+
         self.call_groups[name] = group
 
     def make_component(

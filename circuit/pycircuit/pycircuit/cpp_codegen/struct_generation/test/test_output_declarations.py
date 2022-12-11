@@ -1,5 +1,6 @@
+from pycircuit.circuit_builder.circuit import CallStruct
 from pycircuit.cpp_codegen.struct_generation.generate_struct import (
-    generate_output_declarations_for_component,
+    generate_single_input_struct,
 )
 from pycircuit.cpp_codegen.test.test_common import (
     COMPONENT_NAME,
@@ -9,10 +10,15 @@ from pycircuit.cpp_codegen.test.test_common import (
 )
 
 
-def test_output_declaration():
+def test_call_struct():
     component = basic_component()
 
     assert (
-        generate_output_declarations_for_component(component, OUT_B)
-        == f"{COMPONENT_NAME}TypeAlias::{OUT_B_CLASS} {COMPONENT_NAME}_{OUT_B};"
+        generate_single_input_struct(
+            "test", CallStruct.from_input_dict({"a": "a_type", "b": "b_type"})
+        )
+        == f"""struct test {{
+a_type a;
+b_type b;
+}};"""
     )

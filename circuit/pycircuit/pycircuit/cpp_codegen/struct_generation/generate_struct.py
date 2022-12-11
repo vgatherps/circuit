@@ -1,6 +1,6 @@
 from typing import List
 
-from pycircuit.circuit_builder.circuit import CircuitData, Component
+from pycircuit.circuit_builder.circuit import CallStruct, CircuitData, Component
 from pycircuit.cpp_codegen.call_generation.timer import generate_timer_signature
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
@@ -160,6 +160,16 @@ def generate_usings_for(
     return "\n".join(using_declarations_list)
 
 
+def generate_single_input_struct(struct_name: str, struct: CallStruct) -> str:
+
+    struct_lines = "\n".join(
+        f"{type} {name};" for (name, type) in struct.d_inputs.items()
+    )
+    return f"""struct {struct_name} {{
+{struct_lines}
+}};"""
+
+
 def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
 
     usings = generate_usings_for(list(gen_data.annotated_components.values()), circuit)
@@ -168,7 +178,12 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
     objects = generate_objects_substruct(gen_data)
 
     calls = "\n".join(
-        generate_call_signature(call) + ";" for call in gen_data.call_endpoints
+        generate_call_signature(call, circuit) + ";" for call in gen_data.call_endpoints
+    )
+
+    struct_calls = "\n".join(
+        generate_single_input_struct(name, struct)
+        for (name, struct) in circuit.call_structs.items()
     )
 
     timer_calls = "\n".join(
@@ -189,6 +204,10 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
 
         {objects}
         Objects objects;
+
+        struct InputTypes {{
+            {struct_calls}
+        }};
 
         RawTimerQueue timer;
 
