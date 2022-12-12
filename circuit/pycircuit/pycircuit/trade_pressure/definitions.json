@@ -15,15 +15,16 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
                 "callback": "call",
                 "outputs": [
                     "out"
-                ]
+                ],
+                "input_struct_path": "Input"
             },
             "generics_order": {
                 "a": 0,
@@ -45,8 +46,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
@@ -75,8 +76,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],
@@ -105,8 +106,8 @@
             "static_call": true,
             "header": "signals/basic_arithmetic.hh",
             "generic_callset": {
-                "written_set": [],
-                "observes": [
+                "observes": [],
+                "written_set": [
                     "a",
                     "b"
                 ],

@@ -65,6 +65,9 @@ class CallSpec(DataClassJsonMixin):
 
     outputs: frozenset[str] = frozenset()
 
+    input_struct_path: Optional[str] = None
+    output_struct_path: Optional[str] = None
+
     @property
     def skippable(self):
         """Returns whether the callback can be skipped"""
@@ -240,10 +243,10 @@ class Definition(DataClassJsonMixin):
             self.validate_a_callset(callset)
 
         if self.generic_callset is not None:
-            if self.generic_callset.written_set:
+            if self.generic_callset.observes:
                 raise ValueError(
-                    f"Signal {self.class_name} has a generic callset with a nonempty written set "
-                    "- all inputs must be observables"
+                    f"Signal {self.class_name} has a generic callset with a nonempty observes"
+                    "- all inputs must be assumed written"
                 )
 
     def validate_timer(self):

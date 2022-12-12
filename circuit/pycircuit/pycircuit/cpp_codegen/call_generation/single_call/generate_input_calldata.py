@@ -11,7 +11,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
 )
-from pycircuit.cpp_codegen.type_names import get_type_name_for_input
+from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
@@ -93,27 +93,31 @@ def generate_input_calldata(
         """
         for (t_name, c, name) in zip(all_type_names, inputs, input_names)
     ]
-
-    input_struct_fields = "\n".join(
-        f"optional_reference<const {t_name}> {c.input_name};"
-        for (t_name, c) in zip(all_type_names, inputs)
-    )
+    values = "\n".join(all_values)
 
     input_struct_initializers = "\n".join(
         f".{c.input_name} = {c.input_name}_v," for c in inputs
     )
 
-    values = "\n".join(all_values)
+    if callset.input_struct_path is None:
+        input_struct_fields = "\n".join(
+            f"optional_reference<const {t_name}> {c.input_name};"
+            for (t_name, c) in zip(all_type_names, inputs)
+        )
+        input_struct = f"struct {INPUT_STRUCT_NAME} {{{input_struct_fields}}};"
+        input_struct_name = INPUT_STRUCT_NAME
+    else:
+        class_name = get_alias_for(annotated_component.component)
+        input_struct = ""
+        input_struct_name = f"{class_name}::{callset.input_struct_path}"
+
     inputs_prefix = f"""
-struct {INPUT_STRUCT_NAME} {{
-    {input_struct_fields}
-}};
+{input_struct}
 
 {values}
 
-{INPUT_STRUCT_NAME} {INPUT_NAME} = {{
+{input_struct_name} {INPUT_NAME} = {{
     {input_struct_initializers}
-}};
-    """
+}};"""
 
     return CallData(local_prefix=inputs_prefix, call_params=[INPUT_NAME])

@@ -9,12 +9,16 @@ template <class A, class B, class Op>
 class CoreArithmetic {
 public:
   // Probably want to do this by taking advantage of the call itself?
+  struct Input {
+    optional_reference<const A> a;
+    optional_reference<const B> b;
+  };
+
   using Output = decltype(Op::call(*(A *)nullptr, *(B *)nullptr));
 
-  template <class I, class O>
-    requires HAS_OPT_REF(I, A, a) && HAS_OPT_REF(I, B, b) &&
-             HAS_REF_FIELD(O, Output, out)
-  static bool call(I inputs, O &o) {
+  template <class O>
+    requires HAS_REF_FIELD(O, Output, out)
+  static bool call(Input inputs, O &o) {
     if (inputs.a.valid() && inputs.b.valid()) {
       o.out = Op::call(*inputs.a, *inputs.b);
       return true;
