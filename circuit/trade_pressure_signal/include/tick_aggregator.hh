@@ -19,7 +19,7 @@ struct Trade {
   Side side;
 
   // TODO for crypto do we even know?
-  // I don't tihnk it's obvious on the feeds that spam out individual maker
+  // I don't think it's obvious on the feeds that spam out individual maker
   // trades. Will keep it simmple for no and assume that we know
   bool is_last_event;
 };
@@ -90,9 +90,9 @@ public:
   using NewTickScore = double;
 
   template <class O>
-  constexpr static bool HasTickRunning =
-      HAS_REF_FIELD(O, NewTickScore, tick) &&
-      HAS_REF_FIELD(O, RunningTickScore, running);
+  constexpr static bool HasTickRunning = HAS_REF_FIELD(O, NewTickScore, tick) &&
+                                         HAS_REF_FIELD(O, RunningTickScore,
+                                                       running);
 
   struct OnTradeOutput {
     bool tick;
@@ -104,9 +104,8 @@ public:
   // REQUIRED TODOS FOR THIS ONE:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
-    requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
-             HasTickRunning<O>)
-  OnTradeOutput on_trade(I inputs, O outputs) {
+  requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
+           HasTickRunning<O>) OnTradeOutput on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};
 
@@ -143,8 +142,8 @@ public:
   // Takes a dummy tick input
   // Sets running score to zero and potentially outputs a current tick
   template <class I, class O>
-    requires(HAS_OPT_REF(I, double, tick) && HasTickRunning<O>)
-  OnTradeOutput on_end_tick(I inputs, O outputs) {
+  requires(HAS_OPT_REF(I, double, tick) && HasTickRunning<O>) OnTradeOutput
+      on_end_tick(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid;
 
@@ -161,8 +160,8 @@ public:
   }
 
   template <class O>
-    requires(HasTickRunning<O>)
-  OnTradeOutput init(O outputs, const nlohmann::json &) {
+  requires(HasTickRunning<O>) OnTradeOutput
+      init(O outputs, const nlohmann::json &) {
     outputs.running = 0.0;
     outputs.tick = 0.0;
 
