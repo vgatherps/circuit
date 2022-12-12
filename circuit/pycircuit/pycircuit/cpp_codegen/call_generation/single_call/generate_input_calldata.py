@@ -93,17 +93,24 @@ def generate_input_calldata(
         """
         for (t_name, c, name) in zip(all_type_names, inputs, input_names)
     ]
+
     values = "\n".join(all_values)
 
-    input_struct_initializers = "\n".join(
+    # Sorting all_values will sort by input name
+    # Those manually specifying a struct should be sorted as well to ensure initialization
+    # order is correct
+    input_struct_initializers_list = sorted(
         f".{c.input_name} = {c.input_name}_v," for c in inputs
     )
 
+    input_struct_initializers = "\n".join(input_struct_initializers_list)
+
     if callset.input_struct_path is None:
-        input_struct_fields = "\n".join(
+        input_struct_fields_list = sorted(
             f"optional_reference<const {t_name}> {c.input_name};"
             for (t_name, c) in zip(all_type_names, inputs)
         )
+        input_struct_fields = "\n".join(input_struct_fields_list)
         input_struct = f"struct {INPUT_STRUCT_NAME} {{{input_struct_fields}}};"
         input_struct_name = INPUT_STRUCT_NAME
     else:
