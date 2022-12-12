@@ -27,7 +27,7 @@ auto & __restrict outputs_is_valid = outputs.is_valid;
 """
 
 TIME_VAR = "__time_var__"
-STRUCT_VAR = "__strut_var_"
+STRUCT_VAR = "__struct_var_"
 
 
 @dataclass
