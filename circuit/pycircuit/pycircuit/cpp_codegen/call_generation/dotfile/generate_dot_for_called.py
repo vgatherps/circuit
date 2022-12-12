@@ -3,12 +3,12 @@ from typing import List, Set
 from pycircuit.circuit_builder.circuit import ComponentOutput
 from pycircuit.cpp_codegen.call_generation.find_children_of import CalledComponent
 
-IGNORED_SET = {ComponentOutput(parent="external", output="time")}
+IGNORED_SET = {ComponentOutput(parent="external", output_name="time")}
 
 
 def get_parent_name(output: ComponentOutput) -> str:
     if output.parent == "external":
-        return f"{output.parent}_{output.output}"
+        return f"{output.parent}_{output.output_name}"
     else:
         return f"{output.parent}"
 

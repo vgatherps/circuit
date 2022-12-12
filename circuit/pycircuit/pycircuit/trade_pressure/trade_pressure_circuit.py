@@ -13,6 +13,7 @@ from pycircuit.circuit_builder.circuit import (
     ComponentOutput,
     OutputOptions,
 )
+from pycircuit.circuit_builder.circuit_context import CircuitContextManager
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.loader.loader_config import CoreLoaderConfig
 from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circuit_call
@@ -92,7 +93,7 @@ def generate_circuit_for_market(
         definition_name="add",
         name=f"{market}_sum_tick_running",
         inputs={
-            "a": per_market_decaying_ticks_sum.output(),
+            "a": per_market_decaying_ticks_sum,
             "b": per_market_running_sum,
         },
         output_options={"out": OutputOptions(force_stored=True)},
@@ -141,7 +142,8 @@ def main():
 
     circuit.add_call_struct_from("TradeUpdate", trade="Trade")
 
-    generate_trade_pressure_circuit(circuit, trade_pressure)
+    with CircuitContextManager(circuit) as c:
+        generate_trade_pressure_circuit(circuit, trade_pressure)
 
     # This could be much better abstracted...
     cc_names = []

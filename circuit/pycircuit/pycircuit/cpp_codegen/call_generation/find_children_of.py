@@ -39,7 +39,7 @@ def topologically_sort(
 
             if any(i.output() in used_outputs for i in component.triggering_inputs()):
                 potentially_written = {
-                    ComponentOutput(parent=component.name, output=field)
+                    ComponentOutput(parent=component.name, output_name=field)
                     for field in component.definition.outputs()
                 }
                 used_outputs |= potentially_written
@@ -83,7 +83,8 @@ def find_all_children_of_from_outputs(
 
         writes = callset.outputs
         new_outs = {
-            ComponentOutput(parent=component.name, output=field) for field in writes
+            ComponentOutput(parent=component.name, output_name=field)
+            for field in writes
         }
 
         seen_outputs |= new_outs
@@ -96,5 +97,7 @@ def find_all_children_of_from_outputs(
 def find_all_children_of(
     external_set: Set[str], circuit: CircuitData
 ) -> List[CalledComponent]:
-    used_outputs = {ComponentOutput(parent="external", output=e) for e in external_set}
+    used_outputs = {
+        ComponentOutput(parent="external", output_name=e) for e in external_set
+    }
     return find_all_children_of_from_outputs(circuit, used_outputs)

@@ -36,7 +36,9 @@ def test_is_allowed_ephemeral_is_used_not_ephemeral():
     component = basic_component()
 
     assert not is_ephemeral(
-        component, OUT_A, set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_A)])
+        component,
+        OUT_A,
+        set([ComponentOutput(parent=COMPONENT_NAME, output_name=OUT_A)]),
     )
 
 
@@ -45,5 +47,7 @@ def test_is_allowed_ephemeral_other_is_used_ephemeral():
     component = basic_component()
 
     assert is_ephemeral(
-        component, OUT_A, set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_B)])
+        component,
+        OUT_A,
+        set([ComponentOutput(parent=COMPONENT_NAME, output_name=OUT_B)]),
     )

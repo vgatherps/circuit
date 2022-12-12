@@ -14,7 +14,7 @@ def generate_external_dot_body_for(
     children_for_call = find_all_children_of(meta.triggered, gen_data.circuit)
 
     triggered_outputs = {
-        ComponentOutput(parent="external", output=triggered)
+        ComponentOutput(parent="external", output_name=triggered)
         for triggered in meta.triggered
     }
 

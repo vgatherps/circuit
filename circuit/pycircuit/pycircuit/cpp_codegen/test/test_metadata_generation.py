@@ -43,7 +43,7 @@ def test_output_metadata_non_ephemeral_loaded(initial_validity_required):
 
     metadata, count = generate_output_metadata_for(
         component,
-        set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_B)]),
+        set([ComponentOutput(parent=COMPONENT_NAME, output_name=OUT_B)]),
         initial_validity_required,
     )
 
@@ -68,7 +68,7 @@ def test_output_metadata_ephemeral_loaded(initial_validity_required):
 
     metadata, count = generate_output_metadata_for(
         component,
-        set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_A)]),
+        set([ComponentOutput(parent=COMPONENT_NAME, output_name=OUT_A)]),
         initial_validity_required,
     )
 
@@ -126,7 +126,7 @@ def test_output_metadata_always_valid_loaded(initial_validity_required):
 
     metadata, count = generate_output_metadata_for(
         component,
-        set([ComponentOutput(parent=COMPONENT_NAME, output=OUT_C)]),
+        set([ComponentOutput(parent=COMPONENT_NAME, output_name=OUT_C)]),
         initial_validity_required,
     )
 

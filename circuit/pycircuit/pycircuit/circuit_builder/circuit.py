@@ -1,52 +1,68 @@
+from abc import ABC
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Mapping, Set
 
 from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
 from pycircuit.circuit_builder.definition import Definition
 from typing_extensions import Protocol
 
-# Validations:
-#
-# All outputs are nonaliasing - this allows us to make all pointers restrict.
-# Maybe / maybe not matters? But will definitely prevent a TON of shenanigans
-
-# Validate topologically ordered. This itself prevents
+from .signals.arithmetic import generate_binary_definition
+from .signals.running_name import get_novel_name
 
 TIME_TYPE = "std::uint64_t"
 
 
-class HasOutput(Protocol):
+class HasOutput(ABC):
     def output(self) -> "ComponentOutput":
         pass
 
+    def __add__(self, other: "HasOutput") -> "Component":
+        from .circuit_context import CircuitContextManager
+
+        context = CircuitContextManager.active_circuit()
+
+        definition = generate_binary_definition("AddComponent")
+
+        context.add_definititon("add", definition)
+
+        # TODO output options
+        return context.make_component(
+            definition_name="add",
+            name=get_novel_name("add"),
+            inputs={"a": self.output(), "b": other.output()},
+        )
+
 
 @dataclass(frozen=True, eq=True)
-class ComponentOutput(DataClassJsonMixin):
+class ComponentOutput(DataClassJsonMixin, HasOutput):
     parent: str
-    output: str
+    output_name: str
+
+    def output(self) -> "ComponentOutput":
+        return self
 
 
 @dataclass(eq=True, frozen=True)
-class ComponentInput(DataClassJsonMixin):
+class ComponentInput(DataClassJsonMixin, HasOutput):
     parent: str
     output_name: str
     input_name: str
 
     def output(self) -> ComponentOutput:
-        return ComponentOutput(parent=self.parent, output=self.output_name)
+        return ComponentOutput(parent=self.parent, output_name=self.output_name)
 
 
 @dataclass
-class ExternalInput(DataClassJsonMixin):
+class ExternalInput(DataClassJsonMixin, HasOutput):
     type: str
     name: str
     index: int
     must_trigger: bool = False
 
     def output(self) -> ComponentOutput:
-        return ComponentOutput(parent="external", output=self.name)
+        return ComponentOutput(parent="external", output_name=self.name)
 
 
 @dataclass
@@ -55,7 +71,7 @@ class OutputOptions(DataClassJsonMixin):
 
 
 @dataclass
-class Component:
+class Component(HasOutput):
     inputs: Dict[str, ComponentInput]
     output_options: Dict[str, OutputOptions]
     definition: Definition
@@ -76,7 +92,7 @@ class Component:
             raise ValueError(f"Component {self.name} does not have output {which}")
         return ComponentOutput(
             parent=self.name,
-            output=which,
+            output_name=which,
         )
 
     def validate(self, circuit: "CircuitData"):
@@ -332,11 +348,21 @@ class CircuitBuilder(CircuitData):
 
         self.call_groups[name] = group
 
+    def add_definititon(self, name: str, definition: Definition):
+        if name in self.definitions:
+            if definition != self.definitions[name]:
+                raise ValueError(
+                    f"Tried to add two different definitions for name {name}"
+                )
+        else:
+            definition.validate()
+            self.definitions[name] = definition
+
     def make_component(
         self,
         definition_name: str,
         name: str,
-        inputs: Dict[str, ComponentOutput],
+        inputs: Mapping[str, HasOutput],
         output_options: Dict[str, OutputOptions] = {},
     ) -> "Component":
         assert name not in self.components
@@ -346,8 +372,8 @@ class CircuitBuilder(CircuitData):
 
         for (in_name, input) in inputs.items():
             converted[in_name] = ComponentInput(
-                parent=input.parent,
-                output_name=input.output,
+                parent=input.output().parent,
+                output_name=input.output().output_name,
                 input_name=in_name,
             )
 

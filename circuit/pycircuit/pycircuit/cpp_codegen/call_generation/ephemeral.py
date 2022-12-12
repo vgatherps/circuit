@@ -9,7 +9,7 @@ def is_ephemeral(
 ):
     potential_options = component.output_options.get(output)
     output_data = component.definition.d_output_specs[output]
-    component_output = ComponentOutput(parent=component.name, output=output)
+    component_output = ComponentOutput(parent=component.name, output_name=output)
 
     if potential_options is not None:
         must_store = potential_options.force_stored
