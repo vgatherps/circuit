@@ -18,21 +18,36 @@ class HasOutput(ABC):
     def output(self) -> "ComponentOutput":
         pass
 
-    def __add__(self, other: "HasOutput") -> "Component":
+    def _make_math_component(
+        self, other: "HasOutput", def_name: str, class_name: str
+    ) -> "Component":
+
         from .circuit_context import CircuitContextManager
 
         context = CircuitContextManager.active_circuit()
 
-        definition = generate_binary_definition("AddComponent")
+        definition = generate_binary_definition(class_name)
 
-        context.add_definititon("add", definition)
+        context.add_definititon(def_name, definition)
 
         # TODO output options
         return context.make_component(
-            definition_name="add",
-            name=get_novel_name("add"),
+            definition_name=def_name,
+            name=get_novel_name(def_name),
             inputs={"a": self.output(), "b": other.output()},
         )
+
+    def __add__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "add", "AddComponent")
+
+    def __sub__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "sub", "SubComponent")
+
+    def __mul__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "mul", "MulComponent")
+
+    def __truediv__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "div", "DivComponent")
 
 
 @dataclass(frozen=True, eq=True)
