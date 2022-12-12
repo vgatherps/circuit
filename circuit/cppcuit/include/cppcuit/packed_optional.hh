@@ -23,5 +23,5 @@ template <> struct Optionally<double> {
 
   static bool valid(const double &d) { return std::isfinite(d); }
   static double value(double d) { return d; }
-  static Optional none() { return std::nan(nullptr); }
+  static Optional none() { return std::nan(""); }
 };
