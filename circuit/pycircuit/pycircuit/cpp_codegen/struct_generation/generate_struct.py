@@ -1,6 +1,16 @@
 from typing import List
 
-from pycircuit.circuit_builder.circuit import CallStruct, CircuitData, Component
+from pycircuit.circuit_builder.circuit import (
+    TIME_TYPE,
+    CallStruct,
+    CircuitData,
+    Component,
+)
+from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup import (
+    LOAD_CALL_TYPE,
+    generate_all_load_call_signatures,
+    generate_top_level_loader,
+)
 from pycircuit.cpp_codegen.call_generation.timer import generate_timer_signature
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
@@ -193,6 +203,12 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         if component.definition.timer_callset is not None
     )
 
+    all_load_signatures = generate_all_load_call_signatures(
+        circuit.call_groups, postfix=";"
+    )
+
+    top_level_loader = generate_top_level_loader(circuit.call_groups)
+
     return f"""
     struct {gen_data.struct_name} {{
         {usings}
@@ -217,5 +233,12 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {calls}
 
         {timer_calls}
+
+        template<class T>
+        using {LOAD_CALL_TYPE} = void ({gen_data.struct_name}::*)({TIME_TYPE}, T);
+
+        {all_load_signatures}
+
+        {top_level_loader}
     }};
     """

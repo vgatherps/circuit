@@ -28,9 +28,9 @@ class CircuitContextManager(AbstractContextManager):
 
     def __exit__(
         self,
-        __exc_type: type[BaseException] | None,
-        __exc_value: BaseException | None,
-        __traceback: TracebackType | None,
+        __exc_type,
+        __exc_value,
+        __traceback,
     ) -> Literal[False]:
         global _CIRCUIT_STACK
         assert _CIRCUIT_STACK
