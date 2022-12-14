@@ -17,6 +17,10 @@ from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
     generate_call_signature,
 )
+from pycircuit.cpp_codegen.struct_generation.generate_val_load import (
+    LOOKUP_OUTPUT,
+    generate_real_output_lookup_signature,
+)
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
 
 EXTERNALS_STRUCT_NAME = "externals"
@@ -208,6 +212,7 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
     )
 
     top_level_loader = generate_top_level_loader(circuit.call_groups)
+    output_loader = generate_real_output_lookup_signature("")
 
     return f"""
     struct {gen_data.struct_name} final {{
@@ -228,6 +233,8 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
 
         RawTimerQueue timer;
 
+        bool alwaystrue = true;
+
         {gen_data.struct_name}(nlohmann::json);
 
         {calls}
@@ -240,5 +247,9 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {all_load_signatures}
 
         {top_level_loader}
+
+        {output_loader};
+
+        {LOOKUP_OUTPUT}
     }};
     """

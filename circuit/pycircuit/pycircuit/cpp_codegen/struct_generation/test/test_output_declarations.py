@@ -2,12 +2,7 @@ from pycircuit.circuit_builder.circuit import CallStruct
 from pycircuit.cpp_codegen.struct_generation.generate_struct import (
     generate_single_input_struct,
 )
-from pycircuit.cpp_codegen.test.test_common import (
-    COMPONENT_NAME,
-    OUT_B,
-    OUT_B_CLASS,
-    basic_component,
-)
+from pycircuit.cpp_codegen.test.test_common import basic_component
 
 
 def test_call_struct():
