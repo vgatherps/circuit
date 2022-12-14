@@ -45,7 +45,7 @@ def generate_externals_struct(circuit: CircuitData) -> str:
     bool is_valid[{len(circuit.external_inputs)}];
     """
     return f"""
-        struct Externals {{
+        struct Externals final {{
             {asserts}
 
             {externals}
@@ -98,7 +98,7 @@ def generate_output_substruct(
     )
 
     return f"""
-        struct Outputs
+        struct Outputs final
         {{
             {assert_declarations}
 
@@ -146,7 +146,7 @@ def generate_objects_substruct(
     )
 
     return f"""
-        struct Objects
+        struct Objects final
         {{
             {assert_declarations}
 
@@ -210,7 +210,7 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
     top_level_loader = generate_top_level_loader(circuit.call_groups)
 
     return f"""
-    struct {gen_data.struct_name} {{
+    struct {gen_data.struct_name} final {{
         {usings}
 
         {externals}
