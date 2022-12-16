@@ -49,7 +49,7 @@ def test_component_output_checks(direct: bool):
 if ("{OUT_B}" == __output__) {{
     if (typeid({COMPONENT_NAME}TypeAlias::{OUT_B_CLASS}) == __typeid__) {{
         const char *output = reinterpret_cast<const char *>(&this->outputs.{COMPONENT_NAME}_{OUT_B});
-        const char *valid = reinrerpret_cast<const char *>(&this->outputs.is_valid[{OUT_B_VALID_INDEX}]);
+        const char *valid = reinterpret_cast<const char *>(&this->outputs.is_valid[{OUT_B_VALID_INDEX}]);
 
         std::uint32_t value_offset = output - __base__;
         std::uint32_t valid_offset = valid - __base__;
@@ -76,7 +76,7 @@ def test_component_output_checks_always_valid(direct: bool):
 if ("{OUT_C}" == __output__) {{
     if (typeid({COMPONENT_NAME}TypeAlias::{OUT_C_CLASS}) == __typeid__) {{
         const char *output = reinterpret_cast<const char *>(&this->outputs.{COMPONENT_NAME}_{OUT_C});
-        const char *valid = reinrerpret_cast<const char *>(&this->alwaystrue);
+        const char *valid = reinterpret_cast<const char *>(&this->alwaystrue);
 
         std::uint32_t value_offset = output - __base__;
         std::uint32_t valid_offset = valid - __base__;
@@ -121,7 +121,7 @@ if ("{OUT_A}" == __output__) {{
 if ("{OUT_B}" == __output__) {{
     if (typeid({COMPONENT_NAME}TypeAlias::{OUT_B_CLASS}) == __typeid__) {{
         const char *output = reinterpret_cast<const char *>(&this->outputs.{COMPONENT_NAME}_{OUT_B});
-        const char *valid = reinrerpret_cast<const char *>(&this->outputs.is_valid[{OUT_B_VALID_INDEX}]);
+        const char *valid = reinterpret_cast<const char *>(&this->outputs.is_valid[{OUT_B_VALID_INDEX}]);
 
         std::uint32_t value_offset = output - __base__;
         std::uint32_t valid_offset = valid - __base__;
@@ -135,7 +135,7 @@ if ("{OUT_B}" == __output__) {{
 if ("{OUT_C}" == __output__) {{
     if (typeid({COMPONENT_NAME}TypeAlias::{OUT_C_CLASS}) == __typeid__) {{
         const char *output = reinterpret_cast<const char *>(&this->outputs.{COMPONENT_NAME}_{OUT_C});
-        const char *valid = reinrerpret_cast<const char *>(&this->alwaystrue);
+        const char *valid = reinterpret_cast<const char *>(&this->alwaystrue);
 
         std::uint32_t value_offset = output - __base__;
         std::uint32_t valid_offset = valid - __base__;
@@ -146,6 +146,6 @@ if ("{OUT_C}" == __output__) {{
     }}
 }}
 
-throw std::runtime_error("Could not find outputs for component {COMPONENT_NAME}")
+throw std::runtime_error("Could not find outputs for component {COMPONENT_NAME}");
 }}"""
     )
