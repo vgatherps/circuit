@@ -30,7 +30,6 @@ class HasOutput(ABC):
 
         context.add_definititon(def_name, definition)
 
-        # TODO output options
         return context.make_component(
             definition_name=def_name,
             name=get_novel_name(def_name),
