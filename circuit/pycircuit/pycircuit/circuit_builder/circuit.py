@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Set
@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Mapping, Set
 from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
 from pycircuit.circuit_builder.definition import Definition
-from typing_extensions import Protocol
 
 from .signals.arithmetic import generate_binary_definition
 from .signals.running_name import get_novel_name
@@ -15,6 +14,7 @@ TIME_TYPE = "std::uint64_t"
 
 
 class HasOutput(ABC):
+    @abstractmethod
     def output(self) -> "ComponentOutput":
         pass
 
@@ -403,3 +403,27 @@ class CircuitBuilder(CircuitData):
         self.running_index += 1
         comp.validate(self)
         return comp
+
+    # TODO introduce weak renaming - only rename if someone hasn't already
+    # Much more useful when we start deduplicating
+    def rename_component(self, component: Component, new_name: str):
+        if new_name == component.name:
+            return
+        if component.name not in self.components:
+            raise ValueError(
+                f"Trying to rename component {component.name} to {new_name} that is not part of the circuit"
+            )
+
+        # TODO add reverse mapping table to speed up this step
+        for component in self.components.values():
+            # TODO only do for triggering inputs?
+            for input in component.inputs.values():
+                if input.parent == component.name:
+                    raise ValueError(
+                        f"Trying to rename component {component.name} to {new_name} "
+                        f"but {input.parent} already depends on it"
+                    )
+
+        del self.components[component.name]
+        component.name = new_name
+        self.components[new_name] = component
