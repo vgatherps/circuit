@@ -7,16 +7,42 @@ from pycircuit.circuit_builder.circuit import ComponentOutput
 from pycircuit.circuit_builder.circuit import CircuitData
 
 
+CIRCUIT_NAME = "_the_circuit_"
+CIRCUIT_STRUCT = "TestStruct"
+
+HEADER = "test"
+
+
 @dataclass
 class EqLit:
     output: ComponentOutput
     eq_to: str
+    type: str
+
+    def generate_lines(self) -> str:
+        # Todo allow caching of lookups to tests run faster
+        return f"""\
+{{
+    OutputHandle<{self.type}> __handle__ = {CIRCUIT_NAME}.load_component_output<{self.type}>(
+        "{self.output.parent}",
+        "{self.output.output_name}"
+    );
+
+    optional_reference<const {self.type}> __handle_ref__ = {CIRCUIT_NAME}.load_from_handle(__handle__);
+
+    EXPECT_TRUE(__handle_ref.valid()) << "Could not load output {self.output.output_name} of component {self.output.parent}";
+    EXPECT_EQ(({self.eq_to}), *__handle_ref__)  << output {self.output.output_name} of component {self.output.parent} != {self.eq_to}";
+}}"""
 
 
 @dataclass
 class EqValidOutput:
     output_a: ComponentOutput
     output_b: ComponentOutput
+    type: str
+
+    def generate_lines(self) -> str:
+        raise NotImplementedError("not")
 
 
 OutputCheck = Union[EqLit, EqValidOutput]
@@ -26,17 +52,67 @@ OutputCheck = Union[EqLit, EqValidOutput]
 class TriggerVal:
     ctor: str
     name: str
+    type: str
 
 
 @dataclass
 class TriggerCall:
     values: List[TriggerVal]
+    time: int
     trigger: CallGroup
     call_name: str
     checks: List[OutputCheck]
+
+    def generate_lines(self) -> str:
+        struct_lines = ",\n".join(
+            f".{value.name} = Optionally<{value.type}>::Optional({value.ctor});"
+            for value in self.values
+        )
+
+        check_lines = "\n\n".join(check.generate_lines() for check in self.checks)
+        return f"""\
+{{
+    {CIRCUIT_STRUCT}::{self.trigger.struct} _trigger_ = {{
+        {struct_lines}
+    }};
+
+    {CIRCUIT_NAME}.{self.call_name}({self.time}, _trigger_);
+
+    {check_lines}
+}}
+"""
 
 
 @dataclass
 class CircuitTest:
     calls: List[TriggerCall]
+    group: str
+    name: str
+
+    def generate_lines(self) -> str:
+        case_lines = "\n\n".join(call.generate_lines() for call in self.calls)
+        return f"""\
+TEST({self.group}, {self.name}) {{
+    {CIRCUIT_STRUCT} {CIRCUIT_NAME}({{}});
+
+    {case_lines}
+}}
+"""
+
+
+@dataclass
+class CircuitTestGroup:
+    tests: List[CircuitTest]
     circuit: CircuitData
+
+    def generate_lines(self):
+
+        test_cases = "\n\n".join(test.generate_lines() for test in self.tests)
+
+        return f"""\
+#include <gtest/gtest.h>
+
+#include "{HEADER}.hh"
+
+{test_cases}
+"""
