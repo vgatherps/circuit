@@ -11,7 +11,7 @@ from pycircuit.loader.write_timer_call import (
 )
 
 from .call_clang_format import call_clang_format
-from .test_action import CircuitTestGroup, HEADER, CIRCUIT_STRUCT
+from .test_action import CircuitTestGroup, HEADER
 
 MAIN_TEST_TARGET = "pycircuit_gen_test"
 
@@ -44,7 +44,7 @@ def generate_test_in(
     cc_names = [f"{TEST_FILE}.cc"]
 
     with open(f"{out_dir}/{TEST_FILE}.cc", "w") as test_out:
-        test_out.write(call_clang_format(tests.generate_lines()))
+        test_out.write(call_clang_format(tests.generate_lines(test_name)))
 
     calls_used = set(call.call_name for test in tests.tests for call in test.calls)
     for call_name in calls_used:
@@ -53,7 +53,7 @@ def generate_test_in(
         file_name = f"{out_dir}/{local_name}"
 
         options = CallStructOptions(
-            struct_name=CIRCUIT_STRUCT,
+            struct_name=test_name,
             struct_header=HEADER,
             call_name=call_name,
         )
@@ -86,7 +86,7 @@ def generate_test_in(
 
         call = generate_timer_call(
             TimerCallStructOptions(
-                struct_name=CIRCUIT_STRUCT,
+                struct_name=test_name,
                 struct_header=HEADER,
                 component_name=component.name,
             ),
@@ -98,13 +98,13 @@ def generate_test_in(
             timer_file.write(call_clang_format(call))
 
     struct_content = generate_circuit_struct_file(
-        CIRCUIT_STRUCT, config=core_config, circuit=circuit
+        test_name, config=core_config, circuit=circuit
     )
     with open(f"{out_dir}/{HEADER}.hh", "w") as struct_file:
         struct_file.write(call_clang_format(struct_content))
 
     init_content = generate_circuit_init(
-        InitStructOptions(struct_name=CIRCUIT_STRUCT, struct_header=HEADER),
+        InitStructOptions(struct_name=test_name, struct_header=HEADER),
         config=core_config,
         circuit=circuit,
     )

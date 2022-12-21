@@ -8,7 +8,6 @@ from pycircuit.circuit_builder.circuit import CircuitData
 
 
 CIRCUIT_NAME = "_the_circuit_"
-CIRCUIT_STRUCT = "TestStruct"
 
 HEADER = "test"
 
@@ -63,20 +62,23 @@ class TriggerCall:
     call_name: str
     checks: List[OutputCheck]
 
-    def generate_lines(self) -> str:
+    def generate_lines(self, struct_name: str) -> str:
         struct_lines = ",\n".join(
             f".{value.name} = Optionally<{value.type}>::Optional({value.ctor})"
             for value in self.values
         )
 
         check_lines = "\n\n".join(check.generate_lines() for check in self.checks)
+
+        input_struct_type = f"{struct_name}::InputTypes::{self.trigger.struct}"
         return f"""\
 {{
-    {CIRCUIT_STRUCT}::InputTypes::{self.trigger.struct} _trigger_ = {{
+    {input_struct_type} _trigger_ = {{
         {struct_lines}
     }};
 
-    {CIRCUIT_NAME}.{self.call_name}({self.time}, _trigger_);
+    {struct_name}::TriggerCall<{input_struct_type}> __call__ = {CIRCUIT_NAME}.lookup_trigger<{input_struct_type}>("{self.call_name}");
+    std::invoke(__call__, {CIRCUIT_NAME}, {self.time}, _trigger_);
 
     {check_lines}
 }}
@@ -89,11 +91,13 @@ class CircuitTest:
     group: str
     name: str
 
-    def generate_lines(self) -> str:
-        case_lines = "\n\n".join(call.generate_lines() for call in self.calls)
+    def generate_lines(self, struct_name: str) -> str:
+        case_lines = "\n\n".join(
+            call.generate_lines(struct_name) for call in self.calls
+        )
         return f"""\
 TEST({self.group}, {self.name}) {{
-    {CIRCUIT_STRUCT} {CIRCUIT_NAME}(nlohmann::json{{}});
+    {struct_name} {CIRCUIT_NAME}(nlohmann::json{{}});
 
     {case_lines}
 }}
@@ -105,13 +109,16 @@ class CircuitTestGroup:
     tests: List[CircuitTest]
     circuit: CircuitData
 
-    def generate_lines(self):
+    def generate_lines(self, struct_name: str):
 
-        test_cases = "\n\n".join(test.generate_lines() for test in self.tests)
+        test_cases = "\n\n".join(
+            test.generate_lines(struct_name) for test in self.tests
+        )
 
         return f"""\
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
+#include <functional>
 
 #include "{HEADER}.hh"
 

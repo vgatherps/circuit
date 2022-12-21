@@ -48,7 +48,6 @@ def generate_all_tests(
 
 
 def test_circuit() -> CircuitTestGroup:
-
     circuit = CircuitBuilder({})
 
     with CircuitContextManager(circuit):
@@ -74,6 +73,64 @@ def test_circuit() -> CircuitTestGroup:
     )
 
     test = CircuitTest(calls=[call], group="add_tests", name="add_works_both_triggered")
+    return CircuitTestGroup(tests=[test], circuit=circuit)
+
+
+def test_wide_call() -> CircuitTestGroup:
+    circuit = CircuitBuilder({})
+
+    with CircuitContextManager(circuit):
+        ext_1 = circuit.get_external("a", "int")
+        ext_2 = circuit.get_external("b", "int")
+        ext_3 = circuit.get_external("c", "int")
+
+        # Making two distince calls forces the results of a+b to not be ephemeral
+
+        added_a_b = ext_1 + ext_2
+        added_a_b_c = added_a_b + ext_3
+
+        added_a_b_c.output_options["out"] = OutputOptions(force_stored=True)
+        circuit.rename_component(added_a_b_c, "add_out")
+
+    trigger_ab = CallGroup("AddAB", {"a": "a", "b": "b"})
+    trigger_c = CallGroup("AddC", {"c": "c"})
+
+    circuit.add_call_struct("AddAB", CallStruct.from_inputs(a="int", b="int"))
+    circuit.add_call_group("trigger_add_ab", trigger_ab)
+    circuit.add_call_struct("AddC", CallStruct.from_inputs(c="int"))
+    circuit.add_call_group("trigger_add_c", trigger_c)
+
+    call_ab = TriggerCall(
+        values=[TriggerVal("1", "a", "int"), TriggerVal("2", "b", "int")],
+        time=10,
+        trigger=trigger_ab,
+        call_name="trigger_add_ab",
+        checks=[],
+    )
+
+    call_c = TriggerCall(
+        values=[TriggerVal("5", "c", "int")],
+        time=10,
+        trigger=trigger_c,
+        call_name="trigger_add_c",
+        checks=[EqLit(output=ComponentOutput("add_out", "out"), eq_to="8", type="int")],
+    )
+
+    call_ab_2 = TriggerCall(
+        values=[TriggerVal("3", "a", "int"), TriggerVal("2", "b", "int")],
+        time=10,
+        trigger=trigger_ab,
+        call_name="trigger_add_ab",
+        checks=[
+            EqLit(output=ComponentOutput("add_out", "out"), eq_to="10", type="int")
+        ],
+    )
+
+    test = CircuitTest(
+        calls=[call_ab, call_c, call_ab_2],
+        group="wide_add_tests",
+        name="wide_graph_works_multi_trigger",
+    )
 
     return CircuitTestGroup(tests=[test], circuit=circuit)
 
@@ -99,9 +156,11 @@ def main():
     loader_config_str = open(f"{dir_path}/loader.json").read()
     core_config = CoreLoaderConfig.from_json(loader_config_str)
 
-    circuit_test = test_circuit()
-
-    generate_all_tests({"add_test": circuit_test}, args.out_dir, core_config)
+    generate_all_tests(
+        {"add_test": test_circuit(), "wide_add_tests": test_wide_call()},
+        args.out_dir,
+        core_config,
+    )
 
 
 if __name__ == "__main__":
