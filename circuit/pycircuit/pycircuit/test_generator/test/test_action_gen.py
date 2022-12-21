@@ -25,7 +25,7 @@ def test_eqlit_gen():
 
     optional_reference<const int> __handle_ref__ = _the_circuit_.load_from_handle(__handle__);
 
-    EXPECT_TRUE(__handle_ref.valid()) << "Could not load output output_a of component comp_a";
-    EXPECT_EQ((1234), *__handle_ref__)  << output output_a of component comp_a != 1234";
+    EXPECT_TRUE(__handle_ref__.valid()) << "Could not load output output_a of component comp_a";
+    EXPECT_EQ((1234), *__handle_ref__)  << "output output_a of component comp_a != 1234";
 }}"""
     )
