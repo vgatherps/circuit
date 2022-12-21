@@ -15,6 +15,8 @@ from .test_action import CircuitTestGroup, HEADER, CIRCUIT_STRUCT
 
 MAIN_TEST_TARGET = "pycircuit_gen_test"
 
+TEST_FILE = "_test_runner"
+
 
 def generate_cmake_sources(target_name: str, cc_names) -> str:
     ccs = " ".join(cc_names)
@@ -38,7 +40,12 @@ def generate_test_in(
     os.mkdir(out_dir)
 
     # This could be much better abstracted...
-    cc_names = []
+
+    cc_names = [f"{TEST_FILE}.cc"]
+
+    with open(f"{out_dir}/{TEST_FILE}.cc", "w") as test_out:
+        test_out.write(call_clang_format(tests.generate_lines()))
+
     calls_used = set(call.call_name for test in tests.tests for call in test.calls)
     for call_name in calls_used:
         local_name = f"{call_name}.cc"

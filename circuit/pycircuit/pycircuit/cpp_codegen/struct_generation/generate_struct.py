@@ -19,6 +19,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
 )
 from pycircuit.cpp_codegen.struct_generation.generate_val_load import (
     LOOKUP_OUTPUT,
+    LOAD_FROM_HANDLE,
     generate_real_output_lookup_signature,
 )
 from pycircuit.cpp_codegen.type_data import get_alias_for, get_using_declarations_for
@@ -251,5 +252,7 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {output_loader};
 
         {LOOKUP_OUTPUT}
+
+        {LOAD_FROM_HANDLE}
     }};
     """

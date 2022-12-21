@@ -15,7 +15,7 @@ BASE_NAME = "__base__"
 REAL_COMPONENT_LOOKUP_NAME = "do_real_component_lookup"
 
 LOAD_FROM_HANDLE = """template<class T>
-optional_reference<const T> load_from_handle(OutPutHandle<T> handle) const {
+optional_reference<const T> load_from_handle(OutputHandle<T> handle) const {
     const T *value_ptr = reinterpret_cast<const T *>(handle.get_offset() + reinterpret_cast<const char *>(this));
     const bool *valid_ptr = reinterpret_cast<const bool *>(handle.get_valid_offset() + reinterpret_cast<const char *>(this));
 

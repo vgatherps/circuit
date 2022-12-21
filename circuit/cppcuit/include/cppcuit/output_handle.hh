@@ -15,6 +15,7 @@ public:
 };
 
 template <class T> class OutputHandle : public RawOutputHandle {
+  public:
   OutputHandle(RawOutputHandle h)
       : RawOutputHandle(h.get_offset(), h.get_valid_offset()) {}
 };

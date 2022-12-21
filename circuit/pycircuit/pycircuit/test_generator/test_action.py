@@ -30,8 +30,8 @@ class EqLit:
 
     optional_reference<const {self.type}> __handle_ref__ = {CIRCUIT_NAME}.load_from_handle(__handle__);
 
-    EXPECT_TRUE(__handle_ref.valid()) << "Could not load output {self.output.output_name} of component {self.output.parent}";
-    EXPECT_EQ(({self.eq_to}), *__handle_ref__)  << output {self.output.output_name} of component {self.output.parent} != {self.eq_to}";
+    EXPECT_TRUE(__handle_ref__.valid()) << "Could not load output {self.output.output_name} of component {self.output.parent}";
+    EXPECT_EQ(({self.eq_to}), *__handle_ref__)  << "output {self.output.output_name} of component {self.output.parent} != {self.eq_to}";
 }}"""
 
 
@@ -65,14 +65,14 @@ class TriggerCall:
 
     def generate_lines(self) -> str:
         struct_lines = ",\n".join(
-            f".{value.name} = Optionally<{value.type}>::Optional({value.ctor});"
+            f".{value.name} = Optionally<{value.type}>::Optional({value.ctor})"
             for value in self.values
         )
 
         check_lines = "\n\n".join(check.generate_lines() for check in self.checks)
         return f"""\
 {{
-    {CIRCUIT_STRUCT}::{self.trigger.struct} _trigger_ = {{
+    {CIRCUIT_STRUCT}::InputTypes::{self.trigger.struct} _trigger_ = {{
         {struct_lines}
     }};
 
@@ -93,7 +93,7 @@ class CircuitTest:
         case_lines = "\n\n".join(call.generate_lines() for call in self.calls)
         return f"""\
 TEST({self.group}, {self.name}) {{
-    {CIRCUIT_STRUCT} {CIRCUIT_NAME}({{}});
+    {CIRCUIT_STRUCT} {CIRCUIT_NAME}(nlohmann::json{{}});
 
     {case_lines}
 }}
@@ -111,6 +111,7 @@ class CircuitTestGroup:
 
         return f"""\
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include "{HEADER}.hh"
 
