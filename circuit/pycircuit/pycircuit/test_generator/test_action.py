@@ -81,8 +81,7 @@ class TriggerCall:
     std::invoke(__call__, {CIRCUIT_NAME}, {self.time}, _trigger_);
 
     {check_lines}
-}}
-"""
+}}"""
 
 
 @dataclass
@@ -100,8 +99,7 @@ TEST({self.group}, {self.name}) {{
     {struct_name} {CIRCUIT_NAME}(nlohmann::json{{}});
 
     {case_lines}
-}}
-"""
+}}"""
 
 
 @dataclass
@@ -122,5 +120,4 @@ class CircuitTestGroup:
 
 #include "{HEADER}.hh"
 
-{test_cases}
-"""
+{test_cases}"""
