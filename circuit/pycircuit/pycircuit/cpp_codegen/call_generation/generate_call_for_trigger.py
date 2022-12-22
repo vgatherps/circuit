@@ -10,6 +10,7 @@ from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call impo
 )
 from pycircuit.cpp_codegen.generation_metadata import (
     LOCAL_DATA_LOAD_PREFIX,
+    LOCAL_TIME_LOAD__PREFIX,
     STRUCT_VAR,
     GenerationMetadata,
     generate_call_signature,
@@ -70,6 +71,7 @@ def generate_external_call_body_for(
 
     return f"""{signature} {{
 {LOCAL_DATA_LOAD_PREFIX}
+{LOCAL_TIME_LOAD__PREFIX}
 {external_initialization}
 {extra_validity}
 {default_values}

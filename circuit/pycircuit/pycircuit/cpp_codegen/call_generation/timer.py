@@ -12,9 +12,12 @@ from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call impo
 )
 from pycircuit.cpp_codegen.generation_metadata import (
     LOCAL_DATA_LOAD_PREFIX,
+    LOCAL_TIME_LOAD__PREFIX,
     AnnotatedComponent,
     GenerationMetadata,
 )
+from pycircuit.circuit_builder.circuit import TIME_TYPE
+from pycircuit.cpp_codegen.generation_metadata import TIME_VAR
 
 
 def generate_timer_name(component: Component):
@@ -25,7 +28,7 @@ def generate_timer_name(component: Component):
 def generate_timer_signature(component: Component, prefix: str = ""):
     assert component.definition.timer_callset is not None
     name = generate_timer_name(component)
-    return f"void {prefix}{name}()"
+    return f"void {prefix}{name}({TIME_TYPE} {TIME_VAR})"
 
 
 def generate_timer_call_body_for(
@@ -80,13 +83,12 @@ def generate_timer_call_body_for(
         annotated_component, component.definition.timer_callset, gen_data, all_outputs
     )
 
-    return f"""
-    {signature} {{
+    return f"""{signature} {{
 
 {LOCAL_DATA_LOAD_PREFIX}
+{LOCAL_TIME_LOAD__PREFIX}
 {extra_validity}
 {default_values}
 {timer_callback}
 {all_children}
-    }}
-    """
+}}"""

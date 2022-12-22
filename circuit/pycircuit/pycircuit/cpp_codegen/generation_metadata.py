@@ -20,14 +20,19 @@ from pycircuit.cpp_codegen.call_generation.find_children_of import (
 )
 from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 
+
+TIME_VAR = "__time_var__"
+STRUCT_VAR = "__struct_var_"
+
 LOCAL_DATA_LOAD_PREFIX = """
 Externals & __restrict _externals = externals;
 Objects & __restrict _objects = objects;
 auto & __restrict outputs_is_valid = outputs.is_valid;
 """
 
-TIME_VAR = "__time_var__"
-STRUCT_VAR = "__struct_var_"
+LOCAL_TIME_LOAD__PREFIX = f"""
+this->update_time({TIME_VAR});
+"""
 
 
 @dataclass

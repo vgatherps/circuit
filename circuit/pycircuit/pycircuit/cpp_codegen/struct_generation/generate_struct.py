@@ -254,5 +254,9 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {LOOKUP_OUTPUT}
 
         {LOAD_FROM_HANDLE}
+
+        void update_time({TIME_TYPE} new_time) {{
+            externals.time = new_time > externals.time ? new_time : externals.time;
+        }}
     }};
     """
