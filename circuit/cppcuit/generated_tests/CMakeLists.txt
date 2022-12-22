@@ -13,6 +13,9 @@ target_link_libraries(
   nlohmann_json::nlohmann_json
 )
 
+target_compile_options(pycircuit_gen_test PUBLIC -fsanitize=undefined)
+target_link_options(pycircuit_gen_test PUBLIC -fsanitize=undefined)
+
 add_subdirectory(codegen)
 
 include(GoogleTest)
