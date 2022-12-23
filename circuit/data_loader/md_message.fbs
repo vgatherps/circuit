@@ -1,56 +1,8 @@
-struct Level {
-    price: double;
-    size: double;
-}
-
-struct Trade {
-    price:double;
-    size:double;
-    exchange_time_us:int64;
-    buy:bool;
-}
-
-table DepthUpdate {
-    bids:[Level];
-    asks:[Level];
-    exchange_time_us:int64;
-}
-
-table TradeUpdate {
-    trades:[Trade];
-}
-
-table BboUpdate {
-    bid:Level;
-    ask:Level;
-    exchange_time_us:int64;
-}
-
-
-union RawMdMessage {
-    trades:TradeUpdate,
-    bbo:BboUpdate,
-    depth:DepthUpdate,
-}
+include "common.fbs";
 
 table MdMessage {
     local_time_us:int64;
     message:RawMdMessage;
-}
-
-table TradeMessage {
-    local_time_us:int64;
-    message:TradeUpdate;
-}
-
-table DepthMessage {
-    local_time_us:int64;
-    message:DepthUpdate;
-}
-
-table BboMessage {
-    local_time_us:int64;
-    message:BboUpdate;
 }
 
 root_type MdMessage;

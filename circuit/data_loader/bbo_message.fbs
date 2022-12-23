@@ -1,0 +1,9 @@
+include "common.fbs";
+
+table BboMessage {
+    local_time_us:int64;
+    message:DepthUpdate;
+}
+
+
+root_type BboMessage;

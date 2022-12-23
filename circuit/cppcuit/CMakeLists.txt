@@ -23,6 +23,15 @@ if ( ZLIB_FOUND )
     target_link_libraries(cppcuit_lib ${ZLIB_LIBRARIES} )
 endif( ZLIB_FOUND )
 
+# Add FlatBuffers directly to our build. This defines the `flatbuffers` target.
+add_subdirectory(submodules/flatbuffers
+                 ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build
+                 EXCLUDE_FROM_ALL)
+ 
+# Now simply link against flatbuffers as needed to your already declared target.
+# The flatbuffers target carry header search path automatically if CMake > 2.8.11.
+target_link_libraries(cppcuit_lib flatbuffers)
+
 include(CTest)
 
 include(CPack)
@@ -31,6 +40,7 @@ enable_testing()
 
 target_include_directories(cppcuit_lib PUBLIC include)
 
+add_subdirectory(bin)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(generated_tests)

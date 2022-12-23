@@ -37,6 +37,8 @@ async def replay(exchange: str, date: date, channel: Channel):
         )
         output = builder.Output()
 
+        output_len = len(output)
+        running_buffer.extend(output_len.to_bytes(4, "little"))
         running_buffer.extend(output)
 
         if len(running_buffer) > 1000000:

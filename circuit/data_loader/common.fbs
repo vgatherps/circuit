@@ -1,0 +1,34 @@
+struct Level {
+    price: double;
+    size: double;
+}
+
+struct Trade {
+    price:double;
+    size:double;
+    exchange_time_us:int64;
+    buy:bool;
+}
+
+table DepthUpdate {
+    bids:[Level];
+    asks:[Level];
+    exchange_time_us:int64;
+}
+
+table TradeUpdate {
+    trades:[Trade];
+}
+
+table BboUpdate {
+    bid:Level;
+    ask:Level;
+    exchange_time_us:int64;
+}
+
+
+union RawMdMessage {
+    trades:TradeUpdate,
+    bbo:BboUpdate,
+    depth:DepthUpdate,
+}
