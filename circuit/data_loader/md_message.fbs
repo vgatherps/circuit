@@ -38,4 +38,19 @@ table MdMessage {
     message:RawMdMessage;
 }
 
+table TradeMessage {
+    local_time_us:int64;
+    message:TradeUpdate;
+}
+
+table DepthMessage {
+    local_time_us:int64;
+    message:DepthUpdate;
+}
+
+table BboMessage {
+    local_time_us:int64;
+    message:BboUpdate;
+}
+
 root_type MdMessage;

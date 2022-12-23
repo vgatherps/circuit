@@ -1,19 +1,17 @@
 from typing import Any, Dict
 from .fbgen.RawMdMessage import RawMdMessage
-from .fbgen.MdMessage import (
-    MdMessage,
-    MdMessageStart,
-    MdMessageEnd,
-    MdMessageAddMessageType,
-    MdMessageAddMessage,
-    MdMessageAddLocalTimeUs,
-)
 from .fbgen.Trade import Trade, CreateTrade
 from .fbgen.TradeUpdate import (
     TradeUpdateStartTradesVector,
     TradeUpdateStart,
     TradeUpdateEnd,
     TradeUpdateAddTrades,
+)
+from .fbgen.TradeMessage import (
+    TradeMessageAddMessage,
+    TradeMessageStart,
+    TradeMessageEnd,
+    TradeMessageAddLocalTimeUs,
 )
 
 
@@ -32,10 +30,9 @@ def binance_trade_normalizer(builder, local_time_us: int, in_json: Dict[str, Any
     TradeUpdateAddTrades(builder, trades)
     trade_update = TradeUpdateEnd(builder)
 
-    MdMessageStart(builder)
+    TradeMessageStart(builder)
 
-    MdMessageAddMessageType(builder, RawMdMessage.trades)
-    MdMessageAddMessage(builder, trade_update)
-    MdMessageAddLocalTimeUs(builder, local_time_us)
-    update = MdMessageEnd(builder)
+    TradeMessageAddMessage(builder, trade_update)
+    TradeMessageAddLocalTimeUs(builder, local_time_us)
+    update = TradeMessageEnd(builder)
     builder.Finish(update)
