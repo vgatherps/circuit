@@ -54,10 +54,9 @@ void test_streamer_load_contiguous(int vector_size, int initial_fetch,
         << "Read more bytes than passed vector length";
     for (std::size_t i = 0; i < read_into_buffer; i++) {
       EXPECT_EQ(i, buffer[i])
-          << "Index " << i << " got bad value in buffer "
-          << buffer[i] << " with total bytes read "
-          << read_into_buffer << " and " << read_this_round
-          << " bytes read this round";
+          << "Index " << i << " got bad value in buffer " << buffer[i]
+          << " with total bytes read " << read_into_buffer << " and "
+          << read_this_round << " bytes read this round";
     }
   }
 
@@ -82,7 +81,7 @@ TEST_P(StreamerTest, TestStreamerLoadsFromStreamer) {
 
 INSTANTIATE_TEST_SUITE_P(
     StreamTests, StreamerTest,
-    ::testing::Combine(::testing::Values(1, 2, 3, 4, 8, 127), // vector length
-                       ::testing::Values(0, 1, 2, 3, 4, 8,
+    ::testing::Combine(::testing::Values(1, 2, 4, 127), // vector length
+                       ::testing::Values(0, 1, 2, 4,
                                          127) // initial fetch
                        ));
