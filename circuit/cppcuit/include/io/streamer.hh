@@ -8,6 +8,7 @@
 class ByteReader {
 public:
   virtual std::size_t read_bytes(char *into, std::size_t max_bytes) = 0;
+  virtual ~ByteReader() = 0;
 };
 
 class Streamer final : public ByteReader {
