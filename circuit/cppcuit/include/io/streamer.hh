@@ -16,11 +16,13 @@ class Streamer final : public ByteReader {
   std::vector<char> buffer;
   std::unique_ptr<ByteReader> reader;
 
-  bool add_more_data();
+  bool add_more_data(std::size_t max_bytes);
 
 public:
 
   std::size_t read_bytes(char *into, std::size_t max_bytes) override;
+
+  void fetch_up_to(std::size_t max_bytes);
 
   Streamer(std::unique_ptr<ByteReader>);
   ~Streamer();

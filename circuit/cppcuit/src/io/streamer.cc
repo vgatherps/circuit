@@ -2,8 +2,9 @@
 
 #include <cassert>
 #include <cstring>
+#include <algorithm>
 
-bool Streamer::add_more_data() {
+bool Streamer::add_more_data(std::size_t max_bytes) {
   if (!reader) {
     return false;
   }
@@ -11,10 +12,15 @@ bool Streamer::add_more_data() {
   std::size_t remaining = buffer.size() - read_to_idx;
 
   if (read_to_idx != 0) {
-    if (read_to_idx > buffer.size() / 2) {
-      buffer.resize(1 + buffer.size() * 2);
+    std::size_t desired_new_size = std::max(buffer.size(), max_bytes);
+    if (read_to_idx > desired_new_size / 2) {
+        desired_new_size *= 2;
     }
+    buffer.resize(desired_new_size);
     std::memmove(buffer.data(), buffer.data() + read_to_idx, remaining);
+    
+    // update afterwards since the extra remaining is just zeros/garbage anyways
+    remaining = desired_new_size - read_to_idx;
     read_to_idx = 0;
   }
 
@@ -40,7 +46,7 @@ std::size_t Streamer::read_bytes(char *into, std::size_t max_bytes) {
         return to_copy;
     }
 
-    if (add_more_data()) {
+    if (add_more_data(0)) {
         return this->read_bytes(into, max_bytes);
     }
 

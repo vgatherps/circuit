@@ -17,6 +17,12 @@ set(JSON_MultipleHeaders ON)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
+find_package( ZLIB REQUIRED )
+if ( ZLIB_FOUND )
+    include_directories( ${ZLIB_INCLUDE_DIRS} )
+    target_link_libraries(cppcuit_lib ${ZLIB_LIBRARIES} )
+endif( ZLIB_FOUND )
+
 include(CTest)
 
 include(CPack)

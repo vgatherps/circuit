@@ -1,1 +1,1 @@
-target_sources(cppcuit_lib PRIVATE streamer.cc)
+target_sources(cppcuit_lib PRIVATE streamer.cc zlib_streamer.cc)
