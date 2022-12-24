@@ -2,9 +2,15 @@
 
 #include <nlohmann/json.hpp>
 #include <stdexcept>
+
+#include <iostream>
+
+constexpr static double DECAY_THRESHOLD = 1e-6;
+
 // Don't inline into the decay timer to preserve icache
 double __attribute__((noinline))
-DecayingSum::compute_decay(std::uint64_t now, double current_sum) {
+DecayingSum::compute_decay(std::uint64_t now, double current_sum,
+                           TimerHandle reschedule) {
   if (now <= this->last_decay) {
     return current_sum;
   }
@@ -17,14 +23,13 @@ DecayingSum::compute_decay(std::uint64_t now, double current_sum) {
 
   this->last_decay = now;
 
-  return current_sum * decay_by;
-}
+  double new_sum = current_sum * decay_by;
+  if (!this->has_timer_scheduled && std::abs(new_sum) > DECAY_THRESHOLD) {
+    has_timer_scheduled = true;
+    reschedule.schedule_call_at(now + this->reschedule_decay_timer);
+  }
+  return new_sum;
 
-double DecayingSum::compute_and_schedule_decay(std::uint64_t now,
-                                               double current_sum,
-                                               TimerHandle reschedule) {
-  reschedule.schedule_call_at(now + this->reschedule_decay_timer);
-  return this->compute_decay(now, current_sum);
 }
 
 void DecayingSum::do_init(TimerHandle timer, const nlohmann::json &json) {
@@ -46,7 +51,4 @@ void DecayingSum::do_init(TimerHandle timer, const nlohmann::json &json) {
 
   this->last_decay = 0;
   this->reschedule_decay_timer = half_life_ns / 20;
-
-  // This will automatically get called at the start and reschedule from now
-  timer.schedule_call_at(0);
 }

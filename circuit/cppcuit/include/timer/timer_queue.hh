@@ -38,6 +38,15 @@ class RawTimerQueue {
 
 public:
   void add_event(RawTimerCall call);
+
+  std::optional<std::uint64_t> next_event_time() const {
+    if (timer_events.size() == 0) {
+      return {};
+    }
+    RawTimerCall top = timer_events.top();
+    return top.call_at_ns;
+  }
+
   std::optional<RawTimerCall> get_next_event(std::uint64_t now) {
     if (timer_events.size() == 0) {
       return {};

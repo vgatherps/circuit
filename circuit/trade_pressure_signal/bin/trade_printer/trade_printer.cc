@@ -64,12 +64,18 @@ int main(int argc, char **argv) {
 
     const flatbuffers::Vector<const Trade *> &trade_vec =
         *trade->message()->trades();
+
+    std::uint64_t local_time_ns = 1000 * trade->local_time_us();
+
+    // BUG - we want to schedule all timer calls between now and the next event,
+    // but this breaks the paradigm of being able to trivially schedule a timer call at zero
+    while (pressure_circuit.examine_timer_queue<false>(local_time_ns)) {}
+
     for (const Trade *t : trade_vec) {
 
       AnnotatedTrade atrade{.price = t->price(),
                             .size = t->size(),
-                            .exchange_time_ns =
-                                (std::uint64_t)t->exchange_time_us() * 1000,
+                            .exchange_time_ns = local_time_ns,
                             .side = t->buy() ? Side::Buy : Side::Sell,
                             .is_last_event = true};
       TradePressure::InputTypes::TradeUpdate update{.trade = atrade};
@@ -77,7 +83,8 @@ int main(int argc, char **argv) {
                                        update);
     }
 
-    streamer.commit(length);
+
+      streamer.commit(length);
   }
 
   return 0;

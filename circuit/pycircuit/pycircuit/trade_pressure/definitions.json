@@ -87,6 +87,9 @@
                     "callback": "on_tick",
                     "outputs": [
                         "running_sum"
+                    ],
+                    "metadata": [
+                        "timer"
                     ]
                 }
             ],

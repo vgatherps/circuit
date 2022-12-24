@@ -258,5 +258,23 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         void update_time({TIME_TYPE} new_time) {{
             externals.time = new_time > externals.time ? new_time : externals.time;
         }}
+
+        template<bool USE_NOW=true>
+        bool examine_timer_queue({TIME_TYPE} current_time) {{
+            std::optional<RawTimerCall> maybe_call = timer.get_next_event(current_time);
+
+            if (maybe_call.has_value()) {{
+                std::uint64_t time_to_use;
+                if (USE_NOW || maybe_call->call_at_ns == 0) {{
+                    time_to_use = current_time;
+                }} else {{
+                    time_to_use = maybe_call->call_at_ns;
+                }}
+                (maybe_call->callback)(time_to_use, this);
+                return true;
+            }} else {{
+                return false;
+            }}
+        }}
     }};
     """

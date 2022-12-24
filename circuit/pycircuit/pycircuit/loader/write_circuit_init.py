@@ -15,6 +15,7 @@ from pycircuit.cpp_codegen.struct_generation.generate_val_load import (
     generate_checks_for_all_components,
 )
 from pycircuit.loader.loader_config import CoreLoaderConfig
+from pycircuit.circuit_builder.circuit import TIME_TYPE
 
 INCLUDES = ["nlohmann/json.hpp"]
 

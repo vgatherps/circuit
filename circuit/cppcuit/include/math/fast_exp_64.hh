@@ -165,7 +165,7 @@ public:
       return fast_exp_L[lower_index] * back_to_double.d;
     }
 
-    if (x <= 0.0) {
+    if (x >= 0.0) {
       return 0.0;
     }
 
