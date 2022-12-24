@@ -33,9 +33,9 @@ def create_timer_field(component: Component, struct_name: str) -> MetaVar:
     timer_callback_name = generate_timer_name(component)
     timer_handle_type = f"TimerHandle"
     local_line = f"""
-        {timer_handle_type} {TIMER_VAR_NAME}(this->timer, [](void *p) {{
+        {timer_handle_type} {TIMER_VAR_NAME}(this->timer, [](std::uint64_t t, void *p) {{
             {struct_name} *st = ({struct_name} *)p;
-            st->{timer_callback_name}();
+            st->{timer_callback_name}(t);
         }});
     """
     return MetaVar(

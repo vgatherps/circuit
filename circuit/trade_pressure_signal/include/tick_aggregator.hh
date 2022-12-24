@@ -12,7 +12,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-struct Trade {
+struct AnnotatedTrade {
   double price, size;
   std::uint64_t exchange_time_ns;
 
@@ -104,7 +104,7 @@ public:
   // REQUIRED TODOS FOR THIS ONE:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
-  requires(HAS_OPT_REF(I, Trade, trade) && HAS_OPT_REF(I, double, fair) &&
+  requires(HAS_OPT_REF(I, AnnotatedTrade, trade) && HAS_OPT_REF(I, double, fair) &&
            HasTickRunning<O>) OnTradeOutput on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};
@@ -116,14 +116,15 @@ public:
 
     if (inputs.trade.valid()) [[likely]] {
 
-      const Trade &trade = *inputs.trade;
+      const AnnotatedTrade &trade = *inputs.trade;
 
       // we only do the real computation if the fair is valid, but as a safety
       // check, forward ticks regardless
       double current_impulse;
-      if (inputs.fair.valid()) [[likely]] {
+      if (true || inputs.fair.valid()) [[likely]] {
         current_impulse = this->handle_trade(trade.price, trade.size,
-                                             trade.side, *inputs.fair);
+                                             // temporary hack until I've built an actual circuit to generate fair
+                                             trade.side, /* *inputs.fair */ trade.price);
       } else {
         current_impulse = this->running.impulse();
       }

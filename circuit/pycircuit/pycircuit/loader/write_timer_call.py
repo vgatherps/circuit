@@ -36,7 +36,7 @@ def generate_timer_call(
     circuit: CircuitData,
 ) -> str:
     if struct_options.component_name not in circuit.components:
-        raise ValueError(f"COmponent {struct_options.component_name} does not exist")
+        raise ValueError(f"Component {struct_options.component_name} does not exist")
 
     gen_metadata = generate_global_metadata(circuit, [], struct_options.struct_name)
 

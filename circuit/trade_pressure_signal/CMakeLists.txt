@@ -19,9 +19,10 @@ include_directories(codegen)
 
 add_library(trade_pressure_lib "")
 
-target_link_libraries(trade_pressure_lib PRIVATE cppcuit_lib)
-target_link_libraries(trade_pressure_lib PRIVATE pressure_lib)
-target_link_libraries(trade_pressure_lib PRIVATE nlohmann_json::nlohmann_json)
-
 add_subdirectory(src)
+add_subdirectory(bin)
 add_subdirectory(codegen/trade_pressure)
+
+target_link_libraries(trade_pressure_lib PRIVATE cppcuit_lib)
+target_link_libraries(trade_pressure_lib PRIVATE pressure)
+target_link_libraries(trade_pressure_lib PRIVATE nlohmann_json::nlohmann_json)

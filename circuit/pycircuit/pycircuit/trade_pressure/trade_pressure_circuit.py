@@ -50,7 +50,7 @@ def generate_circuit_for_market_venue(
         definition_name="tick_aggregator",
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
-            "trade": circuit.get_external(trades_name, "Trade").output(),
+            "trade": circuit.get_external(trades_name, "AnnotatedTrade").output(),
             "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
             "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick").output(),
         },
@@ -140,7 +140,7 @@ def main():
 
     circuit = CircuitBuilder(definitions=definitions.definitions)
 
-    circuit.add_call_struct_from("TradeUpdate", trade="Trade")
+    circuit.add_call_struct_from("TradeUpdate", trade="AnnotatedTrade")
 
     with CircuitContextManager(circuit) as c:
         generate_trade_pressure_circuit(circuit, trade_pressure)

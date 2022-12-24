@@ -84,7 +84,6 @@ def generate_timer_call_body_for(
     )
 
     return f"""{signature} {{
-
 {LOCAL_DATA_LOAD_PREFIX}
 {LOCAL_TIME_LOAD__PREFIX}
 {extra_validity}
