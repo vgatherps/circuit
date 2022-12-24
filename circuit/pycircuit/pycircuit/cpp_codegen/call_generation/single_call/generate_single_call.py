@@ -23,6 +23,7 @@ def generate_single_call(
     callset: CallSpec,
     gen_data: GenerationMetadata,
     all_written: Set[ComponentOutput],
+    is_cleanup: bool = False,
 ) -> str:
     if callset.callback is None:
         raise ValueError("Call generation called for a callset with no callback")
@@ -37,7 +38,9 @@ def generate_single_call(
 
     if callset.outputs:
         output_data = generate_output_calldata(
-            annotated_component, set(callset.outputs)
+            annotated_component,
+            set(callset.outputs),
+            initialize_outputs=not is_cleanup,
         )
         call_data.append(output_data)
 

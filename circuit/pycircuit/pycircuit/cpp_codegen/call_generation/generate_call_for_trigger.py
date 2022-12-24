@@ -12,6 +12,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
     LOCAL_DATA_LOAD_PREFIX,
     LOCAL_TIME_LOAD__PREFIX,
     STRUCT_VAR,
+    CALL_VAR,
     GenerationMetadata,
     generate_call_signature,
 )
@@ -65,6 +66,18 @@ def generate_external_call_body_for(
         for called_component in children_for_call
     )
 
+    all_cleanups = "\n".join(
+        generate_single_call(
+            gen_data.annotated_components[called_component.component.name],
+            called_component.callset,
+            gen_data,
+            all_outputs,
+            is_cleanup=True,
+        )
+        for called_component in children_for_call
+        if called_component.callset.cleanup is not None
+    )
+
     signature = generate_call_signature(
         meta, gen_data.circuit, prefix=f"{gen_data.struct_name}::"
     )
@@ -76,4 +89,10 @@ def generate_external_call_body_for(
 {extra_validity}
 {default_values}
 {all_children}
+
+if ({CALL_VAR}) {{
+    {CALL_VAR}.call(__enforce_derived);
+}}
+
+{all_cleanups}
 }}"""

@@ -239,7 +239,7 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         {timer_calls}
 
         template<class T>
-        using {LOAD_CALL_TYPE} = void ({gen_data.struct_name}::*)({TIME_TYPE}, T);
+        using {LOAD_CALL_TYPE} = void ({gen_data.struct_name}::*)({TIME_TYPE}, T, RawCall<const Circuit *>);
 
         {all_load_signatures}
 

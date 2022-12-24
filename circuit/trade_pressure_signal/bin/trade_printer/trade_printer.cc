@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
                             .is_last_event = true};
       TradePressure::InputTypes::TradeUpdate update{.trade = atrade};
       pressure_circuit.SPY_BATS_trades((std::uint64_t)trade->local_time_us(),
-                                       update);
+                                       update, {});
     }
 
 

@@ -68,6 +68,8 @@ class CallSpec(DataClassJsonMixin):
     input_struct_path: Optional[str] = None
     output_struct_path: Optional[str] = None
 
+    cleanup: Optional[str] = None
+
     @property
     def skippable(self):
         """Returns whether the callback can be skipped"""

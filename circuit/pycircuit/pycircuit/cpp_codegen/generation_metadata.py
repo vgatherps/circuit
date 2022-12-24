@@ -23,11 +23,21 @@ from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_in
 
 TIME_VAR = "__time_var__"
 STRUCT_VAR = "__struct_var_"
+CALL_VAR = "__call__"
 
 LOCAL_DATA_LOAD_PREFIX = """
-Externals & __restrict _externals = externals;
-Objects & __restrict _objects = objects;
-auto & __restrict outputs_is_valid = outputs.is_valid;
+// This forces all of the below pointers to be based on this
+// as a result, when we pass __enforce_derived to the callback INSTEAD
+// of this, the compiler knows that it can't hoist writes past the call.
+// Now, unfortunately, we only want this to happen for read access.
+// As far as we're concerned, modifying variables in the call is undefined.
+// I only want the compiler to ensure writes happen before, but don't force
+// the compiler to reload. Not sure if there's a well-defined way to do this.
+
+auto  * __restrict __enforce_derived = this;
+Externals  & __restrict _externals = __enforce_derived->externals;
+Objects  &  __restrict _objects = __enforce_derived->objects;
+auto & __restrict outputs_is_valid = __enforce_derived->outputs.is_valid;
 """
 
 LOCAL_TIME_LOAD__PREFIX = f"""
@@ -99,7 +109,7 @@ def generate_call_signature(meta: CallMetaData, circuit: CircuitData, prefix: st
     call = circuit.call_groups[meta.call_name]
     struct = call.struct
 
-    return f"void {prefix}{meta.call_name}({TIME_TYPE} {TIME_VAR}, InputTypes::{struct} {STRUCT_VAR})"
+    return f"void {prefix}{meta.call_name}({TIME_TYPE} {TIME_VAR}, InputTypes::{struct} {STRUCT_VAR}, RawCall<const Circuit *> {CALL_VAR})"
 
 
 def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:

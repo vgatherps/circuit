@@ -167,6 +167,7 @@ def generate_output_struct_initializers(
 def generate_output_calldata(
     annotated_component: AnnotatedComponent,
     all_outputs: Set[str],
+    initialize_outputs: bool = True,
 ) -> CallData:
     outputs = list(all_outputs)
     value_inits = generate_value_inits(annotated_component, outputs)
@@ -189,8 +190,13 @@ def generate_output_calldata(
     else:
         ret = None
 
+    if initialize_outputs:
+        global_prefix = "\n".join([value_inits, is_valid_inits])
+    else:
+        global_prefix = ""
+
     return CallData(
-        global_prefix="\n".join([value_inits, is_valid_inits]),
+        global_prefix=global_prefix,
         local_prefix=call_prefix,
         static_return_type=ret,
         local_postfix=validity_deconstruction,
