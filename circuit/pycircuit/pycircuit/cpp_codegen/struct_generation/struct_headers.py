@@ -3,6 +3,7 @@ from typing import Set
 from pycircuit.cpp_codegen.generation_metadata import GenerationMetadata
 
 DEFAULT_HEADERS = [
+    "cppcuit/circuit.hh",
     "cppcuit/optional_reference.hh",
     "cppcuit/packed_optional.hh",
     "cppcuit/output_handle.hh",

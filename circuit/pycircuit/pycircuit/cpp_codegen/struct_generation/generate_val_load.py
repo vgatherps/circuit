@@ -14,32 +14,14 @@ TYPE_ID_NAME = "__typeid__"
 BASE_NAME = "__base__"
 REAL_COMPONENT_LOOKUP_NAME = "do_real_component_lookup"
 
-LOAD_FROM_HANDLE = """template<class T>
-optional_reference<const T> load_from_handle(OutputHandle<T> handle) const {
-    const T *value_ptr = reinterpret_cast<const T *>(handle.get_offset() + reinterpret_cast<const char *>(this));
-    const bool *valid_ptr = reinterpret_cast<const bool *>(handle.get_valid_offset() + reinterpret_cast<const char *>(this));
 
-    return optional_reference(value_ptr, *valid_ptr);
-}"""
-
-LOOKUP_OUTPUT = f"""\
-template<class T>
-OutputHandle<T> load_component_output(
-    const std::string &{COMPONENT_STR_NAME},
-    const std::string &{OUTPUT_STR_NAME}
-) {{
-    return {REAL_COMPONENT_LOOKUP_NAME}({COMPONENT_STR_NAME}, {OUTPUT_STR_NAME}, typeid(T));
-}}
-"""
-
-
-def generate_real_output_lookup_signature(prefix: str) -> str:
+def generate_real_output_lookup_signature(prefix: str, postfix: str) -> str:
     return f"""\
 RawOutputHandle {prefix}{REAL_COMPONENT_LOOKUP_NAME} (
     const std::string &{COMPONENT_STR_NAME},
     const std::string &{OUTPUT_STR_NAME},
     const std::type_info &{TYPE_ID_NAME}
-)
+) {postfix}
 """
 
 
@@ -123,7 +105,7 @@ def generate_checks_for_all_components(
 
     prefix = f"{struct_name}::"
 
-    return f"""{generate_real_output_lookup_signature(prefix)} {{
+    return f"""{generate_real_output_lookup_signature(prefix, "")} {{
 const char * {BASE_NAME} = reinterpret_cast<const char *>(this);
 {component_checks}
 
