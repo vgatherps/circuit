@@ -175,11 +175,14 @@ def generate_usings_for(
 
 def generate_single_input_struct(struct_name: str, struct: CallStruct) -> str:
 
-    struct_lines = "\n".join(
-        f"Optionally<{type}>::Optional {name};"
-        for (name, type) in struct.d_inputs.items()
-    )
-    return f"""struct {struct_name} {{
+    if struct.external_struct is not None:
+        return f"using {struct_name} = {struct.external_struct.struct_name};"
+    else:
+        struct_lines = "\n".join(
+            f"Optionally<{type}>::Optional {name};"
+            for (name, type) in struct.d_inputs.items()
+        )
+        return f"""struct {struct_name} {{
 {struct_lines}
 }};"""
 

@@ -24,6 +24,10 @@ struct AnnotatedTrade {
   bool is_last_event;
 };
 
+struct AnnotatedTradeInput {
+  std::optional<AnnotatedTrade> trade;
+};
+
 struct Tick {};
 
 // This part of the trade pressure signal aggregates the ticks per-market

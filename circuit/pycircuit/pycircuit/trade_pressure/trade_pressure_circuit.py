@@ -24,6 +24,7 @@ from pycircuit.loader.write_timer_call import (
     TimerCallStructOptions,
     generate_timer_call,
 )
+from pycircuit.circuit_builder.circuit import ExternalStruct
 from pycircuit.trade_pressure.trade_pressure_config import (
     TradePressureConfig,
     TradePressureMarketConfig,
@@ -140,7 +141,14 @@ def main():
 
     circuit = CircuitBuilder(definitions=definitions.definitions)
 
-    circuit.add_call_struct_from("TradeUpdate", trade="AnnotatedTrade")
+    circuit.add_call_struct_from(
+        "TradeUpdate",
+        trade="AnnotatedTrade",
+        external_struct=ExternalStruct(
+            struct_name="AnnotatedTradeInput",
+            header="tick_aggregator.hh",
+        ),
+    )
 
     with CircuitContextManager(circuit) as c:
         generate_trade_pressure_circuit(circuit, trade_pressure)

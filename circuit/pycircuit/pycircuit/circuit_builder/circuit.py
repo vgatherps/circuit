@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Set
+from typing import Any, Dict, List, Mapping, Optional, Set
 
 from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
@@ -175,16 +175,30 @@ class _PartialComponent(DataClassJsonMixin):
 
 
 @dataclass(eq=True, frozen=True)
+class ExternalStruct:
+    struct_name: str
+    header: Optional[str] = None
+
+
+@dataclass(eq=True, frozen=True)
 class CallStruct(DataClassJsonMixin):
     inputs: frozendict[str, str]
 
-    @staticmethod
-    def from_input_dict(inputs: Dict[str, str]) -> "CallStruct":
-        return CallStruct(inputs=frozendict(inputs))
+    external_struct: Optional[ExternalStruct] = None
 
     @staticmethod
-    def from_inputs(**fields: str) -> "CallStruct":
-        return CallStruct(inputs=frozendict(fields))
+    def from_input_dict(
+        inputs: Dict[str, str],
+        external_struct: Optional[ExternalStruct] = None,
+    ) -> "CallStruct":
+        return CallStruct(inputs=frozendict(inputs), external_struct=external_struct)
+
+    @staticmethod
+    def from_inputs(
+        external_struct: Optional[ExternalStruct] = None,
+        **fields: str,
+    ) -> "CallStruct":
+        return CallStruct(inputs=frozendict(fields), external_struct=external_struct)
 
     @property
     def d_inputs(self) -> Dict[str, str]:
@@ -351,8 +365,12 @@ class CircuitBuilder(CircuitData):
                 )
         self.call_structs[name] = struct
 
-    def add_call_struct_from(self, name: str, **fields: str):
-        self.add_call_struct(name, CallStruct.from_inputs(**fields))
+    def add_call_struct_from(
+        self, name: str, external_struct: Optional[ExternalStruct] = None, **fields: str
+    ):
+        self.add_call_struct(
+            name, CallStruct.from_inputs(**fields, external_struct=external_struct)
+        )
 
     def add_call_group(self, name: str, group: CallGroup):
         if name in self.call_groups:
