@@ -10,7 +10,7 @@ struct RawTimerCall {
   std::uint64_t call_at_ns;
   void (*callback)(std::uint64_t, void *);
 
-  auto operator<=>(const RawTimerCall &other) const {
+  std::strong_ordering operator<=>(const RawTimerCall &other) const {
     if (call_at_ns < other.call_at_ns) {
       return std::strong_ordering::less;
     }

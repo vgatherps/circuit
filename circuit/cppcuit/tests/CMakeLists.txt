@@ -15,6 +15,7 @@ target_compile_options(tests PUBLIC -fsanitize=undefined)
 target_link_options(tests PUBLIC -fsanitize=undefined)
 
 add_subdirectory(io)
+add_subdirectory(replay)
 
 include(GoogleTest)
 gtest_discover_tests(tests)
