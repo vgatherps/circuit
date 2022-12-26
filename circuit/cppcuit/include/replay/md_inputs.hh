@@ -4,5 +4,5 @@
 #include "md_types/trade_message_generated.h"
 
 struct TradeInput {
-    Optionally<TradeUpdate *>::Optional trades;
+    Optionally<const TradeUpdate *>::Optional trades;
 };

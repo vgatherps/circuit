@@ -67,24 +67,14 @@ int main(int argc, char **argv) {
 
     std::uint64_t local_time_ns = 1000 * trade->local_time_us();
 
-    // BUG - we want to schedule all timer calls between now and the next event,
-    // but this breaks the paradigm of being able to trivially schedule a timer call at zero
-    while (pressure_circuit.examine_timer_queue<false>(local_time_ns)) {}
-
-    for (const Trade *t : trade_vec) {
-
-      AnnotatedTrade atrade{.price = t->price(),
-                            .size = t->size(),
-                            .exchange_time_ns = local_time_ns,
-                            .side = t->buy() ? Side::Buy : Side::Sell,
-                            .is_last_event = true};
-      TradePressure::InputTypes::TradeUpdate update{.trade = atrade};
-      pressure_circuit.SPY_BATS_trades((std::uint64_t)trade->local_time_us(),
-                                       update, {});
+    while (pressure_circuit.examine_timer_queue<false>(local_time_ns)) {
     }
 
+    TradeInput input{.trades = trade->message()};
 
-      streamer.commit(length);
+    pressure_circuit.GOOG_BATS_trades(local_time_ns, input, {});
+
+    streamer.commit(length);
   }
 
   return 0;
