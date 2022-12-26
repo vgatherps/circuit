@@ -47,19 +47,29 @@ def generate_circuit_for_market_venue(
     circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
 ) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
+    # For binance, any individual trade is never end-of-tick, must be discovered externally
+    # work-in-progress to actually extract ticks
+
+    never_tick = circuit.make_constant("bool", "true")
+
+    # TODO implementing callset superset overlap makes this much simpler
+    # i.e. a callset conflict is trivial if a single callset is a superset of
+    # all conflicting callsets
+
     raw_venue_pressure = circuit.make_component(
         definition_name="tick_aggregator",
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
-            "trade": circuit.get_external(trades_name, "AnnotatedTrade").output(),
+            "trades": circuit.get_external(trades_name, "const TradeUpdate *").output(),
             "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
             "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick").output(),
+            "end_of_tick": never_tick,
         },
     )
 
     circuit.add_call_group(
         trades_name,
-        CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
+        CallGroup(struct="TradeUpdate", external_field_mapping={"trades": trades_name}),
     )
 
     return raw_venue_pressure.output("tick"), raw_venue_pressure.output("running")
@@ -143,10 +153,10 @@ def main():
 
     circuit.add_call_struct_from(
         "TradeUpdate",
-        trade="AnnotatedTrade",
+        trades="const TradeUpdate *",
         external_struct=ExternalStruct(
-            struct_name="AnnotatedTradeInput",
-            header="tick_aggregator.hh",
+            struct_name="TradeInput",
+            header="replay/md_inputs.hh",
         ),
     )
 

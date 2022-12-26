@@ -37,6 +37,9 @@ public:
   }
 
   const char *data() const { return buffer.data() + read_to_idx; }
+  bool has_data() const {
+    return reader.get();
+  }
 
   void commit(std::size_t bytes) {
     if (buffer.size() - read_to_idx < bytes) {

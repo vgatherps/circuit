@@ -2,7 +2,8 @@
     "definitions": {
         "tick_aggregator": {
             "inputs": [
-                "trade",
+                "trades",
+                "end_of_tick",
                 "tick",
                 "fair"
             ],
@@ -30,10 +31,11 @@
             "callsets": [
                 {
                     "written_set": [
-                        "trade"
+                        "trades"
                     ],
                     "observes": [
-                        "fair"
+                        "fair",
+                        "end_of_tick"
                     ],
                     "callback": "on_trade",
                     "outputs": [

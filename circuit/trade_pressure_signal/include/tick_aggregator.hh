@@ -12,21 +12,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-struct AnnotatedTrade {
-  double price, size;
-  std::uint64_t exchange_time_ns;
-
-  Side side;
-
-  // TODO for crypto do we even know?
-  // I don't think it's obvious on the feeds that spam out individual maker
-  // trades. Will keep it simmple for no and assume that we know
-  bool is_last_event;
-};
-
-struct AnnotatedTradeInput {
-  std::optional<AnnotatedTrade> trade;
-};
+#include <md_types/trade_message_generated.h>
 
 struct Tick {};
 
@@ -61,6 +47,8 @@ struct PerMarketParams {
   double distance_weight;
 };
 
+using ConstTradeUpdate = const TradeUpdate *; 
+
 struct RunningImpulseManager {
   double current_pricesize;
   double current_impulse;
@@ -87,16 +75,16 @@ class SingleTickAggregator {
     tick_valid = true;
     this->running = RunningImpulseManager{};
   }
-  double handle_trade(double price, double size, Side side, double fair);
+  double handle_trades(const TradeUpdate *trades, double fair);
 
 public:
   using RunningTickScore = double;
   using NewTickScore = double;
 
   template <class O>
-  constexpr static bool HasTickRunning = HAS_REF_FIELD(O, NewTickScore, tick) &&
-                                         HAS_REF_FIELD(O, RunningTickScore,
-                                                       running);
+  constexpr static bool HasTickRunning =
+      HAS_REF_FIELD(O, NewTickScore, tick) &&
+      HAS_REF_FIELD(O, RunningTickScore, running);
 
   struct OnTradeOutput {
     bool tick;
@@ -108,8 +96,10 @@ public:
   // REQUIRED TODOS FOR THIS ONE:
   // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
-  requires(HAS_OPT_REF(I, AnnotatedTrade, trade) && HAS_OPT_REF(I, double, fair) &&
-           HasTickRunning<O>) OnTradeOutput on_trade(I inputs, O outputs) {
+    requires(HAS_OPT_REF(I, ConstTradeUpdate, trades) &&
+             HAS_OPT_REF(I, double, fair) &&
+             HAS_OPT_REF(I, bool, end_of_tick) && HasTickRunning<O>)
+  OnTradeOutput on_trade(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid = {.tick = false};
 
@@ -118,22 +108,19 @@ public:
     // we're not getting a whole lot of secretly invalid end-of-ticks
     // and also the end-of-tick watchdog will save us anyways
 
-    if (inputs.trade.valid()) [[likely]] {
-
-      const AnnotatedTrade &trade = *inputs.trade;
+    if (inputs.trades.valid()) [[likely]] {
 
       // we only do the real computation if the fair is valid, but as a safety
       // check, forward ticks regardless
       double current_impulse;
-      if (true || inputs.fair.valid()) [[likely]] {
-        current_impulse = this->handle_trade(trade.price, trade.size,
-                                             // temporary hack until I've built an actual circuit to generate fair
-                                             trade.side, /* *inputs.fair */ trade.price);
+      if (inputs.fair.valid()) [[likely]] {
+        current_impulse =
+            this->handle_trades(*inputs.trades, *inputs.fair);
       } else {
         current_impulse = this->running.impulse();
       }
 
-      if (trade.is_last_event) {
+      if (inputs.end_of_tick.valid() && *inputs.end_of_tick) {
         mark_tick_finished(current_impulse, outputs.tick, outputs.running,
                            outputs_valid.tick);
       } else {
@@ -147,8 +134,8 @@ public:
   // Takes a dummy tick input
   // Sets running score to zero and potentially outputs a current tick
   template <class I, class O>
-  requires(HAS_OPT_REF(I, double, tick) && HasTickRunning<O>) OnTradeOutput
-      on_end_tick(I inputs, O outputs) {
+    requires(HAS_OPT_REF(I, double, tick) && HasTickRunning<O>)
+  OnTradeOutput on_end_tick(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid;
 
@@ -165,8 +152,8 @@ public:
   }
 
   template <class O>
-  requires(HasTickRunning<O>) OnTradeOutput
-      init(O outputs, const nlohmann::json &) {
+    requires(HasTickRunning<O>)
+  OnTradeOutput init(O outputs, const nlohmann::json &) {
     outputs.running = 0.0;
     outputs.tick = 0.0;
 

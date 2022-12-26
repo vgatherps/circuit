@@ -37,16 +37,24 @@ static void update_price(RunningImpulseManager &m, double price, double fair,
       weight_distance_for(m.deepest_price, fair, dist_weight, side);
 }
 
-double SingleTickAggregator::handle_trade(double price, double size, Side side,
-                                          double fair) {
+double SingleTickAggregator::handle_trades(const TradeUpdate *trades,
+                                           double fair) {
   bool was_empty = this->running.is_empty();
-  if (was_empty) {
-    this->running =
-        impulse_from_price(price, fair, this->params.distance_weight, side);
-  }
+  const auto &trades_vec = *trades->trades();
 
-  update_price(this->running, price, fair, this->params.distance_weight, side);
-  update_impulse(this->running, price, size, this->params.pricesize_weight);
+  for (const Trade *trade : trades_vec) {
+
+    Side side = trade->buy() ? Side::Buy : Side::Sell;
+    if (was_empty) {
+      this->running = impulse_from_price(trade->price(), fair,
+                                         this->params.distance_weight, side);
+    }
+
+    update_price(this->running, trade->price(), fair,
+                 this->params.distance_weight, side);
+    update_impulse(this->running, trade->price(), trade->size(),
+                   this->params.pricesize_weight);
+  }
 
   return this->running.impulse();
 }

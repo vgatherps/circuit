@@ -72,7 +72,7 @@ class Collator final : public CollatorSource<T> {
   void add_from_source(std::unique_ptr<CollatorSource<T>> source) {
     std::optional<T> maybe_next = source->next_element();
 
-    if (maybe_next.has_value()) {
+    if (maybe_next.has_value()) [[likely]] {
       PendingElement pending{.data = std::move(maybe_next.value()),
                              .source = std::move(source)};
 
@@ -97,7 +97,7 @@ public:
       pending_queue.operate_on_top(
         [](PendingElement &pending) {
           std::optional<T> maybe_next = pending.source->next_element();
-          if (maybe_next.has_value()) {
+          if (maybe_next.has_value()) [[likely]] {
             pending.data = std::move(*maybe_next);
             return true;
           } else {
@@ -107,7 +107,7 @@ public:
       );
     }
 
-    if (pending_queue.size() == 0) {
+    if (pending_queue.size() == 0) [[unlikely]] {
       recompute_top = false;
       return {};
     }

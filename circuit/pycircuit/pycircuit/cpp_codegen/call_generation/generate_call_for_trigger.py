@@ -26,7 +26,7 @@ def generate_init_externals(group: CallGroup, circuit: CircuitData):
         external = circuit.external_inputs[external_name]
         init_code = f"""if (Optionally<{external.type}>::valid({STRUCT_VAR}.{field})) [[likely]] {{
 _externals.is_valid[{external.index}] = true;
-_externals.{external_name} = std::move({STRUCT_VAR}.{field}.value());
+_externals.{external_name} = std::move(Optionally<{external.type}>::value({STRUCT_VAR}.{field}));
 }} else {{
 _externals.is_valid[{external.index}] = false;
 }}"""

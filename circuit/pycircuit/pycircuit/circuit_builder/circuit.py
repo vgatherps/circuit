@@ -8,9 +8,12 @@ from frozendict import frozendict
 from pycircuit.circuit_builder.definition import Definition
 
 from .signals.arithmetic import generate_binary_definition
+from .signals.constant import generate_constant_definition
 from .signals.running_name import get_novel_name
 
 TIME_TYPE = "std::uint64_t"
+
+# TODO remove component running indices
 
 
 class HasOutput(ABC):
@@ -90,7 +93,6 @@ class Component(HasOutput):
     output_options: Dict[str, OutputOptions]
     definition: Definition
     name: str
-    index: int
 
     def output(self, which=None) -> ComponentOutput:
         if which is None:
@@ -171,7 +173,6 @@ class _PartialComponent(DataClassJsonMixin):
     output_options: Dict[str, OutputOptions]
     name: str
     definition: str
-    index: int
 
 
 @dataclass(eq=True, frozen=True)
@@ -250,7 +251,6 @@ class CircuitData:
                     output_options=comp.output_options,
                     name=comp.name,
                     definition=partial.definitions[comp.definition],
-                    index=comp.index,
                 )
                 for (comp_name, comp) in partial.components.items()
             },
@@ -277,7 +277,6 @@ class CircuitData:
                     name=comp.name,
                     inputs=comp.inputs,
                     definition=def_to_name[comp.definition],
-                    index=comp.index,
                     output_options=comp.output_options,
                 )
                 for (comp_name, comp) in self.components.items()
@@ -330,7 +329,6 @@ class CircuitBuilder(CircuitData):
             call_groups={},
             call_structs={},
         )
-        self.running_index = 0
         self.running_external = 0
 
         self.get_external("time", TIME_TYPE)
@@ -414,11 +412,36 @@ class CircuitBuilder(CircuitData):
             definition=definition,
             output_options=output_options,
             name=name,
-            index=self.running_index,
         )
         self.components[name] = comp
-        self.running_index += 1
         comp.validate(self)
+        return comp
+
+    def make_constant(self, type: str, constructor: Optional[str]) -> "Component":
+        definition = generate_constant_definition(type, constructor)
+        if constructor is not None:
+            ctor_name = constructor
+        else:
+            ctor_name = "{}"
+        def_name = f"constant_{type}_{ctor_name}"
+
+        self.add_definititon(def_name, definition)
+
+        comp = Component(
+            name=def_name,
+            definition=definition,
+            inputs={},
+            output_options={},
+        )
+        if def_name in self.components:
+            if self.components[def_name].definition == definition:
+                return self.components[def_name]
+            raise ValueError(
+                f"Already have constant {def_name} but with different definition - likely a bug"
+            )
+
+        self.components[def_name] = comp
+
         return comp
 
     # TODO introduce weak renaming - only rename if someone hasn't already

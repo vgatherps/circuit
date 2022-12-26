@@ -71,16 +71,11 @@ public:
   template <class F>
     requires std::predicate<F, T&>
   void operate_on_top(const F &f) {
-    if (data.size() > 0) {
+    if (data.size() > 0) [[likely]] {
       // TODO add return type that says no modification as well?
       bool retain = f(data.front());
 
-      if (!retain) {
-        if (data.size() == 1) {
-          data.clear();
-          return;
-        }
-
+      if (!retain) [[likely]] {
         std::swap(data.front(), data.back());
         data.pop_back();
       }

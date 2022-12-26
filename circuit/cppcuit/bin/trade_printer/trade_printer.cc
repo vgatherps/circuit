@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
   streamer.fetch_up_to(1024 * 1024);
 
-  while (streamer.available() > 0) {
+  while (streamer.has_data()) {
     streamer.ensure_available(4);
     const char *length_data = streamer.data();
     std::uint32_t length;
