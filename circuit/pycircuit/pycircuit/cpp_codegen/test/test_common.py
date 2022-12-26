@@ -21,6 +21,8 @@ OUT_C_CLASS = "OutC"
 A_INPUT = ComponentInput(parent="external", input_name="a", output_name="val_a")
 B_INPUT = ComponentInput(parent="fake", input_name="b", output_name="fake_out")
 C_INPUT = ComponentInput(parent="fake", input_name="c", output_name="fake_out_c")
+D_INPUT = ComponentInput(parent="fake", input_name="d", output_name="fake_out_d")
+E_INPUT = ComponentInput(parent="fake", input_name="e", output_name="fake_out_e")
 
 AB_CALLSET = CallSpec(
     written_set=frozenset({"a", "b"}),
@@ -35,6 +37,35 @@ BC_CALLSET = CallSpec(
     callback="call_out_b",
     outputs=frozenset({OUT_B}),
 )
+
+ABC_CALLSET = CallSpec(
+    written_set=frozenset({"a", "b", "c"}),
+    observes=frozenset(),
+    callback="call_out_b",
+    outputs=frozenset({OUT_B}),
+)
+
+BCD_CALLSET = CallSpec(
+    written_set=frozenset({"b", "c", "d"}),
+    observes=frozenset(),
+    callback="call_out_b",
+    outputs=frozenset({OUT_B}),
+)
+
+CDE_CALLSET_1 = CallSpec(
+    written_set=frozenset({"c", "d", "e"}),
+    observes=frozenset(),
+    callback="call_e1",
+    outputs=frozenset({OUT_B}),
+)
+
+CDE_CALLSET_2 = CallSpec(
+    written_set=frozenset({"c", "d", "e"}),
+    observes=frozenset({"a", "b"}),
+    callback="call_e2",
+    outputs=frozenset({OUT_B}),
+)
+
 
 GENERIC_CALLSET = CallSpec(
     written_set=frozenset({"a", "b", "c"}),
@@ -51,6 +82,8 @@ def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
                 "a",
                 "b",
                 "c",
+                "d",
+                "e",
             ]
         ),
         output_specs=frozendict(
@@ -70,6 +103,10 @@ def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
             {
                 AB_CALLSET,
                 BC_CALLSET,
+                ABC_CALLSET,
+                BCD_CALLSET,
+                CDE_CALLSET_1,
+                CDE_CALLSET_2,
             }
         ),
     )
@@ -77,11 +114,12 @@ def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
 
 def basic_component() -> Component:
     comp = Component(
-        inputs=frozendict({"a": A_INPUT, "b": B_INPUT, "c": C_INPUT}),
+        inputs=frozendict(
+            {"a": A_INPUT, "b": B_INPUT, "c": C_INPUT, "d": D_INPUT, "e": E_INPUT}
+        ),
         output_options={},
         definition=basic_definition(),
         name="test",
-        index=OUT_B_VALID_INDEX,
     )
     return comp
 

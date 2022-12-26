@@ -5,9 +5,12 @@ from pycircuit.cpp_codegen.test.test_common import (
     AB_CALLSET,
     B_INPUT,
     BC_CALLSET,
+    ABC_CALLSET,
     C_INPUT,
     COMPONENT_NAME,
     GENERIC_CALLSET,
+    D_INPUT,
+    E_INPUT,
     OUT_A,
     OUT_B,
     basic_component,
@@ -50,13 +53,40 @@ def test_single_explodes_no_generic(single):
         find_callset_for(component, set([single.output()]))
 
 
-def test_callset_many_match():
+def test_callset_superset_match():
+    component = basic_component()
+
+    assert (
+        find_callset_for(
+            component, set([A_INPUT.output(), B_INPUT.output(), C_INPUT.output()])
+        )
+        == ABC_CALLSET
+    )
+
+
+def test_callset_no_superset():
     component = basic_component()
 
     with pytest.raises(
         ValueError,
-        match=f"Component {COMPONENT_NAME} had multiple matching callsets",
+        match=f"Component {COMPONENT_NAME} had multiple matching callsets and no superset",
     ):
         find_callset_for(
-            component, set([A_INPUT.output(), B_INPUT.output(), C_INPUT.output()])
+            component,
+            set(
+                [A_INPUT.output(), B_INPUT.output(), C_INPUT.output(), D_INPUT.output()]
+            ),
+        )
+
+
+def test_callset_many_supersets():
+    component = basic_component()
+
+    with pytest.raises(
+        ValueError,
+        match=f"Component {COMPONENT_NAME} had multiple matching callsets and multiple supersets",
+    ):
+        find_callset_for(
+            component,
+            set([C_INPUT.output(), D_INPUT.output(), E_INPUT.output()]),
         )
