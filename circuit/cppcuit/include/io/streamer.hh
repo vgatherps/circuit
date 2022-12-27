@@ -37,8 +37,17 @@ public:
   }
 
   const char *data() const { return buffer.data() + read_to_idx; }
-  bool has_data() const {
-    return reader.get();
+
+  // Ensures that there is data left, and if so, said data is loaded into the
+  // buffer
+  bool has_data() {
+    if (available() > 0) {
+      return true;
+    }
+    if (reader.get()) {
+      return add_more_data();
+    }
+    return false;
   }
 
   void commit(std::size_t bytes) {

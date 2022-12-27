@@ -6,51 +6,51 @@ import flatbuffers
 from flatbuffers.compat import import_numpy
 np = import_numpy()
 
-class BboMessage(object):
+class SingleTradeMessage(object):
     __slots__ = ['_tab']
 
     @classmethod
     def GetRootAs(cls, buf, offset=0):
         n = flatbuffers.encode.Get(flatbuffers.packer.uoffset, buf, offset)
-        x = BboMessage()
+        x = SingleTradeMessage()
         x.Init(buf, n + offset)
         return x
 
     @classmethod
-    def GetRootAsBboMessage(cls, buf, offset=0):
+    def GetRootAsSingleTradeMessage(cls, buf, offset=0):
         """This method is deprecated. Please switch to GetRootAs."""
         return cls.GetRootAs(buf, offset)
-    # BboMessage
+    # SingleTradeMessage
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
 
-    # BboMessage
+    # SingleTradeMessage
     def LocalTimeUs(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Int64Flags, o + self._tab.Pos)
         return 0
 
-    # BboMessage
+    # SingleTradeMessage
     def Message(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
-            x = self._tab.Indirect(o + self._tab.Pos)
-            from DepthUpdate import DepthUpdate
-            obj = DepthUpdate()
+            x = o + self._tab.Pos
+            from Trade import Trade
+            obj = Trade()
             obj.Init(self._tab.Bytes, x)
             return obj
         return None
 
-def BboMessageStart(builder): builder.StartObject(2)
+def SingleTradeMessageStart(builder): builder.StartObject(2)
 def Start(builder):
-    return BboMessageStart(builder)
-def BboMessageAddLocalTimeUs(builder, localTimeUs): builder.PrependInt64Slot(0, localTimeUs, 0)
+    return SingleTradeMessageStart(builder)
+def SingleTradeMessageAddLocalTimeUs(builder, localTimeUs): builder.PrependInt64Slot(0, localTimeUs, 0)
 def AddLocalTimeUs(builder, localTimeUs):
-    return BboMessageAddLocalTimeUs(builder, localTimeUs)
-def BboMessageAddMessage(builder, message): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(message), 0)
+    return SingleTradeMessageAddLocalTimeUs(builder, localTimeUs)
+def SingleTradeMessageAddMessage(builder, message): builder.PrependStructSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(message), 0)
 def AddMessage(builder, message):
-    return BboMessageAddMessage(builder, message)
-def BboMessageEnd(builder): return builder.EndObject()
+    return SingleTradeMessageAddMessage(builder, message)
+def SingleTradeMessageEnd(builder): return builder.EndObject()
 def End(builder):
-    return BboMessageEnd(builder)
+    return SingleTradeMessageEnd(builder)

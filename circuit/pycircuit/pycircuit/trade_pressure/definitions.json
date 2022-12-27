@@ -2,8 +2,7 @@
     "definitions": {
         "tick_aggregator": {
             "inputs": [
-                "trades",
-                "end_of_tick",
+                "trade",
                 "tick",
                 "fair"
             ],
@@ -31,16 +30,14 @@
             "callsets": [
                 {
                     "written_set": [
-                        "trades"
+                        "trade"
                     ],
                     "observes": [
-                        "fair",
-                        "end_of_tick"
+                        "fair"
                     ],
                     "callback": "on_trade",
                     "outputs": [
-                        "running",
-                        "tick"
+                        "running"
                     ]
                 },
                 {
@@ -53,8 +50,72 @@
                         "running",
                         "tick"
                     ]
+                },
+                {
+                    "written_set": [
+                        "trade",
+                        "tick"
+                    ],
+                    "observes": [
+                        "fair"
+                    ],
+                    "callback": "on_ticked_trade",
+                    "outputs": [
+                        "running",
+                        "tick"
+                    ]
                 }
             ]
+        },
+        "tick_detector": {
+            "inputs": [
+                "trade",
+                "time"
+            ],
+            "output_specs": {
+                "tick": {
+                    "ephemeral": true,
+                    "type_path": "TickOutput",
+                    "assume_invalid": true
+                }
+            },
+            "class_name": "TickCompletionDetector",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true
+            },
+            "header": "tick_detector.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "trade"
+                    ],
+                    "observes": [
+                        "time"
+                    ],
+                    "callback": "on_trade",
+                    "outputs": [
+                        "tick"
+                    ],
+                    "metadata": [
+                        "timer"
+                    ]
+                }
+            ],
+            "timer_callset": {
+                "written_set": [],
+                "observes": [
+                    "time"
+                ],
+                "callback": "invalidate",
+                "outputs": [
+                    "tick"
+                ],
+                "metadata": [
+                    "timer"
+                ]
+            }
         },
         "decaying_sum": {
             "inputs": [
@@ -72,10 +133,7 @@
             "static_call": false,
             "init_spec": {
                 "init_call": "init",
-                "takes_params": true,
-                "metadata": [
-                    "timer"
-                ]
+                "takes_params": true
             },
             "header": "decaying_sum.hh",
             "callsets": [

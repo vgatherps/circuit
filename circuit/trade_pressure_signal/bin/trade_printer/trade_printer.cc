@@ -1,5 +1,5 @@
 #include "io/zlib_streamer.hh"
-#include "md_types/trade_message_generated.h"
+#include "md_types/single_trade_message_generated.h"
 #include "trade_pressure/pressure.hh"
 
 #include <flatbuffers/minireflect.h>
@@ -45,11 +45,47 @@ int main(int argc, char **argv) {
     "GOOG_NYSE_tick_aggregator": {},
     "MSFT_BATS_tick_aggregator": {},
     "MSFT_NASDAQ_tick_aggregator": {},
-    "MSFT_NYSE_tick_aggregator": {}
+    "MSFT_NYSE_tick_aggregator": {},
+    "SPY_BATS_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "SPY_NYSE_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "SPY_NASDAQ_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "GOOG_BATS_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "GOOG_NYSE_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "GOOG_NASDAQ_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "MSFT_BATS_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "MSFT_NYSE_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    },
+    "MSFT_NASDAQ_tick_detector": {
+      "us_till_batch_ends": 50,
+      "ns_till_batch_invalidation": 2000000
+    }
   }
   )lit"_json);
 
-  while (streamer.available() > 0) {
+  while (streamer.has_data()) {
     streamer.ensure_available(4);
     const char *length_data = streamer.data();
     std::uint32_t length;
@@ -60,17 +96,21 @@ int main(int argc, char **argv) {
     streamer.ensure_available(length);
     const char *trade_message_data = streamer.data();
 
-    const TradeMessage *trade = GetTradeMessage(trade_message_data);
+    auto ver = flatbuffers::Verifier((const std::uint8_t *)streamer.data(),
+                                     (std::uint32_t)length,
+                                     flatbuffers::Verifier::Options{});
 
-    const flatbuffers::Vector<const Trade *> &trade_vec =
-        *trade->message()->trades();
+    if (!VerifySingleTradeMessageBuffer(ver)) {
+      throw "BAD";
+    }
+    const SingleTradeMessage *trade = GetSingleTradeMessage(trade_message_data);
 
     std::uint64_t local_time_ns = 1000 * trade->local_time_us();
 
     while (pressure_circuit.examine_timer_queue<false>(local_time_ns)) {
     }
 
-    TradeInput input{.trades = trade->message()};
+    TradeInput input{.trade = trade->message()};
 
     pressure_circuit.GOOG_BATS_trades(local_time_ns, input, {});
 

@@ -14,26 +14,13 @@
 
 #include <md_types/trade_message_generated.h>
 
-struct Tick {};
+#include "tick_detector.hh"
+
 
 // This part of the trade pressure signal aggregates the ticks per-market
-// and broadcasts an event whenever a 'tick' occurs
-//
-// This, like everything in trade pressure, will require a respectable timer
-// interface...
-//
-// Will just have to assume that away for now
-// will be a good next-week project! get a real
-// version of trade pressure working!
+// broadcasts an event whenever a 'tick' occurs
+// and maintains a running sum of trades believed to be part of the current tick
 
-inline double weight_distance_for(double price, double fair, double weight,
-                                  Side side) {
-  constexpr double SideAdjustments[] = {0.0, 2.0};
-  double ratio = price / fair;
-  ratio -= SideAdjustments[(int)side];
-
-  return ratio;
-}
 
 // TODO can we decompose this further into a pipeline
 // where no single object holds more than one parameter?
@@ -46,8 +33,6 @@ struct PerMarketParams {
   double pricesize_weight;
   double distance_weight;
 };
-
-using ConstTradeUpdate = const TradeUpdate *; 
 
 struct RunningImpulseManager {
   double current_pricesize;
@@ -75,7 +60,7 @@ class SingleTickAggregator {
     tick_valid = true;
     this->running = RunningImpulseManager{};
   }
-  double handle_trades(const TradeUpdate *trades, double fair);
+  double handle_trade(const Trade *trades, double fair);
 
 public:
   using RunningTickScore = double;
@@ -93,53 +78,41 @@ public:
   // Takes trade struct, current fair
   // Outputs the running score and potentially a tick
 
-  // REQUIRED TODOS FOR THIS ONE:
-  // 1. always-valid. In this case running is just outright ALWAYS valid
   template <class I, class O>
-    requires(HAS_OPT_REF(I, ConstTradeUpdate, trades) &&
+    requires(HAS_OPT_REF(I, ConstTradeUpdate, trade) &&
              HAS_OPT_REF(I, double, fair) &&
-             HAS_OPT_REF(I, bool, end_of_tick) && HasTickRunning<O>)
-  OnTradeOutput on_trade(I inputs, O outputs) {
-
-    OnTradeOutput outputs_valid = {.tick = false};
+             HAS_REF_FIELD(O, RunningTickScore, running))
+  void on_trade(I inputs, O outputs) {
 
     // if the trade is invalid, don't waste time reasoning about ticks...
     // could be complex with the whole 'end-of-tick', but tbh assume
     // we're not getting a whole lot of secretly invalid end-of-ticks
     // and also the end-of-tick watchdog will save us anyways
 
-    if (inputs.trades.valid()) [[likely]] {
+    if (inputs.trade.valid()) [[likely]] {
 
       // we only do the real computation if the fair is valid, but as a safety
       // check, forward ticks regardless
       double current_impulse;
       if (inputs.fair.valid()) [[likely]] {
-        current_impulse =
-            this->handle_trades(*inputs.trades, *inputs.fair);
+        current_impulse = this->handle_trade(*inputs.trade, *inputs.fair);
       } else {
         current_impulse = this->running.impulse();
       }
 
-      if (inputs.end_of_tick.valid() && *inputs.end_of_tick) {
-        mark_tick_finished(current_impulse, outputs.tick, outputs.running,
-                           outputs_valid.tick);
-      } else {
-        outputs.running = current_impulse;
-      }
+      outputs.running = current_impulse;
     }
-
-    return outputs_valid;
   }
 
   // Takes a dummy tick input
   // Sets running score to zero and potentially outputs a current tick
   template <class I, class O>
-    requires(HAS_OPT_REF(I, double, tick) && HasTickRunning<O>)
-  OnTradeOutput on_end_tick(I inputs, O outputs) {
+    requires(HAS_OPT_REF(I, Tick, tick) && HasTickRunning<O>)
+  OnTradeOutput on_tick(I inputs, O outputs) {
 
     OnTradeOutput outputs_valid;
 
-    if (this->running.is_empty()) {
+    if (this->running.is_empty() || !inputs.tick.valid()) {
       outputs_valid.tick = false;
     } else {
       mark_tick_finished(this->running.impulse(), outputs.tick, outputs.running,
@@ -149,6 +122,17 @@ public:
     outputs.running = 0;
 
     return outputs_valid;
+  }
+
+  template <class I, class O>
+    requires(HAS_OPT_REF(I, ConstTradeUpdate, trade) &&
+             HAS_OPT_REF(I, double, fair) &&
+             HAS_OPT_REF(I, Tick, tick)
+             && HasTickRunning<O>)
+  OnTradeOutput on_ticked_trade(I inputs, O outputs) {
+    OnTradeOutput tick_validity = on_tick(inputs, outputs);
+    on_trade(inputs, outputs);
+    return tick_validity;
   }
 
   template <class O>

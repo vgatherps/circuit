@@ -2,7 +2,6 @@
 
 #include <nlohmann/json.hpp>
 #include <stdexcept>
-
 #include <iostream>
 
 constexpr static double DECAY_THRESHOLD = 1e-6;
@@ -32,7 +31,7 @@ DecayingSum::compute_decay(std::uint64_t now, double current_sum,
 
 }
 
-void DecayingSum::do_init(TimerHandle timer, const nlohmann::json &json) {
+void DecayingSum::do_init(const nlohmann::json &json) {
   double half_life_ns = json["half_life_ns"].get<double>();
   double tick_decay = json["tick_decay"].get<double>();
 

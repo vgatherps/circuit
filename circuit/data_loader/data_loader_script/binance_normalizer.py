@@ -1,17 +1,10 @@
 from typing import Any, Dict
-from .fbgen.RawMdMessage import RawMdMessage
-from .fbgen.Trade import Trade, CreateTrade
-from .fbgen.TradeUpdate import (
-    TradeUpdateStartTradesVector,
-    TradeUpdateStart,
-    TradeUpdateEnd,
-    TradeUpdateAddTrades,
-)
-from .fbgen.TradeMessage import (
-    TradeMessageAddMessage,
-    TradeMessageStart,
-    TradeMessageEnd,
-    TradeMessageAddLocalTimeUs,
+from .fbgen.Trade import CreateTrade
+from .fbgen.SingleTradeMessage import (
+    SingleTradeMessageStart,
+    SingleTradeMessageEnd,
+    SingleTradeMessageAddLocalTimeUs,
+    SingleTradeMessageAddMessage,
 )
 
 
@@ -22,17 +15,11 @@ def binance_trade_normalizer(builder, local_time_us: int, in_json: Dict[str, Any
     size = float(data["q"])
     buy = not data["m"]
 
-    TradeUpdateStartTradesVector(builder, 1)
-    CreateTrade(builder, price, size, exchange_timestamp_us, buy)
-    trades = builder.EndVector()
+    trade = CreateTrade(builder, price, size, exchange_timestamp_us, buy)
 
-    TradeUpdateStart(builder)
-    TradeUpdateAddTrades(builder, trades)
-    trade_update = TradeUpdateEnd(builder)
+    SingleTradeMessageStart(builder)
 
-    TradeMessageStart(builder)
-
-    TradeMessageAddMessage(builder, trade_update)
-    TradeMessageAddLocalTimeUs(builder, local_time_us)
-    update = TradeMessageEnd(builder)
+    SingleTradeMessageAddMessage(builder, trade)
+    SingleTradeMessageAddLocalTimeUs(builder, local_time_us)
+    update = SingleTradeMessageEnd(builder)
     builder.Finish(update)

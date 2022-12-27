@@ -1,7 +1,9 @@
 #include "tick_aggregator.hh"
 #include "math/fast_exp_64.hh"
 
-static double score_pricesize(double pricesize, double scale) {
+namespace {
+
+double score_pricesize(double pricesize, double scale) {
   assert(pricesize >= -1.0);
   assert(scale >= -1.0);
 
@@ -11,6 +13,15 @@ static double score_pricesize(double pricesize, double scale) {
   assert(exp_ps <= 0.0);
 
   return 0.0 - exp_ps;
+}
+
+double weight_distance_for(double price, double fair, double weight,
+                           Side side) {
+  constexpr double SideAdjustments[] = {0.0, 2.0};
+  double ratio = price / fair;
+  ratio -= SideAdjustments[(int)side];
+
+  return ratio;
 }
 
 static RunningImpulseManager impulse_from_price(double price, double fair,
@@ -36,25 +47,21 @@ static void update_price(RunningImpulseManager &m, double price, double fair,
   m.distance_score =
       weight_distance_for(m.deepest_price, fair, dist_weight, side);
 }
+} // namespace
 
-double SingleTickAggregator::handle_trades(const TradeUpdate *trades,
-                                           double fair) {
+double SingleTickAggregator::handle_trade(const Trade *trade, double fair) {
   bool was_empty = this->running.is_empty();
-  const auto &trades_vec = *trades->trades();
 
-  for (const Trade *trade : trades_vec) {
-
-    Side side = trade->buy() ? Side::Buy : Side::Sell;
-    if (was_empty) {
-      this->running = impulse_from_price(trade->price(), fair,
-                                         this->params.distance_weight, side);
-    }
-
-    update_price(this->running, trade->price(), fair,
-                 this->params.distance_weight, side);
-    update_impulse(this->running, trade->price(), trade->size(),
-                   this->params.pricesize_weight);
+  Side side = trade->buy() ? Side::Buy : Side::Sell;
+  if (was_empty) {
+    this->running = impulse_from_price(trade->price(), fair,
+                                       this->params.distance_weight, side);
   }
+
+  update_price(this->running, trade->price(), fair,
+               this->params.distance_weight, side);
+  update_impulse(this->running, trade->price(), trade->size(),
+                 this->params.pricesize_weight);
 
   return this->running.impulse();
 }

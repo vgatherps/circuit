@@ -17,7 +17,7 @@ class DecayingSum {
 
   double compute_decay(std::uint64_t now, double current_sum,
                        TimerHandle reschedule);
-  void do_init(TimerHandle timer, const nlohmann::json &json);
+  void do_init(const nlohmann::json &json);
 
 public:
   using RunningTickScore = double;
@@ -55,12 +55,11 @@ public:
     }
   }
 
-  template <class O, class M>
-    requires(HAS_REF_FIELD(O, double, running_sum) &&
-             HAS_FIELD(M, TimerHandle, timer))
-  void init(O output, M metadata, const nlohmann::json &params) {
+  template <class O>
+    requires(HAS_REF_FIELD(O, double, running_sum))
+  void init(O output, const nlohmann::json &params) {
     output.running_sum = 0.0;
-    this->do_init(metadata.timer, params);
+    this->do_init(params);
   }
 
   DecayingSum() = default;

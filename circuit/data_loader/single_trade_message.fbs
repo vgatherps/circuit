@@ -1,0 +1,8 @@
+include "common.fbs";
+
+table SingleTradeMessage {
+    local_time_us:int64;
+    message:Trade;
+}
+
+root_type SingleTradeMessage;

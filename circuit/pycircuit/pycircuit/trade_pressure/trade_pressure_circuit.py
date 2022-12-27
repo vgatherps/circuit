@@ -47,29 +47,29 @@ def generate_circuit_for_market_venue(
     circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
 ) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
-    # For binance, any individual trade is never end-of-tick, must be discovered externally
-    # work-in-progress to actually extract ticks
 
-    never_tick = circuit.make_constant("bool", "true")
-
-    # TODO implementing callset superset overlap makes this much simpler
-    # i.e. a callset conflict is trivial if a single callset is a superset of
-    # all conflicting callsets
+    tick_detector = circuit.make_component(
+        definition_name="tick_detector",
+        name=f"{market}_{venue}_tick_detector",
+        inputs={
+            "trade": circuit.get_external(trades_name, "const Trade *").output(),
+            "time": circuit.get_external("time", TIME_TYPE).output(),
+        },
+    )
 
     raw_venue_pressure = circuit.make_component(
         definition_name="tick_aggregator",
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
-            "trades": circuit.get_external(trades_name, "const TradeUpdate *").output(),
+            "trade": circuit.get_external(trades_name, "const Trade *").output(),
             "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
-            "tick": circuit.get_external(f"{market}_{venue}_end_tick", "Tick").output(),
-            "end_of_tick": never_tick,
+            "tick": tick_detector.output(),
         },
     )
 
     circuit.add_call_group(
         trades_name,
-        CallGroup(struct="TradeUpdate", external_field_mapping={"trades": trades_name}),
+        CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
     )
 
     return raw_venue_pressure.output("tick"), raw_venue_pressure.output("running")
@@ -153,7 +153,7 @@ def main():
 
     circuit.add_call_struct_from(
         "TradeUpdate",
-        trades="const TradeUpdate *",
+        trade="const Trade *",
         external_struct=ExternalStruct(
             struct_name="TradeInput",
             header="replay/md_inputs.hh",

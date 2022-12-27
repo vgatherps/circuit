@@ -40,7 +40,6 @@ enable_testing()
 
 target_include_directories(cppcuit_lib PUBLIC include)
 
-add_subdirectory(bin)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(generated_tests)
