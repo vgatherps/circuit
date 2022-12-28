@@ -3,6 +3,9 @@
 #include <compare>
 #include <concepts>
 #include <optional>
+#include <memory>
+#include <functional>
+#include <cassert>
 
 template <class T, class C>
 concept comparable_with = std::predicate<C, const T&, const T&>;
