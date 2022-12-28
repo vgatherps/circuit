@@ -1,0 +1,99 @@
+\documentclass[]{article}
+\usepackage{amsmath}
+
+%opening
+\title{Incrementally updating book fair}
+\author{}
+
+\begin{document}
+	
+	\maketitle
+	
+	\subsection{Overview}
+	
+	The goal is to compute a single fair price $P^f$ using information in the orderbook, similarly to a weighted mid but over many levels. This will behave intelligently with imbalanced books (i.e. many offers, one ask) or books where prices aren't symmetric. This fair price will also NOT require a reference price to compute from. One could imagine an imbalance signal that is used to compute an adjustment from mid. We want to compute the price itself from first principles without relying on other prices (imagine if a tiny order shrinks a wide spread, giving a very misleading mid).
+	
+	
+	\subsection{Naively expanding weighted mid}
+	
+	The plain weighted mid is equal to $\frac{P^b * S^a + P^a * S^b}{S^a + S^b}$. If we want to extend this to many levels, we might try: $\frac{\sum^i P^b_i * S^a_i + P^a_i * S^b_i}{\sum^i S^a_i + S^b_i}$. Immediately, this fails if we are not able to match every single ask with every single bid.
+	It also raises questions about why it even makes sense to compute. If there are gaps in one side of the book (i.e. wide spread, thin book), there's not a sensible way to match a level 3 levels deep on one side with something 2 levels deep on the other. This might be solvable in some way I haven't thought of, but it's entering a territory with ugly hacks and probably more parameters.
+	
+	\subsection{Cost-minimization model}
+	
+	We assume there is a fair price $P^f$ for the security that each market participant has a view of (this view differs between participants). We then say that each order in the book has some cost:
+	
+	\begin{math}
+		C_i = e^{-\lambda \cdot \pm (P_f - P_i )} f(S_i)
+	\end{math}
+	
+	and the cost for the entire book is
+	
+	\begin{equation}
+		\begin{split}
+			C(P^f) &= \sum_{bids} e^{-\lambda (P_f - P^b_i )} f(S^b_i) + \sum_{asks} e^{-\lambda (P^a_i - P^f )} f(S^a_i) \\
+			&= e^{-\lambda P_f}\sum_{bids}  e^{\lambda P^b_i} f(S^b_i) +e^{\lambda P^f }  \sum_{asks}  e^{-\lambda P^a_i} f(S^a_i)
+		\end{split}
+	\end{equation}
+	
+	Essentially, this is claiming that the cost of an order exponentially decreases as it gets deeper than the fair price, exponentially increases as the fair price crosses, and has some size-dependent multiplicative cost (in reality this could depend on many things, recency, queue position, executions, etc). For the purpose of this problem these costs are effectively constants and I'll write them as $K^{a,b}_i$
+	
+	This cost function is convex as it's a sum of convex functions, so any minimum is the global minimum. The derivative w.r.t fair price is:
+	
+	\begin{equation}
+		\begin{split}
+			C(P^f)' &= (e^{-\lambda P_f}\sum_{bids}  e^{\lambda P^b_i} K^b_i +e^{\lambda P^f }  \sum_{asks}  e^{-\lambda P^a_i} K^a_i)' \\
+			C(P^f)' &= -\lambda e^{-\lambda P_f}\sum_{bids}  e^{\lambda P^b_i} K^b_i + \lambda e^{\lambda P^f }  \sum_{asks}  e^{-\lambda P^a_i} K^a_i
+		\end{split}
+	\end{equation}
+	
+	And setting this to zero we get
+	
+	\begin{equation}
+		\begin{split}
+			0 &= -\lambda e^{-\lambda P_f}\sum_{bids}  e^{\lambda P^b_i} K^b_i + \lambda e^{\lambda P^f }  \sum_{asks}  e^{-\lambda P^a_i} K^a_i \\
+			e^{-\lambda P_f}\sum_{bids}  e^{\lambda P^b_i} K^b_i &=  e^{\lambda P^f }  \sum_{asks}  e^{-\lambda P^a_i} K^a_i \\
+			\frac{\sum_{bids}  e^{\lambda P^b_i} K^b_i}{\sum_{asks}  e^{-\lambda P^a_i} K^a_i} &=  e^{2\lambda P^f } \\
+			P^f &=	\frac{ln(\frac{\sum_{bids}  e^{\lambda P^b_i} K^b_i}{\sum_{asks}  e^{-\lambda P^a_i} K^a_i})}{2\lambda} \\
+		\end{split}
+	\end{equation}
+	
+	
+	\subsection{Normalizing}
+	The above formula will be impossible to compute properly - the exponentials will have gigantic intermediate values. This is easily remedied by normalizing with a reference price:
+	
+	\begin{itemize}
+		\item $P - P^{ref}$
+		\item $\frac{P - P^{ref}}{{P^{ref}}}$
+	\end{itemize}
+	
+	Each of these will compute a transformed fair price, and remove numerical issues. The second option slightly changes the problem as well. Instead of doing computations in price space, you are considering distance in percent-away-from reference. The reference has no impact at identical percentage differences,
+	however it of course does impact the percents themselves. In practice, this is effectively solved by using mid as a reasonable reference, with the assumption that mid and fair will never be more than a few basis points away from each other.
+	
+	\subsection{Incremental updates without bookbuilding}
+	
+	First, assume that the reference price stays constant. If we observe a change in $K_i$ for a given order (on order add assume was zero before), how do we update the above value without recomputing over the full book? This is a trivial computation - the two summations inside each log are linear in the cost of each order, so all that must be done is incrementally update with the delta of cost.
+	
+	Take an order add - we simply add $e^{\pm \lambda P} K$ to the proper sum. For an execution, since we're given the executed shares, we just compute the equivalent $-K$ that the executed shared would imply. With a properly constructed calculation to update K, order add and executions don't even need to examine state in an order table since basically all major exchanges include the size delta in the message!
+	
+	We also have to properly handle change-of-mid. For the linear adjustment, this is easy - simply multiplying by $e^(P^{new}-P^{ref})$ will transform into a space with the new reference price.
+	
+	However, the form $\frac{P - P^{ref}}{{P^{ref}}}$ is harder. Since there's no simple transformation from one reference to the other, a change of reference requires that one has a full book to recompute the incremental sums from scratch. A change of reference will eventually be needed - as prices deviate too far from $P^{ref}$, the values in the exponential grow much too large.
+	
+	\subsubsection{Impulse from non-existent levels}
+	
+	Let's imagine that we want to have some of the impulse from a book change be time dependent - i.e. order true impulse = $\theta I + (1 - \theta)2^{\frac{t - t_I}{\gamma}}I $ is a combination of original impulse ($I$) and a time-decayed portion with half-life $\gamma$. Assume an order has reached steady-state, and the time-sensitive portion has decayed to zero. This order is then canceled. The non-time dependent impulses cancel out to zero, and we're left with a negative time-decaying impulse. Since this level is not in the book anymore, we need to maintain some secondary structure to track this decaying value on recompute - depending on the scale parameter, the difference in distances might be quite large!
+	
+	\subsubsection{Hybridizing}
+	
+	A book impulse of the form$\frac{P - P^{ref}}{{P^{ref}}}$ has an advantage in that it's more or less invariant to large price moves. You're always considering percent-from-reference, not linear price. However, it requires more sophisticated (and expensive) recomputes and makes time-sensitive decay difficult.
+	
+	Instead, we can consider a solution with two reference prices:$\frac{P - P^{fast}}{{P^{slow}}}; |1 - \frac{P^{fast}}{P^{slow}}| < \epsilon$. $P^{fast}$ and $P^{slow}$ are initially selected to be equal. $P^{fast}$ transforms as the linear transformation, requiring no book observation, while a change to $P^{slow}$ requires a full book recompute. What does this change buy us?
+	
+	Consider the situation where the true price has moved by $2\%$ down from the reference price. A level that is $1\%$ above the current price will appear to be $1\%$ below the current price, and after changing reference will appear to be $1\%$ above. In any reasonable parameterization, $e^{-0.01\lambda}$ and $e^{0.01\lambda}$ will be tremendous!
+	
+	Now consider that we're using the fast and slow reference price, and assume the fast reference price is $1\%$ above the current price (this is easy since the linear change-of-reference is trivial itself), which is equal to $0.98P^{slow}$. Before the change of slow reference, the distance is $\frac{0.99P^{slow} - 0.98P^{slow}}{P^{slow}} = 0.01$, and after it's $\frac{\frac{0.99}{0.98}P^{slow} - P^{slow}}{P^{slow}} ~= 0.0102$. As opposed to a $0.02 [200\%]$ realized change in distance (and going from crossed to uncrossed), this is a ~$2\%$ change in the distance itself.
+	
+	What does this buy us over just updating more frequently, aside from performance? It makes it much easier to handle the impulse from nonexistent levels. On a full recompute, we would likely see little change in the incremental state, making it feasible to use a local approximation to update the time-decaying impulse.
+	
+\end{document}

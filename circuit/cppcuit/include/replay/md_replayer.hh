@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "md_types/trade_message_generated.h"
+#include "md_inputs.hh"
 
 
 enum class MdCategory { Trade };
@@ -20,6 +21,12 @@ struct MdSymbology {
   std::unordered_map<std::string, std::size_t> symbol_to_index;
 };
 
+struct SymbolCallbacks {
+  void (*single_trade)(void *, std::uint64_t, TradeInput);
+  void (*diff)(void *, std::uint64_t, DiffInput);
+};
+
 struct MdCallbacks {
-    std::vector<void(*)(void *, std::uint64_t, const TradeUpdate *)> trade_callbacks;
+  MdSymbology symbology;
+  std::vector<SymbolCallbacks> callbacks;
 };

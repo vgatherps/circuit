@@ -9,5 +9,5 @@ target_link_libraries(
   PRIVATE
   cppcuit_lib
   nlohmann_json::nlohmann_json
-  trade_pressure_lib
+  signal_calc_lib
 )

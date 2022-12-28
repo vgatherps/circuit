@@ -1,0 +1,1 @@
+target_sources(signal_calc_lib PRIVATE decaying_sum.cc tick_aggregator.cc tick_detector.cc)

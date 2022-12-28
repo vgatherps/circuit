@@ -1,4 +1,4 @@
-#include "decaying_sum.hh"
+#include "trade_pressure/decaying_sum.hh"
 
 #include <nlohmann/json.hpp>
 #include <stdexcept>

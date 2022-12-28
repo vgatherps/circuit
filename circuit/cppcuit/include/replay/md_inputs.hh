@@ -6,3 +6,7 @@
 struct TradeInput {
     Optionally<const Trade *>::Optional trade;
 };
+
+struct DiffInput {
+    Optionally<const DepthUpdate *>::Optional depth;
+};

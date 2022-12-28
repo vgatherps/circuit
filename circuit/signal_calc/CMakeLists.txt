@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13.0)
 set(CMAKE_CXX_STANDARD 20)
 
-project(trade_pressure_signal VERSION 0.1.0)
+project(signal_calc VERSION 0.1.0)
 
 include(CTest)
 include(FetchContent)
@@ -17,12 +17,12 @@ add_subdirectory(cppcuit cppcuit/build/src)
 include_directories(include)
 include_directories(codegen)
 
-add_library(trade_pressure_lib "")
+add_library(signal_calc_lib "")
 
 add_subdirectory(src)
 add_subdirectory(bin)
 add_subdirectory(codegen/trade_pressure)
 
-target_link_libraries(trade_pressure_lib PRIVATE cppcuit_lib)
-target_link_libraries(trade_pressure_lib PRIVATE pressure)
-target_link_libraries(trade_pressure_lib PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(signal_calc_lib PRIVATE cppcuit_lib)
+target_link_libraries(signal_calc_lib PRIVATE pressure)
+target_link_libraries(signal_calc_lib PRIVATE nlohmann_json::nlohmann_json)

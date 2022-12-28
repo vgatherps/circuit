@@ -1,0 +1,1 @@
+target_sources(signal_calc_lib PRIVATE linear_impulse_updater.cc)
