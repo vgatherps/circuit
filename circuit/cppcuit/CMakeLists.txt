@@ -27,10 +27,13 @@ endif( ZLIB_FOUND )
 add_subdirectory(submodules/flatbuffers
                  ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build
                  EXCLUDE_FROM_ALL)
+
+# Process Abseil's CMake build system
+add_subdirectory(submodules/abseil-cpp)
  
 # Now simply link against flatbuffers as needed to your already declared target.
 # The flatbuffers target carry header search path automatically if CMake > 2.8.11.
-target_link_libraries(cppcuit_lib flatbuffers)
+target_link_libraries(cppcuit_lib flatbuffers )
 
 include(CTest)
 
@@ -38,7 +41,7 @@ include(CPack)
 
 enable_testing()
 
-target_include_directories(cppcuit_lib PUBLIC include)
+target_include_directories(cppcuit_lib PUBLIC include submodules/abseil-cpp)
 
 add_subdirectory(src)
 add_subdirectory(tests)
