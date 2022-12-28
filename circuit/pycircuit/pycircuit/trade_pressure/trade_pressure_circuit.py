@@ -128,7 +128,7 @@ def generate_trade_pressure_circuit(
 def generate_cmake_file(lib_name: str, cc_names) -> str:
     ccs = " ".join(cc_names)
     return f"""add_library({lib_name} {ccs})
-target_link_libraries({lib_name} PRIVATE cppcuit_lib nlohmann_json::nlohmann_json)"""
+target_link_libraries({lib_name} PRIVATE signal_calc_lib cppcuit_lib nlohmann_json::nlohmann_json)"""
 
 
 def main():
