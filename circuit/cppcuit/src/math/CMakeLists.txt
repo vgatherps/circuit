@@ -1,1 +1,1 @@
-target_sources(cppcuit_lib PRIVATE fast_exp_64.cc)
+target_sources(cppcuit_lib PRIVATE fast_exp_64.cc fast_log_64.cc)

@@ -27,4 +27,4 @@ static int fill_exp_arrays() {
   return 0;
 }
 
-int __force_early_fill = fill_exp_arrays();
+int __force_fast_exp_early_fill = fill_exp_arrays();

@@ -27,6 +27,7 @@ constexpr static std::size_t LOG_CACHE_BITS = 5;
 //
 // Only issue now is to compute log2(1.m51...m0)
 // Maintain a cache to do linear interpolation
+// using lines tangent to log2(x) between 1 and 2
 
 // A final optimization -
 // the final term looks like ln(2) * (exponent + (slope * mantissa) + intercept)
@@ -41,6 +42,9 @@ constexpr static std::size_t LOG_CACHE_BITS = 5;
 //   fma(slope*ln(2), mantissa, intercept*(ln2))
 // )
 
+// It's easy to redefine this for many bases (just adjust the multipliers)
+// but rarely see calls to anything other than ln
+
 struct LogLookup {
   double slope;
   double intercept;
@@ -48,7 +52,9 @@ struct LogLookup {
 
 extern LogLookup tangents[1 << LOG_CACHE_BITS];
 
-double fast_ln(double x) {
+double fast_ln_out_of_line(double x);
+
+inline double fast_ln(double x) {
   constexpr std::size_t double_mantissa_bits = 52;
   constexpr std::size_t double_exp_bits = 11;
   constexpr std::int64_t exp_nan = 0x7ff;
