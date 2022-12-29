@@ -46,7 +46,7 @@ constexpr double MAX_VALUE = 8.98846567431158e307;
 
 // We now just have to be able to compute the various powers that we want!
 // Computing outright powers of two is very easy.
-// For the smaller powers, we can use lookup tables since the space is only 257
+// For the smaller powers, we can use lookup tables since the space is only 256
 // values
 
 // However, how do we quickly convert this back into something useful?
@@ -61,7 +61,7 @@ constexpr double MAX_VALUE = 8.98846567431158e307;
 // binary fraction]
 //
 // As a final optimization, we want to replace on multiplication with an integer
-// addition We first consider than an addition in integer space is equal to an
+// addition. We first consider than an addition in integer space is equal to an
 // exponentiation in floating point space and since we have a power of two, we
 // can take advantage of this If we consider another representation of
 // multiplying the upper two values: 0(ax11)(mx52) for the middle value,

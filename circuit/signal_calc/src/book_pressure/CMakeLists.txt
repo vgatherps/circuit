@@ -1,1 +1,1 @@
-target_sources(signal_calc_lib PRIVATE linear_impulse.cc)
+target_sources(signal_calc_lib PRIVATE linear_impulse.cc book_impulse_tracker.cc)
