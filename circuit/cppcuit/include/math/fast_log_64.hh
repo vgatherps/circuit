@@ -45,16 +45,20 @@ constexpr static std::size_t LOG_CACHE_BITS = 5;
 // It's easy to redefine this for many bases (just adjust the multipliers)
 // but rarely see calls to anything other than ln
 
+namespace _fast_log_detail {
+
 struct LogLookup {
   double slope;
   double intercept;
 };
 
-extern LogLookup tangents[1 << LOG_CACHE_BITS];
+extern LogLookup _fast_log_tangents[1 << LOG_CACHE_BITS];
+} // namespace _fast_log_detail
 
 double fast_ln_out_of_line(double x);
 
 inline double fast_ln(double x) {
+  using namespace _fast_log_detail;
   constexpr std::size_t double_mantissa_bits = 52;
   constexpr std::size_t double_exp_bits = 11;
   constexpr std::int64_t exp_nan = 0x7ff;
@@ -67,36 +71,41 @@ inline double fast_ln(double x) {
   // this can be signed - we already ensure the exponent is positive
   // in a later check
   std::int64_t exp_bits = x_bits >> double_mantissa_bits;
-  std::int64_t mantissa_bits = x_bits & (((std::int64_t)1 << double_mantissa_bits) - 1);
+  std::int64_t mantissa_bits =
+      x_bits & (((std::int64_t)1 << double_mantissa_bits) - 1);
 
   // check validity
 
   if (x_bits < 0) [[unlikely]] {
-      return std::numeric_limits<double>::quiet_NaN();
+    return std::numeric_limits<double>::quiet_NaN();
   } else if (exp_bits == double_exp_bits) [[unlikely]] {
     if (std::isinf(x)) {
       return std::numeric_limits<double>::quiet_NaN();
-    } else{
+    } else {
       return std::numeric_limits<double>::infinity();
     }
-  } else if (exp_bits == 0) [[unlikely]]{
+  } else if (exp_bits == 0) [[unlikely]] {
     // zero or subnormal
-      return -std::numeric_limits<double>::infinity();
+    return -std::numeric_limits<double>::infinity();
   }
 
   std::int64_t adjusted_exp = exp_bits - 1023;
 
-  std::int64_t bucket = mantissa_bits >> (double_mantissa_bits - LOG_CACHE_BITS);
+  std::int64_t bucket =
+      mantissa_bits >> (double_mantissa_bits - LOG_CACHE_BITS);
 
-  std::int64_t just_mantissa_double_bits = ((std::int64_t)1023 << double_mantissa_bits) | mantissa_bits;
+  std::int64_t just_mantissa_double_bits =
+      ((std::int64_t)1023 << double_mantissa_bits) | mantissa_bits;
 
-  const LogLookup &adjusted_tangent_line = tangents[bucket];
+  const LogLookup &adjusted_tangent_line = _fast_log_tangents[bucket];
 
   double just_mantissa;
-  memcpy(&just_mantissa, &just_mantissa_double_bits, sizeof(just_mantissa_double_bits));
+  memcpy(&just_mantissa, &just_mantissa_double_bits,
+         sizeof(just_mantissa_double_bits));
 
   // todo portable fma intrinsics, don't trust compiler
-  double sloped_mantissa = (adjusted_tangent_line.slope * just_mantissa) + adjusted_tangent_line.intercept;
+  double sloped_mantissa = (adjusted_tangent_line.slope * just_mantissa) +
+                           adjusted_tangent_line.intercept;
 
   return (M_LN2 * (double)adjusted_exp) + sloped_mantissa;
 }
