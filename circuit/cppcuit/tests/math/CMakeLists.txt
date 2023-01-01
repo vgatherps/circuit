@@ -1,1 +1,1 @@
-target_sources(tests PRIVATE test_fast_exp.cc)
+target_sources(tests PRIVATE test_fast_exp.cc test_fast_ln.cc)

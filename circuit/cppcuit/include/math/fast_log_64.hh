@@ -39,8 +39,12 @@ constexpr static std::size_t LOG_CACHE_BITS = 5;
 // fma(
 //   ln(2),
 //   exponent,
-//   fma(slope*ln(2), mantissa, intercept*(ln2))
+//   fma(slope*ln(2), mantissa, (intercept - 1023)*ln(2))
 // )
+//
+// If you try and move the - 1023 into the fma as well, you save an integer sub,
+// however you lose returning exactly 0 at 1 (I get 1e-13). This sub is
+// effectively free since the bottleneck is on loads/floating point
 
 // It's easy to redefine this for many bases (just adjust the multipliers)
 // but rarely see calls to anything other than ln
@@ -78,7 +82,7 @@ inline double fast_ln(double x) {
 
   if (x_bits < 0) [[unlikely]] {
     return std::numeric_limits<double>::quiet_NaN();
-  } else if (exp_bits == double_exp_bits) [[unlikely]] {
+  } else if (exp_bits == exp_nan) [[unlikely]] {
     if (std::isinf(x)) {
       return std::numeric_limits<double>::quiet_NaN();
     } else {
@@ -97,11 +101,10 @@ inline double fast_ln(double x) {
   std::int64_t just_mantissa_double_bits =
       ((std::int64_t)1023 << double_mantissa_bits) | mantissa_bits;
 
-  const LogLookup &adjusted_tangent_line = _fast_log_tangents[bucket];
-
   double just_mantissa;
   memcpy(&just_mantissa, &just_mantissa_double_bits,
          sizeof(just_mantissa_double_bits));
+  const LogLookup &adjusted_tangent_line = _fast_log_tangents[bucket];
 
   // todo portable fma intrinsics, don't trust compiler
   double sloped_mantissa = (adjusted_tangent_line.slope * just_mantissa) +

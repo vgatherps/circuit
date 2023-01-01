@@ -10,6 +10,7 @@ LogLookup _fast_log_tangents[TANGENTS];
 }
 
 using namespace _fast_log_detail;
+
 static int precompute_log_tangents() {
   double step_size = 1.0 / TANGENTS;
   for (std::size_t i = 0; i < TANGENTS; i++) {
@@ -26,7 +27,7 @@ static int precompute_log_tangents() {
     // continuity as well as zero-at-one is very valuable
 
     // I feel like best way is to actually fit a linear regression
-    double x = step_size * i;
+    double x = 1.0 + step_size * i;
     double x_next = x + step_size;
     double log2_x = std::log2(x);
     double log2_x_next = std::log2(x_next);
@@ -47,6 +48,6 @@ static int precompute_log_tangents() {
   return 1;
 }
 
-int __force_fast_log_early_fill = precompute_log_tangents();
+int _fast_ln_fill = precompute_log_tangents();
 
 double fast_ln_out_of_line(double x) { return fast_ln(x); }
