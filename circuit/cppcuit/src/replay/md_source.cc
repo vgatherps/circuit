@@ -2,10 +2,10 @@
 #include "cppcuit/runtime_error.hh"
 #include "md_types/depth_message_generated.h"
 #include "md_types/trade_message_generated.h"
-
-const char *MdStreamReaderBase::prepare_next_message() {
+std::tuple<const char *, std::size_t>
+MdStreamReaderBase::prepare_next_message() {
   if (!streamer.has_data()) {
-    return nullptr;
+    return {nullptr, 0};
   }
 
   streamer.commit(should_commit);
@@ -22,7 +22,7 @@ const char *MdStreamReaderBase::prepare_next_message() {
   should_commit = length;
 
   streamer.ensure_available(length);
-  return streamer.data();
+  return {streamer.data(), length};
 }
 
 template <class M, class V, class L>

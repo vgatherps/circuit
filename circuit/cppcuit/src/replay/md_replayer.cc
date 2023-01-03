@@ -1,7 +1,9 @@
 #include "replay/md_replayer.hh"
 
 #include "io/zlib_streamer.hh"
+#include "replay/md_source.hh"
 
+#include <span>
 #include <sstream>
 
 namespace {
@@ -23,10 +25,23 @@ std::string name_for_stream(const MarketStreamConfig &config,
   return stream.str();
 }
 
-Streamer zlib_from_filename(const std::string &filename) {
-  Streamer stream{std::make_unique<ZlibReader>(filename)};
+std::unique_ptr<CollatorSource<TidMdMessage>>
+source_from_config(const MarketStreamConfig &config, const std::string &date,
+                   TidType tid) {
+  Streamer stream{std::make_unique<ZlibReader>(name_for_stream(config, date))};
   stream.fetch_up_to(1024 * 1024);
-  return std::move(stream);
+  switch (config.category) {
+  case MdCategory::Depth:
+    return std::make_unique<MdStreamReader<DepthMessageConverter, TidType>>(
+        std::move(stream), tid);
+  case MdCategory::Trade:
+    return std::make_unique<MdStreamReader<TradeMessageConverter, TidType>>(
+        std::move(stream), tid);
+  }
+}
+
+TidCollator collator_from_configs(std::span<MarketStreamConfig> configs) {
+  // std::vector<Streamer>
 }
 
 } // namespace
