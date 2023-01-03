@@ -13,6 +13,8 @@ protected:
   virtual RawOutputHandle do_real_component_lookup(const std::string &,
                                                    const std::string &,
                                                    const std::type_info &) = 0;
+  virtual void *do_real_call_lookup(const std::string &,
+                                    const std::type_info &) = 0;
 
 public:
   RawTimerQueue timer;
@@ -49,5 +51,11 @@ public:
   OutputHandle<T> load_component_output(const std::string &component,
                                         const std::string &output) {
     return do_real_component_lookup(component, output, typeid(T));
+  }
+
+  template <class T> CircuitCall<T> load_callback(const std::string &name) {
+    void *raw_address = do_real_call_lookup(name, typeid(T));
+
+    return (CircuitCall<T>)raw_address;
   }
 };

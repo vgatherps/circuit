@@ -11,10 +11,14 @@ from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup impo
 
 def test_lookup_of():
     assert (
-        generate_lookup_of("test_call")
-        == f"""if ("test_call" == __name__) {{
-return &test_call;
-}}"""
+        generate_lookup_of("test_call", "InputTypes::test_struct", postfix="_void")
+        == """\
+if (
+    "test_call" == __name__ &&
+    typeid(InputTypes::test_struct) == __typeid__
+) {
+    return (void *)&test_call_void;
+}"""
     )
 
 
@@ -49,22 +53,6 @@ return &{prefix}test_call_b;
 }}
 
 throw std::runtime_error(std::string("No calls matched the given name ") + __name__);}}"""
-    )
-
-
-@pytest.mark.parametrize("prefix", ["", "test_prefix::"])
-@pytest.mark.parametrize("postfix", ["", ";"])
-def test_all_signatures(prefix: str, postfix: str):
-    groups = {
-        "test_call_b": CallGroup(struct="test_struct", external_field_mapping={}),
-        "test_call_a": CallGroup(struct="test_struct", external_field_mapping={}),
-        "test_call_c": CallGroup(struct="test_struct_2", external_field_mapping={}),
-    }
-    assert (
-        generate_all_load_call_signatures(groups, prefix=prefix, postfix=postfix)
-        == f"""{prefix}TriggerCall<{prefix}InputTypes::test_struct> {prefix}do_lookup_trigger(const std::string &__name__, InputTypes::test_struct **){postfix}
-
-{prefix}TriggerCall<{prefix}InputTypes::test_struct_2> {prefix}do_lookup_trigger(const std::string &__name__, InputTypes::test_struct_2 **){postfix}"""
     )
 
 

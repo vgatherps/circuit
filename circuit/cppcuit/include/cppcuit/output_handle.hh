@@ -15,7 +15,10 @@ public:
 };
 
 template <class T> class OutputHandle : public RawOutputHandle {
-  public:
+public:
   OutputHandle(RawOutputHandle h)
       : RawOutputHandle(h.get_offset(), h.get_valid_offset()) {}
 };
+
+class Circuit;
+template <class T> using CircuitCall = void (*)(Circuit *, std::uint64_t, T);
