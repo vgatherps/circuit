@@ -6,6 +6,8 @@
 #include <span>
 #include <sstream>
 
+using TidSource = CollatorSource<TidMdMessage>;
+
 namespace {
 
 const char *name_from_category(MdCategory category) {
@@ -25,9 +27,9 @@ std::string name_for_stream(const MarketStreamConfig &config,
   return stream.str();
 }
 
-std::unique_ptr<CollatorSource<TidMdMessage>>
-source_from_config(const MarketStreamConfig &config, const std::string &date,
-                   TidType tid) {
+std::unique_ptr<TidSource> source_from_config(const MarketStreamConfig &config,
+                                              const std::string &date,
+                                              TidType tid) {
   Streamer stream{std::make_unique<ZlibReader>(name_for_stream(config, date))};
   stream.fetch_up_to(1024 * 1024);
   switch (config.category) {
@@ -40,8 +42,28 @@ source_from_config(const MarketStreamConfig &config, const std::string &date,
   }
 }
 
-TidCollator collator_from_configs(std::span<MarketStreamConfig> configs) {
-  // std::vector<Streamer>
+TidCollator collator_from_configs(std::span<MarketStreamConfig> configs,
+                                  const std::string &date,
+                                  MdSymbology &symbology) {
+  std::vector<std::unique_ptr<TidSource>> sources;
+  for (const MarketStreamConfig &config : configs) {
+    TidType tid = symbology.get_tid(config.exchange, config.symbol);
+    sources.push_back(source_from_config(config, date, tid));
+  }
+
+  return {std::move(sources)};
 }
 
 } // namespace
+
+TidType MdSymbology::get_tid(std::string exchange, std::string symbol) {
+  ExchangeSymbol exch_sym{exchange, symbol};
+  // theoretical overflow risk here
+  auto [tid_iter, created] =
+      symbol_to_index.insert({exch_sym, (TidType)index_to_symbol.size()});
+  if (created) {
+    index_to_symbol.push_back(exch_sym);
+  }
+
+  return tid_iter->second;
+}

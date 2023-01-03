@@ -1,11 +1,12 @@
 #pragma once
 
+#include <map>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "md_inputs.hh"
+#include "md_source.hh"
 #include "md_types/trade_message_generated.h"
 
 enum class MdCategory { Trade, Depth };
@@ -16,8 +17,17 @@ struct MarketStreamConfig {
   std::string exchange;
 };
 
-struct MdSymbology {
-  std::unordered_map<std::string, std::size_t> symbol_to_index;
+using ExchangeSymbol = std::tuple<std::string, std::string>;
+
+class MdSymbology {
+  std::map<ExchangeSymbol, TidType> symbol_to_index;
+  std::vector<ExchangeSymbol> index_to_symbol;
+
+public:
+  // This lookup is only intended for use when creating symbology, it's quite
+  // slow
+
+  TidType get_tid(std::string exchange, std::string symbol);
 };
 
 struct SymbolCallbacks {
