@@ -5,16 +5,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include "md_types/trade_message_generated.h"
 #include "md_inputs.hh"
+#include "md_types/trade_message_generated.h"
 
+enum class MdCategory { Trade, Depth };
 
-enum class MdCategory { Trade };
-
-class MarketStreamConfig {
+struct MarketStreamConfig {
   MdCategory category;
-  std::string filename;
   std::string symbol;
+  std::string exchange;
 };
 
 struct MdSymbology {

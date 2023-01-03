@@ -59,5 +59,6 @@ public:
   }
 
   Streamer(std::unique_ptr<ByteReader>);
+  Streamer(Streamer &&) = default;
   ~Streamer();
 };

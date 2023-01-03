@@ -44,7 +44,7 @@ def main():
         struct_name=args.struct_name,
     )
 
-    print(generate_circuit_call(struct, config, circuit))
+    print(generate_circuit_dot(struct, config, circuit))
 
 
 if __name__ == "__main__":

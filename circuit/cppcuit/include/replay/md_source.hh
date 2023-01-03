@@ -1,18 +1,15 @@
 #pragma once
 
 #include <concepts>
-#include <functional>
+#include <variant>
 
-#include "cppcuit/circuit.hh"
-#include "cppcuit/runtime_error.hh"
 #include "io/streamer.hh"
 #include "replay/collator.hh"
 
-#include "md_types/trade_message_generated.h"
+struct TradeUpdate;
+struct DepthUpdate;
 
-#include <variant>
-
-using MdMessageType = std::variant<const TradeUpdate *>;
+using MdMessageType = std::variant<const TradeUpdate *, const DepthUpdate *>;
 
 template <class K> struct MdMessage {
   std::uint64_t local_timestamp_ns;
@@ -23,61 +20,48 @@ template <class K> struct MdMessage {
 template <class T>
 concept md_streamer =
     requires(const char *a, std::size_t l) {
-      { T::load(a, l) } -> std::same_as<std::tuple<std::uint64_t, MdMessageType>>;
+      {
+        T::load(a, l)
+        } -> std::same_as<std::tuple<std::uint64_t, MdMessageType>>;
     };
 
-template <md_streamer T, std::copyable K>
-class MdStreamReader : public CollatorSource<MdMessage<K>> {
-
+class MdStreamReaderBase {
   Streamer streamer;
   std::size_t should_commit;
+
+protected:
+  const char *prepare_next_message();
+};
+
+template <md_streamer T, std::copyable K>
+class MdStreamReader final : public CollatorSource<MdMessage<K>>,
+                             public MdStreamReaderBase {
   K key;
 
 public:
   std::optional<MdMessage<K>> next_element() {
-    if (!streamer.has_data()) {
+
+    const char *message_data = prepare_next_message();
+    if (message_data == nullptr) {
       return {};
     }
-
-    streamer.commit(should_commit);
-
-    streamer.ensure_available(4);
-    const char *length_data = streamer.data();
-
-    std::uint32_t length;
-    static_assert(sizeof(length) == 4);
-    memcpy(&length, length_data, sizeof(length));
-
-    streamer.commit(sizeof(length));
-
-    should_commit = length;
-
-    streamer.ensure_available(length);
-    const char *message_data = streamer.data();
-
     auto [local_timestamp_ns, data] = T::load(message_data);
 
-    return MdMessage<K> {
-      .local_timestamp_ns = local_timestamp_ns, .update = data, .key = key
-    }
+    return MdMessage<K>{
+        .local_timestamp_ns = local_timestamp_ns, .update = data, .key = key};
   }
 };
 
 class TradeMessageConverter {
 public:
-  std::tuple<std::uint64_t, MdMessageType> load(const char *data, std::size_t length) {
-    
-    // Verification overhead appears to be really tiny.
-    // It's easy to downsample if the overhead gets too high
-
-    flatbuffers::Verifier ver((const std::uint8_t *)data, length);
-    bool ok = VerifyTradeMessageBuffer(ver);
-
-    if (!ok) [[unlikely]] {
-        cold_runtime_error("Trade Message could not be verified");
-    }
-
-    const TradeMessage *message = GetTradeMessage((const void *)data);
-    return {(std::uint64_t)message->local_time_us() * 1000, message->message()};
-  }
+  static std::tuple<std::uint64_t, MdMessageType> load(const char *data,
+                                                       std::size_t length);
 };
+
+class DepthMessageConverter {
+public:
+  static std::tuple<std::uint64_t, MdMessageType> load(const char *data,
+                                                       std::size_t length);
+};
+
+using TidCollator = Collator<MdMessage<std::uint32_t>>;

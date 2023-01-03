@@ -1,16 +1,57 @@
+import os
 import asyncio
+from dataclasses import dataclass
+import sys
+from typing import Callable, Optional
+from argparse_dataclass import ArgumentParser
+import dateutil.parser
 from tardis_client import TardisClient, Channel
-from datetime import date, timedelta
-from .binance_normalizer import binance_trade_normalizer
+from datetime import date, datetime, timedelta
+from .binance_normalizer import binance_trade_normalizer, binance_depth_normalizer
 import flatbuffers
 import gzip
 
 from .fbgen.MdMessage import MdMessage
 
 
-async def replay(exchange: str, date: date, channel: Channel):
-    file = gzip.open("trades_buf.gz", "wb")
-    tardis_client = TardisClient()
+@dataclass
+class DumpArgs:
+    exchange: str
+    message_type: str
+    symbol: str
+    date: str
+    out_dir: str = "./"
+    tardis_api_key: Optional[str] = None
+
+
+@dataclass
+class Normalizer:
+    callback: Callable[[flatbuffers.Builder, int, str], None]
+    exchange: str
+    channel: Channel
+
+
+NORMALIZERS = {
+    ("binance-futures", "trade"): binance_trade_normalizer,
+    ("binance-futures", "depth"): binance_depth_normalizer,
+}
+
+
+async def replay(
+    exchange: str,
+    channel: str,
+    symbol: str,
+    date: date,
+    out_dir: str,
+    api_key: Optional[str],
+):
+
+    callback = NORMALIZERS[(exchange, channel)]
+    tardis_channel = Channel(name=channel, symbols=[symbol])
+    filename = f"{exchange}_{channel}_{symbol}_{date}.md.gz"
+    filepath = os.path.join(out_dir, filename)
+    file = gzip.open(filepath, "wb")
+    tardis_client = TardisClient(api_key=api_key)
 
     start = date.strftime("%Y-%m-%d")
     end = (date + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -21,7 +62,7 @@ async def replay(exchange: str, date: date, channel: Channel):
         exchange=exchange,
         from_date=start,
         to_date=end,
-        filters=[channel],
+        filters=[tardis_channel],
     )
 
     # this will print all trades and orderBookL2 messages for XBTUSD
@@ -32,9 +73,7 @@ async def replay(exchange: str, date: date, channel: Channel):
         # local timestamp is a Python datetime that marks timestamp when given message has been received
         # message is a message object as provided by exchange real-time stream
         builder = flatbuffers.Builder(1024)
-        binance_trade_normalizer(
-            builder, int(local_timestamp.timestamp() * 1e6), message
-        )
+        callback(builder, int(local_timestamp.timestamp() * 1e6), message)
         output = builder.Output()
 
         output_len = len(output)
@@ -50,10 +89,20 @@ async def replay(exchange: str, date: date, channel: Channel):
         running_buffer.clear()
 
 
-asyncio.run(
-    replay(
-        "binance-futures",
-        date=date(year=2022, month=1, day=1),
-        channel=Channel(name="trade", symbols=["btcusdt"]),
+async def main():
+    args: DumpArgs = ArgumentParser(DumpArgs).parse_args(sys.argv[1:])
+
+    date: datetime
+    date = dateutil.parser.parse(args.date)
+    await replay(
+        args.exchange,
+        args.message_type,
+        args.symbol,
+        date.date(),
+        args.out_dir,
+        args.tardis_api_key,
     )
-)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

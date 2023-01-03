@@ -33,7 +33,8 @@ add_subdirectory(submodules/abseil-cpp)
  
 # Now simply link against flatbuffers as needed to your already declared target.
 # The flatbuffers target carry header search path automatically if CMake > 2.8.11.
-target_link_libraries(cppcuit_lib flatbuffers )
+target_link_libraries(cppcuit_lib flatbuffers)
+target_link_libraries(cppcuit_lib nlohmann_json::nlohmann_json)
 
 include(CTest)
 
