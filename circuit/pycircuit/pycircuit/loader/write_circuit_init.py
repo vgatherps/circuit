@@ -4,9 +4,6 @@ from dataclasses import dataclass
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import CircuitData
-from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup import (
-    general_all_load_call_bodies,
-)
 from pycircuit.cpp_codegen.call_generation.init_generation.generate_init_call import (
     generate_init_call,
 )

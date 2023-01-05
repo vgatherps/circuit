@@ -8,7 +8,6 @@ from pycircuit.circuit_builder.circuit import (
 )
 from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup import (
     LOAD_CALL_TYPE,
-    generate_all_load_call_signatures,
     generate_top_level_loader,
 )
 from pycircuit.cpp_codegen.call_generation.timer import generate_timer_signature

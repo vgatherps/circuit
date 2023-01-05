@@ -18,15 +18,9 @@ if (
 }}"""
 
 
-def generate_load_call_signature(struct_name: str, prefix="", postfix="") -> str:
-
-    return (
-        f"{prefix}{LOAD_CALL_TYPE}<{prefix}InputTypes::{struct_name}> {prefix}do_lookup_trigger"
-        f"(const std::string &{INPUT_STR_NAME}, InputTypes::{struct_name} **){postfix}"
-    )
-
-
-def general_load_call(groups: Dict[str, CallGroup], struct_name: str, prefix="") -> str:
+def general_load_call_for_struct(
+    groups: Dict[str, CallGroup], struct_name: str, prefix=""
+) -> str:
 
     for group in groups.values():
         assert group.struct == struct_name
@@ -51,14 +45,24 @@ def general_all_load_call_lines(groups: Dict[str, CallGroup], prefix="") -> str:
             call: group for (call, group) in groups.items() if group.struct == struct
         }
 
-        all_calls.append(general_load_call(subset, struct, prefix=prefix))
+        all_calls.append(general_load_call_for_struct(subset, struct, prefix=prefix))
 
     return "\n\n".join(all_calls)
 
 
-def generate_top_level_loader(groups: Dict[str, CallGroup]) -> str:
-    all_structs = sorted(set(group.struct for group in groups.values()))
+def generate_true_loader_body(groups: Dict[str, CallGroup], prefix: str = "") -> str:
+    load_lines = general_all_load_call_lines(groups, prefix=prefix)
+    return f"""\
+{load_lines}
 
-    return f"""
-void *do_real_call_lookup(const std::string &name) {{
-return do_lookup_trigger(name, (T **)nullptr);}}"""
+throw std::runtime_error(
+    {INPUT_STR_NAME} + " was not found with input type " + {INPUT_TYPEID_NAME}.name()
+);"""
+
+
+TYPED_LOADER = f"""\
+template<class T>
+{LOAD_CALL_TYPE}<T> lookup_call_for(const std::string &name) {{
+    return do_real_call_lookup(name, typeid(T));
+}}
+"""
