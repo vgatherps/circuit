@@ -8,13 +8,14 @@ from pycircuit.circuit_builder.circuit import (
 )
 from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup import (
     LOAD_CALL_TYPE,
-    generate_top_level_loader,
+    top_level_real_loader,
 )
 from pycircuit.cpp_codegen.call_generation.timer import generate_timer_signature
 from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
-    generate_call_signature,
+    generate_true_call_signature,
+    generate_wrapper_call,
 )
 from pycircuit.cpp_codegen.struct_generation.generate_val_load import (
     generate_real_output_lookup_signature,
@@ -194,7 +195,11 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
     objects = generate_objects_substruct(gen_data)
 
     calls = "\n".join(
-        generate_call_signature(call, circuit) + ";" for call in gen_data.call_endpoints
+        generate_true_call_signature(call, circuit, "static void ") + ";"
+        for call in gen_data.call_endpoints
+    )
+    wrapper_calls = "\n".join(
+        generate_wrapper_call(call, circuit) + ";" for call in gen_data.call_endpoints
     )
 
     struct_calls = "\n".join(
@@ -208,16 +213,14 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
         if component.definition.timer_callset is not None
     )
 
-    all_load_signatures = generate_all_load_call_signatures(
-        circuit.call_groups, postfix=";"
-    )
-
-    top_level_loader = generate_top_level_loader(circuit.call_groups)
+    top_level_loader = top_level_real_loader()
     output_loader = generate_real_output_lookup_signature("", "override")
 
     return f"""
     struct {gen_data.struct_name} final : public Circuit {{
         {usings}
+
+        using OWN_STRUCT_NAME = {gen_data.struct_name};
 
         {externals}
         Externals externals;
@@ -238,14 +241,14 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
 
         {calls}
 
+        {wrapper_calls}
+
         {timer_calls}
 
         template<class T>
         using {LOAD_CALL_TYPE} = void ({gen_data.struct_name}::*)({TIME_TYPE}, T, RawCall<const Circuit *>);
 
-        {all_load_signatures}
-
-        {top_level_loader}
+        {top_level_loader} override;
 
         {output_loader};
 

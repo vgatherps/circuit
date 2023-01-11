@@ -14,7 +14,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
     STRUCT_VAR,
     CALL_VAR,
     GenerationMetadata,
-    generate_call_signature,
+    generate_true_call_signature,
 )
 
 # TODO generate thing to load data from external calls
@@ -78,8 +78,8 @@ def generate_external_call_body_for(
         if called_component.callset.cleanup is not None
     )
 
-    signature = generate_call_signature(
-        meta, gen_data.circuit, prefix=f"{gen_data.struct_name}::"
+    signature = generate_true_call_signature(
+        meta, gen_data.circuit, prefix=f"void {gen_data.struct_name}::"
     )
 
     return f"""{signature} {{
@@ -91,7 +91,7 @@ def generate_external_call_body_for(
 {all_children}
 
 if ({CALL_VAR}) {{
-    {CALL_VAR}.call(__enforce_derived);
+    {CALL_VAR}.call(__myself);
 }}
 
 {all_cleanups}

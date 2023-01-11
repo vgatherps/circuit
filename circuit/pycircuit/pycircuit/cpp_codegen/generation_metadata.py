@@ -24,8 +24,9 @@ from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_in
 TIME_VAR = "__time_var__"
 STRUCT_VAR = "__struct_var_"
 CALL_VAR = "__call__"
+INPUT_VOID_VAR = "__raw_object__"
 
-LOCAL_DATA_LOAD_PREFIX = """
+LOCAL_DATA_LOAD_PREFIX = f"""
 // This forces all of the below pointers to be based on this
 // as a result, when we pass __enforce_derived to the callback INSTEAD
 // of this, the compiler knows that it can't hoist writes past the call.
@@ -34,14 +35,23 @@ LOCAL_DATA_LOAD_PREFIX = """
 // I only want the compiler to ensure writes happen before, but don't force
 // the compiler to reload. Not sure if there's a well-defined way to do this.
 
-auto  * __restrict __enforce_derived = this;
-Externals  & __restrict _externals = __enforce_derived->externals;
-Objects  &  __restrict _objects = __enforce_derived->objects;
-auto & __restrict outputs_is_valid = __enforce_derived->outputs.is_valid;
+auto  * __restrict __myself = static_cast<OWN_STRUCT_NAME *>({INPUT_VOID_VAR});
+Externals  & __restrict _externals = __myself->externals;
+
+// I do not think _outputs can berestrict as it assumes a lot about how compilers
+// reason about derived pointers and subobjects. It probably works, but don't
+// want to discover later because of weird heisenbugs
+
+Outputs  & _outputs = __myself->outputs;
+
+// This can be restrict as the calls never touch it
+auto & __restrict outputs_is_valid = _outputs.is_valid;
+
+Objects  &  __restrict _objects = __myself->objects;
 """
 
 LOCAL_TIME_LOAD__PREFIX = f"""
-this->update_time({TIME_VAR});
+__myself->update_time({TIME_VAR});
 """
 
 
@@ -105,11 +115,33 @@ def generate_output_metadata_for(
     return output_metadata, validity_market_count
 
 
-def generate_call_signature(meta: CallMetaData, circuit: CircuitData, prefix: str = ""):
+def generate_true_call_signature(
+    meta: CallMetaData, circuit: CircuitData, prefix: str = ""
+):
     call = circuit.call_groups[meta.call_name]
     struct = call.struct
 
-    return f"void {prefix}{meta.call_name}({TIME_TYPE} {TIME_VAR}, InputTypes::{struct} {STRUCT_VAR}, RawCall<const Circuit *> {CALL_VAR})"
+    return f"""
+{prefix}{meta.call_name}_void(
+    void *{INPUT_VOID_VAR},
+    {TIME_TYPE} {TIME_VAR},
+    InputTypes::{struct} {STRUCT_VAR},
+    RawCall<const Circuit *> {CALL_VAR}
+)"""
+
+
+def generate_wrapper_call(meta: CallMetaData, circuit: CircuitData):
+    call = circuit.call_groups[meta.call_name]
+    struct = call.struct
+
+    return f"""\
+inline void {meta.call_name}(
+    {TIME_TYPE} {TIME_VAR},
+    InputTypes::{struct} {STRUCT_VAR},
+    RawCall<const Circuit *> {CALL_VAR}
+) {{
+    {meta.call_name}_void(static_cast<void *>(this), {TIME_VAR}, {STRUCT_VAR}, {CALL_VAR});
+}}"""
 
 
 def find_all_subgraphs(circuit: CircuitData) -> List[List[CalledComponent]]:

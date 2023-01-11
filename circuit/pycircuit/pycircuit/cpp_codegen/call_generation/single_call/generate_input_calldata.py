@@ -50,7 +50,7 @@ def get_parent_name(
 
         else:
             # TODO post-refactor nest this struct
-            root_name = f"outputs.{c.parent}_{c.output_name}"
+            root_name = f"_outputs.{c.parent}_{c.output_name}"
 
         return root_name
 

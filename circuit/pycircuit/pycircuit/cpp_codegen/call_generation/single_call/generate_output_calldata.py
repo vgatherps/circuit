@@ -119,7 +119,7 @@ def generate_output_init(
             f"{reference_header} = {init_var_name};",
         ]
     else:
-        return [f"{reference_header} = this->outputs.{name}_{output};"]
+        return [f"{reference_header} = _outputs.{name}_{output};"]
 
 
 def generate_value_inits(
