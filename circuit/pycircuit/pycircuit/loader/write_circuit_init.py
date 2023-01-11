@@ -59,6 +59,7 @@ def generate_circuit_init(
 {init_str}
 
 {lookup_signature} {{
+// Compatibility shim
 {lookup_str}
 }}
 

@@ -30,7 +30,7 @@ public:
       } else {
         time_to_use = maybe_call->call_at_ns;
       }
-      (maybe_call->callback)(time_to_use, this);
+      (maybe_call->callback)(this, time_to_use);
       return true;
     } else {
       return false;

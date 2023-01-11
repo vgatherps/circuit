@@ -23,6 +23,8 @@ def generate_init_call(struct_name: str, gen_data: GenerationMetadata) -> str:
     return f"""
 {struct_name}::{struct_name}(nlohmann::json {INPUT_JSON_NAME})
  : externals(), outputs(), objects() {{
+
+void *__raw_object__ = static_cast<void *>(this);
 {LOCAL_DATA_LOAD_PREFIX}
 {individual_init_calls}
 

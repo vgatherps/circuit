@@ -17,7 +17,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
 )
 from pycircuit.circuit_builder.circuit import TIME_TYPE
-from pycircuit.cpp_codegen.generation_metadata import TIME_VAR
+from pycircuit.cpp_codegen.generation_metadata import TIME_VAR, INPUT_VOID_VAR
 
 
 def generate_timer_name(component: Component):
@@ -28,7 +28,7 @@ def generate_timer_name(component: Component):
 def generate_timer_signature(component: Component, prefix: str = ""):
     assert component.definition.timer_callset is not None
     name = generate_timer_name(component)
-    return f"void {prefix}{name}({TIME_TYPE} {TIME_VAR})"
+    return f"{prefix}{name}(void *{INPUT_VOID_VAR}, {TIME_TYPE} {TIME_VAR})"
 
 
 def generate_timer_call_body_for(
@@ -77,7 +77,9 @@ def generate_timer_call_body_for(
         for child_component in children_for_call
     )
 
-    signature = generate_timer_signature(component, prefix=f"{gen_data.struct_name}::")
+    signature = generate_timer_signature(
+        component, prefix=f"void {gen_data.struct_name}::"
+    )
 
     timer_callback = generate_single_call(
         annotated_component, component.definition.timer_callset, gen_data, all_outputs

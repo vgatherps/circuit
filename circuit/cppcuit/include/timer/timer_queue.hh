@@ -8,7 +8,7 @@
 
 struct RawTimerCall {
   std::uint64_t call_at_ns;
-  void (*callback)(std::uint64_t, void *);
+  void (*callback)(void *, std::uint64_t);
 
   std::strong_ordering operator<=>(const RawTimerCall &other) const {
     if (call_at_ns < other.call_at_ns) {
@@ -65,10 +65,10 @@ public:
 
 class TimerHandle {
   RawTimerQueue &queue;
-  void (*callback)(std::uint64_t, void *);
+  void (*callback)(void *, std::uint64_t);
 
 public:
-  TimerHandle(RawTimerQueue &queue, void (*callback)(std::uint64_t, void *))
+  TimerHandle(RawTimerQueue &queue, void (*callback)(void *, std::uint64_t))
       : queue(queue), callback(callback) {}
 
   void schedule_call_at(std::uint64_t call_at_ns) {
