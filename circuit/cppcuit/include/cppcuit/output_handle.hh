@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "raw_call.hh"
+
 class RawOutputHandle {
   std::uint32_t offset;
   std::uint32_t valid_offset;
@@ -21,4 +23,6 @@ public:
 };
 
 class Circuit;
-template <class T> using CircuitCall = void (*)(Circuit *, std::uint64_t, T);
+template <class T>
+using CircuitCall = void (*)(Circuit *, std::uint64_t, T,
+                             RawCall<const Circuit *>);

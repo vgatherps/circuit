@@ -12,7 +12,6 @@ from pycircuit.cpp_codegen.struct_generation.generate_val_load import (
     generate_checks_for_all_components,
 )
 from pycircuit.loader.loader_config import CoreLoaderConfig
-from pycircuit.circuit_builder.circuit import TIME_TYPE
 from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup import (
     generate_true_loader_body,
     top_level_real_loader,
@@ -45,7 +44,7 @@ def generate_circuit_init(
     init_str = generate_init_call(struct_options.struct_name, gen_metadata)
     loader_prefix = f"{struct_options.struct_name}::"
     lookup_str = generate_true_loader_body(circuit.call_groups, prefix=loader_prefix)
-    lookup_signature = top_level_real_loader(prefix=f"void {loader_prefix}")
+    lookup_signature = top_level_real_loader(prefix=loader_prefix)
     val_lookup_str = generate_checks_for_all_components(
         list(gen_metadata.annotated_components.values()), struct_options.struct_name
     )

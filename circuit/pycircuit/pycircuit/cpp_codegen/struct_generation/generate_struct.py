@@ -7,7 +7,6 @@ from pycircuit.circuit_builder.circuit import (
     Component,
 )
 from pycircuit.cpp_codegen.call_generation.call_lookup.generate_call_lookup import (
-    LOAD_CALL_TYPE,
     top_level_real_loader,
 )
 from pycircuit.cpp_codegen.call_generation.timer import generate_timer_signature
@@ -216,46 +215,40 @@ def generate_circuit_struct(circuit: CircuitData, gen_data: GenerationMetadata):
     top_level_loader = top_level_real_loader()
     output_loader = generate_real_output_lookup_signature("", "override")
 
-    return f"""
-    struct {gen_data.struct_name} final : public Circuit {{
-        {usings}
+    return f"""\
+struct {gen_data.struct_name} final : public Circuit {{
+    {usings}
 
-        using OWN_STRUCT_NAME = {gen_data.struct_name};
+    using OWN_STRUCT_NAME = {gen_data.struct_name};
 
-        {externals}
-        Externals externals;
+    {externals}
+    Externals externals;
 
-        {output}
-        Outputs outputs;
+    {output}
+    Outputs outputs;
 
-        {objects}
-        Objects objects;
+    {objects}
+    Objects objects;
 
-        struct InputTypes {{
-            {struct_calls}
-        }};
-
-        bool alwaystrue = true;
-
-        {gen_data.struct_name}(nlohmann::json);
-
-        {calls}
-
-        {wrapper_calls}
-
-        {timer_calls}
-
-        template<class T>
-        using {LOAD_CALL_TYPE} = void ({gen_data.struct_name}::*)({TIME_TYPE}, T, RawCall<const Circuit *>);
-
-        {top_level_loader} override;
-
-        {output_loader};
-
-        void update_time({TIME_TYPE} new_time) {{
-            externals.time = new_time > externals.time ? new_time : externals.time;
-        }}
-
-
+    struct InputTypes {{
+        {struct_calls}
     }};
-    """
+
+    bool alwaystrue = true;
+
+    {gen_data.struct_name}(nlohmann::json);
+
+    {calls}
+
+    {wrapper_calls}
+
+    {timer_calls}
+
+    {top_level_loader} override;
+
+    {output_loader};
+
+    void update_time({TIME_TYPE} new_time) {{
+        externals.time = new_time > externals.time ? new_time : externals.time;
+    }}
+}};"""

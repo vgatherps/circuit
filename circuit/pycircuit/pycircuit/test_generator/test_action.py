@@ -77,8 +77,8 @@ class TriggerCall:
         {struct_lines}
     }};
 
-    {struct_name}::TriggerCall<{input_struct_type}> __call__ = {CIRCUIT_NAME}.lookup_trigger<{input_struct_type}>("{self.call_name}");
-    std::invoke(__call__, {CIRCUIT_NAME}, {self.time}, _trigger_, RawCall<const Circuit *>());
+    CircuitCall<{input_struct_type}> __call__ = {CIRCUIT_NAME}.load_callback<{input_struct_type}>("{self.call_name}");
+    __call__(&{CIRCUIT_NAME}, {self.time}, _trigger_, RawCall<const Circuit *>());
 
     {check_lines}
 }}"""

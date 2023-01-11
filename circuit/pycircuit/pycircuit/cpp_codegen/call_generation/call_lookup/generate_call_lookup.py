@@ -12,7 +12,7 @@ def generate_lookup_of(call_name: str, type_name: str, prefix="", postfix="") ->
     return f"""\
 if (
     "{call_name}" == {INPUT_STR_NAME} &&
-    typeid({type_name}) == {INPUT_TYPEID_NAME}
+    typeid(InputTypes::{type_name}) == {INPUT_TYPEID_NAME}
 ) {{
     return (void *)&{prefix}{call_name}{postfix};
 }}"""
@@ -66,11 +66,3 @@ void *{prefix}do_real_call_lookup(
     const std::string &{INPUT_STR_NAME},
     const std::type_info &{INPUT_TYPEID_NAME}
 )"""
-
-
-TYPED_LOADER = f"""\
-template<class T>
-{LOAD_CALL_TYPE}<T> lookup_call_for(const std::string &name) {{
-    return do_real_call_lookup(name, typeid(T));
-}}
-"""
