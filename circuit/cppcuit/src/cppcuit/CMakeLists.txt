@@ -1,1 +1,1 @@
-target_sources(cppcuit_lib PRIVATE runetime_error.cc)
+target_sources(cppcuit_lib PRIVATE runtime_error.cc)

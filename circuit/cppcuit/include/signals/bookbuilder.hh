@@ -5,6 +5,7 @@
 #include <functional>
 #include <type_traits>
 
+#include <cstdint>
 #include <absl/container/btree_map.h>
 #include <flatbuffers/flatbuffers.h>
 

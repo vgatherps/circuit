@@ -1,4 +1,6 @@
+add_subdirectory(cppcuit)
 add_subdirectory(math)
 add_subdirectory(timer)
 add_subdirectory(io)
 add_subdirectory(replay)
+add_subdirectory(signals)

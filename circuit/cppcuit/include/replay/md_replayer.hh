@@ -8,6 +8,7 @@
 #include "md_inputs.hh"
 #include "md_source.hh"
 #include "md_types/trade_message_generated.h"
+#include "cppcuit/circuit.hh"
 
 enum class MdCategory { Trade, Depth };
 
@@ -28,14 +29,20 @@ public:
   // slow
 
   TidType get_tid(std::string exchange, std::string symbol);
+
+  std::size_t n_symbols() const { return index_to_symbol.size(); }
+  const auto &symbols() const { return this->symbol_to_index; }
 };
 
 struct SymbolCallbacks {
-  void (*single_trade)(void *, std::uint64_t, TradeInput);
-  void (*diff)(void *, std::uint64_t, DiffInput);
+  CircuitCall<TradeInput> single_trade;
+  CircuitCall<TradeInput> diff;
 };
 
-struct MdCallbacks {
+class MdCallbacks {
   MdSymbology symbology;
   std::vector<SymbolCallbacks> callbacks;
+
+public:
+  MdCallbacks(MdSymbology symbology, Circuit *circuit);
 };

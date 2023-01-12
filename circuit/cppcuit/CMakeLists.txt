@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 3.13.0)
 set(CMAKE_CXX_STANDARD 20)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+        message(FATAL_ERROR "GCC version must be at least 13!")
+    endif()
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
+        message(FATAL_ERROR "Clang version must be at least 14!")
+    endif()
+else()
+    message(WARNING "You are using an unsupported compiler! Compilation has only been tested with Clang and GCC.")
+endif()
+
 project(cppcuit VERSION 0.1.0)
 add_library(cppcuit_lib "")
 
