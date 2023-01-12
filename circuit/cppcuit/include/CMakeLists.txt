@@ -1,0 +1,7 @@
+add_subdirectory(cppcuit)
+add_subdirectory(io)
+add_subdirectory(math)
+add_subdirectory(md_types)
+add_subdirectory(replay)
+add_subdirectory(signals)
+add_subdirectory(timer)

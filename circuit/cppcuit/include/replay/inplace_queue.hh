@@ -45,9 +45,9 @@ class in_place_queue {
     }
   }
 
-  std::size_t just_bubble_up_from(std::size_t index) {
+  void bubble_up_from(std::size_t index) {
     if (index == 0) {
-      return 0;
+      bubble_down_from(0);
     }
 
     C c;
@@ -59,15 +59,10 @@ class in_place_queue {
 
     if (c(data[parent_index], data[index])) {
       std::swap(data[parent_index], data[index]);
-      return just_bubble_up_from(parent_index);
+      bubble_up_from(parent_index);
     } else {
-      return index;
+      bubble_down_from(index);
     }
-  }
-
-  void bubble_up_from(std::size_t index) {
-    std::size_t bubbled_up_index = just_bubble_up_from(index);
-    bubble_down_from(bubbled_up_index);
   }
 
 public:

@@ -1,0 +1,1 @@
+target_sources(cppcuit_lib PRIVATE fast_exp_32.hh fast_exp_64.hh fast_log_64.hh)
