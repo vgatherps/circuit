@@ -2,19 +2,33 @@
 
 #include <string>
 #include <typeinfo>
+#include <variant>
 
 #include "optional_reference.hh"
 #include "output_handle.hh"
+#include "overload.hh"
 
 #include "timer/timer_queue.hh"
+
+struct NoCallbackFound {};
+struct WrongCallbackType {
+  const std::type_info &type;
+};
+
+template <class T>
+using DiscoveredCallback =
+    std::variant<CircuitCall<T>, NoCallbackFound, WrongCallbackType>;
+
+using RawDiscoveredCallback =
+    std::variant<void *, NoCallbackFound, WrongCallbackType>;
 
 class Circuit {
 protected:
   virtual RawOutputHandle do_real_component_lookup(const std::string &,
                                                    const std::string &,
                                                    const std::type_info &) = 0;
-  virtual void *do_real_call_lookup(const std::string &,
-                                    const std::type_info &) = 0;
+  virtual RawDiscoveredCallback do_real_call_lookup(const std::string &,
+                                                    const std::type_info &) = 0;
 
 public:
   RawTimerQueue timer;
@@ -53,9 +67,14 @@ public:
     return do_real_component_lookup(component, output, typeid(T));
   }
 
-  template <class T> CircuitCall<T> load_callback(const std::string &name) {
-    void *raw_address = do_real_call_lookup(name, typeid(T));
+  template <class T>
+  DiscoveredCallback<T> load_callback(const std::string &name) {
+    RawDiscoveredCallback raw_address = do_real_call_lookup(name, typeid(T));
 
-    return (CircuitCall<T>)raw_address;
+    return std::visit(
+        overloaded{
+            [](void *p) -> DiscoveredCallback<T> { return (CircuitCall<T>)p; },
+            [](auto x) -> DiscoveredCallback<T> { return x; }},
+        raw_address);
   }
 };

@@ -7,3 +7,6 @@
 [submodule "circuit/cppcuit/submodules/abseil-cpp"]
 	path = circuit/cppcuit/submodules/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "circuit/cppcuit/submodules/scelta"]
+	path = circuit/cppcuit/submodules/scelta
+	url = git@github.com:vittorioromeo/scelta.git

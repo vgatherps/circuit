@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
+#include "cppcuit/circuit.hh"
 #include "md_inputs.hh"
 #include "md_source.hh"
 #include "md_types/trade_message_generated.h"
-#include "cppcuit/circuit.hh"
 
 enum class MdCategory { Trade, Depth };
 
@@ -36,7 +36,7 @@ public:
 
 struct SymbolCallbacks {
   CircuitCall<TradeInput> single_trade;
-  CircuitCall<TradeInput> diff;
+  CircuitCall<DiffInput> diff;
 };
 
 class MdCallbacks {

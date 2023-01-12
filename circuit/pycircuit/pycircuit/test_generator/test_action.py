@@ -77,7 +77,8 @@ class TriggerCall:
         {struct_lines}
     }};
 
-    CircuitCall<{input_struct_type}> __call__ = {CIRCUIT_NAME}.load_callback<{input_struct_type}>("{self.call_name}");
+    DiscoveredCallback<{input_struct_type}> __call__V = {CIRCUIT_NAME}.load_callback<{input_struct_type}>("{self.call_name}");
+    auto __call__ = std::get<CircuitCall<{input_struct_type}>>(__call__V);
     __call__(&{CIRCUIT_NAME}, {self.time}, _trigger_, RawCall<const Circuit *>());
 
     {check_lines}

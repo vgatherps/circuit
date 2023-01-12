@@ -54,7 +54,7 @@ include(CPack)
 
 enable_testing()
 
-target_include_directories(cppcuit_lib PUBLIC include submodules/abseil-cpp)
+target_include_directories(cppcuit_lib PUBLIC include submodules/abseil-cpp submodules/scelta/include)
 
 add_subdirectory(src)
 add_subdirectory(include)

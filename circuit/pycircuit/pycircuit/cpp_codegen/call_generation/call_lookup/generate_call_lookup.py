@@ -11,10 +11,16 @@ LOAD_CALL_TYPE = "TriggerCall"
 def generate_lookup_of(call_name: str, type_name: str, prefix="", postfix="") -> str:
     return f"""\
 if (
-    "{call_name}" == {INPUT_STR_NAME} &&
-    typeid(InputTypes::{type_name}) == {INPUT_TYPEID_NAME}
+    "{call_name}" == {INPUT_STR_NAME}
 ) {{
-    return (void *)&{prefix}{call_name}{postfix};
+    const std::type_info &the_type = typeid(InputTypes::{type_name});
+    if (the_type == {INPUT_TYPEID_NAME}) {{
+        return (void *)&{prefix}{call_name}{postfix};
+    }} else {{
+        return WrongCallbackType {{
+            .type=the_type
+        }};
+    }}
 }}"""
 
 
@@ -55,14 +61,12 @@ def generate_true_loader_body(groups: Dict[str, CallGroup], prefix: str = "") ->
     return f"""\
 {load_lines}
 
-throw std::runtime_error(
-    {INPUT_STR_NAME} + " was not found with input type " + {INPUT_TYPEID_NAME}.name()
-);"""
+return NoCallbackFound{{}};"""
 
 
 def top_level_real_loader(prefix: str = "") -> str:
     return f"""\
-void *{prefix}do_real_call_lookup(
+RawDiscoveredCallback {prefix}do_real_call_lookup(
     const std::string &{INPUT_STR_NAME},
     const std::type_info &{INPUT_TYPEID_NAME}
 )"""
