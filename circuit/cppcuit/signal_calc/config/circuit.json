@@ -1,0 +1,44 @@
+{
+    "ethusdt_decaying_tick_sum": {
+        "half_life_ns": 1000000,
+        "tick_decay": 0.99
+    },
+    "solusdt_decaying_tick_sum": {
+        "half_life_ns": 1000000,
+        "tick_decay": 0.99
+    },
+    "btcusdt_decaying_tick_sum": {
+        "half_life_ns": 1000000,
+        "tick_decay": 0.99
+    },
+    "ethusdt_binance_futures_tick_aggregator": {},
+    "ethusdt_okex_futures_tick_aggregator": {},
+    "solusdt_binance_futures_tick_aggregator": {},
+    "solusdt_okex_futures_tick_aggregator": {},
+    "btcusdt_binance_futures_tick_aggregator": {},
+    "btcusdt_okex_futures_tick_aggregator": {},
+    "ethusdt_okex_futures_tick_detector": {
+        "us_till_batch_ends": 50,
+        "ns_till_batch_invalidation": 2000000
+    },
+    "ethusdt_binance_futures_tick_detector": {
+        "us_till_batch_ends": 50,
+        "ns_till_batch_invalidation": 2000000
+    },
+    "solusdt_okex_futures_tick_detector": {
+        "us_till_batch_ends": 50,
+        "ns_till_batch_invalidation": 2000000
+    },
+    "solusdt_binance_futures_tick_detector": {
+        "us_till_batch_ends": 50,
+        "ns_till_batch_invalidation": 2000000
+    },
+    "btcusdt_okex_futures_tick_detector": {
+        "us_till_batch_ends": 50,
+        "ns_till_batch_invalidation": 2000000
+    },
+    "btcusdt_binance_futures_tick_detector": {
+        "us_till_batch_ends": 50,
+        "ns_till_batch_invalidation": 2000000
+    }
+}

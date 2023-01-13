@@ -14,12 +14,11 @@
 
 #include <md_types/trade_message_generated.h>
 
-
+#include <iostream>
 
 // This part of the trade pressure signal aggregates the ticks per-market
 // broadcasts an event whenever a 'tick' occurs
 // and maintains a running sum of trades believed to be part of the current tick
-
 
 // TODO can we decompose this further into a pipeline
 // where no single object holds more than one parameter?
@@ -94,7 +93,8 @@ public:
       // check, forward ticks regardless
       double current_impulse;
       if (inputs.fair.valid()) [[likely]] {
-        current_impulse = this->handle_trade(*inputs.trade, *inputs.fair);
+        current_impulse =
+            this->handle_trade(*inputs.trade, (*inputs.trade)->price());
       } else {
         current_impulse = this->running.impulse();
       }
@@ -125,9 +125,8 @@ public:
 
   template <class I, class O>
     requires(HAS_OPT_REF(I, ConstTradeUpdate, trade) &&
-             HAS_OPT_REF(I, double, fair) &&
-             HAS_OPT_REF(I, Tick, tick)
-             && HasTickRunning<O>)
+             HAS_OPT_REF(I, double, fair) && HAS_OPT_REF(I, Tick, tick) &&
+             HasTickRunning<O>)
   OnTradeOutput on_ticked_trade(I inputs, O outputs) {
     OnTradeOutput tick_validity = on_tick(inputs, outputs);
     on_trade(inputs, outputs);
@@ -139,6 +138,7 @@ public:
   OnTradeOutput init(O outputs, const nlohmann::json &) {
     outputs.running = 0.0;
     outputs.tick = 0.0;
+    this->params.pricesize_weight = 0.0001;
 
     return {.tick = false};
   }

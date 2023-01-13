@@ -2,8 +2,8 @@
 
 #include <map>
 #include <nlohmann/json_fwd.hpp>
-#include <string>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "cppcuit/circuit.hh"
@@ -17,6 +17,13 @@ struct MarketStreamConfig {
   MdCategory category;
   std::string symbol;
   std::string exchange;
+};
+
+struct MdConfig {
+  std::string date;
+  std::vector<MarketStreamConfig> streams;
+
+  MdConfig(const nlohmann::json &config);
 };
 
 using ExchangeSymbol = std::tuple<std::string, std::string>;
@@ -53,6 +60,8 @@ public:
   void replay_all(TidCollator &collator);
 };
 
+// TODO do a whole lot more error checking
 TidCollator collator_from_configs(std::span<MarketStreamConfig> configs,
                                   const std::string &date,
+                                  const std::string &data_dir,
                                   MdSymbology &symbology);

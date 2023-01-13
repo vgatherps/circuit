@@ -2,13 +2,14 @@
 #include "cppcuit/runtime_error.hh"
 #include "md_types/depth_message_generated.h"
 #include "md_types/single_trade_message_generated.h"
+
 std::tuple<const char *, std::size_t>
 MdStreamReaderBase::prepare_next_message() {
+  streamer.commit(should_commit);
+
   if (!streamer.has_data()) {
     return {nullptr, 0};
   }
-
-  streamer.commit(should_commit);
 
   streamer.ensure_available(4);
   const char *length_data = streamer.data();
@@ -48,8 +49,8 @@ do_load(const char *data, std::size_t length, const V &ver_fn,
 
 std::tuple<std::uint64_t, MdMessageType>
 SingleTradeConverter::load(const char *data, std::size_t length) {
-  return do_load<SingleTradeMessage>(data, length, VerifySingleTradeMessageBuffer,
-                                     GetSingleTradeMessage);
+  return do_load<SingleTradeMessage>(
+      data, length, VerifySingleTradeMessageBuffer, GetSingleTradeMessage);
 }
 
 std::tuple<std::uint64_t, MdMessageType>

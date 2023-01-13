@@ -1,0 +1,10 @@
+{
+    "date": "2022_05_01",
+    "streams": [
+        {
+            "category": "single_trades",
+            "symbol": "btcusdt",
+            "exchange": "binance_futures"
+        }
+    ]
+}

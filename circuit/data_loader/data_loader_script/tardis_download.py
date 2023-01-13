@@ -48,7 +48,7 @@ async def replay(
 
     callback = NORMALIZERS[(exchange, channel)]
     tardis_channel = Channel(name=channel, symbols=[symbol])
-    filename = f"{exchange}_{channel}_{symbol}_{date}.md.gz"
+    filename = f"{exchange}_{channel}_{symbol}_{date}.md.gz".replace("-", "_")
     filepath = os.path.join(out_dir, filename)
     file = gzip.open(filepath, "wb")
     tardis_client = TardisClient(api_key=api_key)

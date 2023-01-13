@@ -1,48 +1,36 @@
 {
     "markets": {
-        "SPY": {
+        "btcusdt": {
             "venues": {
-                "BATS": {
+                "binance_futures": {
                     "book_weight": 0.8,
                     "pricesize_weight": 1e-5
                 },
-                "NASDAQ": {
-                    "book_weight": 0.8,
-                    "pricesize_weight": 1e-5
-                },
-                "NYSE": {
+                "okex_futures": {
                     "book_weight": 0.8,
                     "pricesize_weight": 1e-5
                 }
             }
         },
-        "GOOG": {
+        "ethusdt": {
             "venues": {
-                "BATS": {
+                "binance_futures": {
                     "book_weight": 0.8,
                     "pricesize_weight": 1e-5
                 },
-                "NASDAQ": {
-                    "book_weight": 0.8,
-                    "pricesize_weight": 1e-5
-                },
-                "NYSE": {
+                "okex_futures": {
                     "book_weight": 0.8,
                     "pricesize_weight": 1e-5
                 }
             }
         },
-        "MSFT": {
+        "solusdt": {
             "venues": {
-                "BATS": {
+                "binance_futures": {
                     "book_weight": 0.8,
                     "pricesize_weight": 1e-5
                 },
-                "NASDAQ": {
-                    "book_weight": 0.8,
-                    "pricesize_weight": 1e-5
-                },
-                "NYSE": {
+                "okex_futures": {
                     "book_weight": 0.8,
                     "pricesize_weight": 1e-5
                 }

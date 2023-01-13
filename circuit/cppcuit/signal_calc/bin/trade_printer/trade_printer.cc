@@ -1,125 +1,49 @@
 #include "io/zlib_streamer.hh"
 #include "md_types/single_trade_message_generated.h"
+#include "replay/md_replayer.hh"
 #include "trade_pressure/pressure.hh"
 
-#include "replay/md_replayer.hh"
-
+#include <absl/flags/flag.h>
+#include <absl/flags/parse.h>
+#include <absl/flags/usage.h>
 #include <flatbuffers/minireflect.h>
 #include <nlohmann/json.hpp>
 
+#include <fstream>
 #include <iostream>
+#include <string>
 
 using nlohmann::literals::operator"" _json;
 
+ABSL_FLAG(std::string, circuit_config, "",
+          "File path to load circuit configuration");
+ABSL_FLAG(std::string, stream_config, "",
+          "File path to load stream configuration");
+
+ABSL_FLAG(std::string, data_dir, "./", "Directory to serach for data files in");
+
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    std::cerr << "Don't have a file passed" << std::endl;
-    return -1;
-  }
+  absl::SetProgramUsageMessage(
+      "Runs configured streams through a trade presure circuit");
+  absl::ParseCommandLine(argc, argv);
 
-  // Still hardcoded for testing
-  std::cout << "Reading trades file " << argv[1] << std::endl;
+  std::ifstream circuit_file(FLAGS_circuit_config.CurrentValue());
+  nlohmann::json circuit_json = nlohmann::json::parse(circuit_file);
+  TradePressure pressure_circuit(circuit_json);
 
-  std::unique_ptr<ByteReader> zlib_reader =
-      std::make_unique<ZlibReader>(argv[1]);
+  std::ifstream streams_file(FLAGS_stream_config.CurrentValue());
+  nlohmann::json stream_json = nlohmann::json::parse(streams_file);
 
-  Streamer streamer(std::move(zlib_reader));
+  MdConfig md_config(stream_json);
 
-  streamer.fetch_up_to(1024 * 1024);
+  MdSymbology symbols;
 
-  TradePressure pressure_circuit(R"lit(
-  {
-    "SPY_decaying_tick_sum": {
-      "half_life_ns": 1000000,
-      "tick_decay": 0.99
-    },
-    "GOOG_decaying_tick_sum": {
-      "half_life_ns": 1000000,
-      "tick_decay": 0.99
-    },
-    "MSFT_decaying_tick_sum": {
-      "half_life_ns": 1000000,
-      "tick_decay": 0.99
-    },
-    "SPY_BATS_tick_aggregator": {},
-    "SPY_NASDAQ_tick_aggregator": {},
-    "SPY_NYSE_tick_aggregator": {},
-    "GOOG_BATS_tick_aggregator": {},
-    "GOOG_NASDAQ_tick_aggregator": {},
-    "GOOG_NYSE_tick_aggregator": {},
-    "MSFT_BATS_tick_aggregator": {},
-    "MSFT_NASDAQ_tick_aggregator": {},
-    "MSFT_NYSE_tick_aggregator": {},
-    "SPY_BATS_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "SPY_NYSE_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "SPY_NASDAQ_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "GOOG_BATS_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "GOOG_NYSE_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "GOOG_NASDAQ_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "MSFT_BATS_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "MSFT_NYSE_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    },
-    "MSFT_NASDAQ_tick_detector": {
-      "us_till_batch_ends": 50,
-      "ns_till_batch_invalidation": 2000000
-    }
-  }
-  )lit"_json);
+  TidCollator collator =
+      collator_from_configs(md_config.streams, md_config.date,
+                            FLAGS_data_dir.CurrentValue(), symbols);
 
-  while (streamer.has_data()) {
-    streamer.ensure_available(4);
-    const char *length_data = streamer.data();
-    std::uint32_t length;
-    static_assert(sizeof(length) == 4);
-    memcpy(&length, length_data, sizeof(length));
-    streamer.commit(sizeof(length));
+  MdCallbacks sim_callbacks(symbols, &pressure_circuit);
 
-    streamer.ensure_available(length);
-    const char *trade_message_data = streamer.data();
-
-    auto ver = flatbuffers::Verifier((const std::uint8_t *)streamer.data(),
-                                     (std::uint32_t)length,
-                                     flatbuffers::Verifier::Options{});
-
-    if (!VerifySingleTradeMessageBuffer(ver)) {
-      throw "BAD";
-    }
-    const SingleTradeMessage *trade = GetSingleTradeMessage(trade_message_data);
-
-    std::uint64_t local_time_ns = 1000 * trade->local_time_us();
-
-    while (pressure_circuit.examine_timer_queue<false>(local_time_ns)) {
-    }
-
-    TradeInput input(trade->message());
-
-    pressure_circuit.GOOG_BATS_trades(local_time_ns, input, {});
-
-    streamer.commit(length);
-  }
-
+  sim_callbacks.replay_all(collator);
   return 0;
 }

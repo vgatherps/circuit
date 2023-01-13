@@ -1,6 +1,8 @@
 #include "trade_pressure/tick_aggregator.hh"
 #include "math/fast_exp_64.hh"
 
+#include <iostream>
+
 namespace {
 
 double score_pricesize(double pricesize, double scale) {
@@ -12,7 +14,7 @@ double score_pricesize(double pricesize, double scale) {
   assert(exp_ps >= -1.0);
   assert(exp_ps <= 0.0);
 
-  return 0.0 - exp_ps;
+  return 1.0 - exp_ps;
 }
 
 double weight_distance_for(double price, double fair, double weight,

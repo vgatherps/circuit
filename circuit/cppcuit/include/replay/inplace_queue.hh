@@ -1,14 +1,14 @@
 #pragma once
 
+#include <cassert>
 #include <compare>
 #include <concepts>
-#include <optional>
-#include <memory>
 #include <functional>
-#include <cassert>
+#include <memory>
+#include <optional>
 
 template <class T, class C>
-concept comparable_with = std::predicate<C, const T&, const T&>;
+concept comparable_with = std::predicate<C, const T &, const T &>;
 
 template <class T, class C = std::less<T>>
   requires comparable_with<T, C> && std::is_default_constructible_v<C>
@@ -47,7 +47,7 @@ class in_place_queue {
 
   void bubble_up_from(std::size_t index) {
     if (index == 0) {
-      bubble_down_from(0);
+      return bubble_down_from(0);
     }
 
     C c;
@@ -59,15 +59,15 @@ class in_place_queue {
 
     if (c(data[parent_index], data[index])) {
       std::swap(data[parent_index], data[index]);
-      bubble_up_from(parent_index);
+      return bubble_up_from(parent_index);
     } else {
-      bubble_down_from(index);
+      return bubble_down_from(index);
     }
   }
 
 public:
   template <class F>
-    requires std::predicate<F, T&>
+    requires std::predicate<F, T &>
   void operate_on_top(const F &f) {
     if (data.size() > 0) [[likely]] {
       // TODO add return type that says no modification as well?
@@ -91,15 +91,9 @@ public:
     operate_on_top([](const auto &) { return false; });
   }
 
-  std::size_t size() const {
-    return data.size();
-  }
+  std::size_t size() const { return data.size(); }
 
-  const T& top() const {
-    return data[0];
-  }
+  const T &top() const { return data[0]; }
 
-  T& top_mut() {
-    return data[0];
-  }
+  T &top_mut() { return data[0]; }
 };
