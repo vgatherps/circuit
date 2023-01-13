@@ -118,3 +118,16 @@ void MdCallbacks::handle_update(TidMdMessage msg) const {
             caller(callbacks.diff)
     )(msg.update);
 }
+
+void MdCallbacks::replay_all(TidCollator &collator) {
+    auto matcher = scelta::match(
+            [this](TidMdMessage msg){
+                this->handle_update(msg);
+                return true;
+            },
+            [](scelta::nullopt_t) { return false;}
+            );
+    while (matcher(collator.next_element())) {}
+
+
+}

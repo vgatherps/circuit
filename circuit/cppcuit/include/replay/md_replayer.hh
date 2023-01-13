@@ -48,4 +48,6 @@ public:
   MdCallbacks(MdSymbology symbology, Circuit *circuit);
 
   void handle_update(TidMdMessage msg) const;
+
+  void replay_all(TidCollator &collator);
 };
