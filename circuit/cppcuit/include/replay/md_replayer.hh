@@ -42,7 +42,10 @@ struct SymbolCallbacks {
 class MdCallbacks {
   MdSymbology symbology;
   std::vector<SymbolCallbacks> callbacks;
+  Circuit *circuit;
 
 public:
   MdCallbacks(MdSymbology symbology, Circuit *circuit);
+
+  void handle_update(TidMdMessage msg) const;
 };

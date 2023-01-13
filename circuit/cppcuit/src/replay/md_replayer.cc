@@ -72,18 +72,19 @@ TidType MdSymbology::get_tid(std::string exchange, std::string symbol) {
   return tid_iter->second;
 }
 
-template <class T> DiscoveredCallback<T> wrong_call(WrongCallbackType w) {
+template <class T> void wrong_call(WrongCallbackType w) {
   throw std::runtime_error(std::string("Expected type ") + typeid(T).name() +
                            "got typeid " + w.type.name());
 }
 
 template <class T> auto matcher(CircuitCall<T> &dest) {
+    // Not entirely sure why I need to wrap wrong call in a lambda
   return scelta::match([&](CircuitCall<T> value) { dest = value; },
-                       [&](NoCallbackFound) { dest = nullptr; }, wrong_call<T>);
+                       [&](NoCallbackFound) { dest = nullptr; }, [](WrongCallbackType w) { wrong_call<T>(w);});
 };
 
 MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit)
-    : symbology(syms), callbacks(syms.n_symbols()) {
+    : symbology(syms), callbacks(syms.n_symbols()), circuit(circuit) {
   for (const auto &[symbol_exchange, tid] : syms.symbols()) {
 
     const auto &[symbol, exchange] = symbol_exchange;
@@ -95,4 +96,8 @@ MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit)
     matcher(callbacks[tid].diff)(
         circuit->load_callback<DiffInput>(single_diff_name));
   }
+}
+
+void MdCallbacks::handle_update(TidMdMessage msg) const {
+
 }
