@@ -1,7 +1,7 @@
 #include "replay/md_source.hh"
 #include "cppcuit/runtime_error.hh"
 #include "md_types/depth_message_generated.h"
-#include "md_types/trade_message_generated.h"
+#include "md_types/single_trade_message_generated.h"
 std::tuple<const char *, std::size_t>
 MdStreamReaderBase::prepare_next_message() {
   if (!streamer.has_data()) {
@@ -47,9 +47,9 @@ do_load(const char *data, std::size_t length, const V &ver_fn,
 }
 
 std::tuple<std::uint64_t, MdMessageType>
-TradeMessageConverter::load(const char *data, std::size_t length) {
-  return do_load<TradeMessage>(data, length, VerifyTradeMessageBuffer,
-                               GetTradeMessage);
+SingleTradeConverter::load(const char *data, std::size_t length) {
+  return do_load<SingleTradeMessage>(data, length, VerifySingleTradeMessageBuffer,
+                                     GetSingleTradeMessage);
 }
 
 std::tuple<std::uint64_t, MdMessageType>

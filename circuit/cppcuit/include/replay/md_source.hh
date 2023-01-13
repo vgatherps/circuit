@@ -6,11 +6,11 @@
 #include "io/streamer.hh"
 #include "replay/collator.hh"
 
-struct TradeUpdate;
+struct Trade;
 struct DepthUpdate;
 
 using TidType = std::uint32_t;
-using MdMessageType = std::variant<const TradeUpdate *, const DepthUpdate *>;
+using MdMessageType = std::variant<const Trade *, const DepthUpdate *>;
 
 template <class K> struct MdMessage {
   std::uint64_t local_timestamp_ns;
@@ -59,7 +59,7 @@ public:
       : MdStreamReaderBase(std::move(stream)), key(key) {}
 };
 
-class TradeMessageConverter {
+class SingleTradeConverter {
 public:
   static std::tuple<std::uint64_t, MdMessageType> load(const char *data,
                                                        std::size_t length);
