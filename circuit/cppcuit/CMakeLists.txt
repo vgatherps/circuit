@@ -61,5 +61,7 @@ add_subdirectory(include)
 add_subdirectory(tests)
 add_subdirectory(generated_tests)
 
+add_subdirectory(signal_calc)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

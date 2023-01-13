@@ -3,6 +3,7 @@
 #include <map>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
+#include <span>
 #include <vector>
 
 #include "cppcuit/circuit.hh"
@@ -51,3 +52,7 @@ public:
 
   void replay_all(TidCollator &collator);
 };
+
+TidCollator collator_from_configs(std::span<MarketStreamConfig> configs,
+                                  const std::string &date,
+                                  MdSymbology &symbology);

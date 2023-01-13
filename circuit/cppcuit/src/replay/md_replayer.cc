@@ -7,7 +7,6 @@
 #include <scelta.hpp>
 
 #include <format>
-#include <span>
 #include <sstream>
 
 using TidSource = CollatorSource<TidMdMessage>;
@@ -21,6 +20,8 @@ namespace {
             case MdCategory::Trade:
                 return "trade";
         }
+
+        throw std::runtime_error("Unreachable");
     }
 
     std::string name_for_stream(const MarketStreamConfig &config,
@@ -44,21 +45,25 @@ namespace {
                 return std::make_unique<MdStreamReader<SingleTradeConverter, TidType>>(
                         std::move(stream), tid);
         }
+
+        throw std::runtime_error("Unreachable");
     }
 
-    TidCollator collator_from_configs(std::span<MarketStreamConfig> configs,
-                                      const std::string &date,
-                                      MdSymbology &symbology) {
-        std::vector<std::unique_ptr<TidSource>> sources;
-        for (const MarketStreamConfig &config: configs) {
-            TidType tid = symbology.get_tid(config.exchange, config.symbol);
-            sources.push_back(source_from_config(config, date, tid));
-        }
-
-        return {std::move(sources)};
-    }
 
 } // namespace
+
+
+TidCollator collator_from_configs(std::span<MarketStreamConfig> configs,
+                                  const std::string &date,
+                                  MdSymbology &symbology) {
+    std::vector<std::unique_ptr<TidSource>> sources;
+    for (const MarketStreamConfig &config: configs) {
+        TidType tid = symbology.get_tid(config.exchange, config.symbol);
+        sources.push_back(source_from_config(config, date, tid));
+    }
+
+    return {std::move(sources)};
+}
 
 TidType MdSymbology::get_tid(std::string exchange, std::string symbol) {
     ExchangeSymbol exch_sym{exchange, symbol};

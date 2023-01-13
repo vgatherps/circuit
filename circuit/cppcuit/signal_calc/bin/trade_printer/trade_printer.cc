@@ -2,6 +2,8 @@
 #include "md_types/single_trade_message_generated.h"
 #include "trade_pressure/pressure.hh"
 
+#include "replay/md_replayer.hh"
+
 #include <flatbuffers/minireflect.h>
 #include <nlohmann/json.hpp>
 
@@ -14,6 +16,8 @@ int main(int argc, char **argv) {
     std::cerr << "Don't have a file passed" << std::endl;
     return -1;
   }
+
+  // Still hardcoded for testing
   std::cout << "Reading trades file " << argv[1] << std::endl;
 
   std::unique_ptr<ByteReader> zlib_reader =
@@ -110,7 +114,7 @@ int main(int argc, char **argv) {
     while (pressure_circuit.examine_timer_queue<false>(local_time_ns)) {
     }
 
-    TradeInput input{.trade = trade->message()};
+    TradeInput input(trade->message());
 
     pressure_circuit.GOOG_BATS_trades(local_time_ns, input, {});
 
