@@ -72,26 +72,23 @@ TidType MdSymbology::get_tid(std::string exchange, std::string symbol) {
   return tid_iter->second;
 }
 
+template <class T> DiscoveredCallback<T> wrong_call(WrongCallbackType w) {
+  throw std::runtime_error(std::string("Expected type ") + typeid(T).name() +
+                           "got typeid " + w.type.name());
+}
+
+template <class T> auto matcher(CircuitCall<T> &dest) {
+  return scelta::match([&](CircuitCall<T> value) { dest = value; },
+                       [&](NoCallbackFound) { dest = nullptr; }, wrong_call<T>);
+};
+
 MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit)
     : symbology(syms), callbacks(syms.n_symbols()) {
-
   for (const auto &[symbol_exchange, tid] : syms.symbols()) {
+
     const auto &[symbol, exchange] = symbol_exchange;
     std::string single_trade_name = symbol + "_" + exchange + "_trades";
     std::string single_diff_name = symbol + "_" + exchange + "_diffs";
-
-    // TODO better error handling here
-
-    auto matcher = []<class T>(CircuitCall<T> &dest) {
-      return scelta::match([&](CircuitCall<T> value) { dest = value; },
-                           [&](NoCallbackFound) { dest = nullptr; },
-                           [](WrongCallbackType w) {
-                             throw std::runtime_error(
-                                 std::string("Expected type ") +
-                                 typeid(T).name() + "got typeid " +
-                                 w.type.name());
-                           });
-    };
 
     matcher(callbacks[tid].single_trade)(
         circuit->load_callback<TradeInput>(single_trade_name));
