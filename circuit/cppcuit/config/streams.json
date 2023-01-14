@@ -1,0 +1,25 @@
+{
+    "date": "2022_05_01",
+    "streams": [
+        {
+            "category": "single_trades",
+            "symbol": "btcusdt",
+            "exchange": "binance_futures"
+        },
+        {
+            "category": "single_trades",
+            "symbol": "ethusdt",
+            "exchange": "binance_futures"
+        },
+        {
+            "category": "single_trades",
+            "symbol": "solusdt",
+            "exchange": "binance_futures"
+        },
+        {
+            "category": "depth",
+            "symbol": "btcusdt",
+            "exchange": "binance_futures"
+        }
+    ]
+}

@@ -26,7 +26,7 @@
                 "init_call": "init",
                 "takes_params": true
             },
-            "header": "trade_pressure/tick_aggregator.hh",
+            "header": "signals/trade_pressure/tick_aggregator.hh",
             "callsets": [
                 {
                     "written_set": [
@@ -85,7 +85,7 @@
                 "init_call": "init",
                 "takes_params": true
             },
-            "header": "trade_pressure/tick_detector.hh",
+            "header": "signals/trade_pressure/tick_detector.hh",
             "callsets": [
                 {
                     "written_set": [
@@ -135,7 +135,7 @@
                 "init_call": "init",
                 "takes_params": true
             },
-            "header": "trade_pressure/decaying_sum.hh",
+            "header": "signals/trade_pressure/decaying_sum.hh",
             "callsets": [
                 {
                     "written_set": [

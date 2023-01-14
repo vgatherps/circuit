@@ -54,14 +54,18 @@ include(CPack)
 
 enable_testing()
 
-target_include_directories(cppcuit_lib PUBLIC include submodules/abseil-cpp submodules/scelta/include)
 
+target_include_directories(cppcuit_lib PUBLIC include submodules/abseil-cpp submodules/scelta/include codegen/)
+
+set(CODEGEN_TARGET_NAME cppcuit_lib)
+
+add_subdirectory(codegen/trade_pressure)
 add_subdirectory(src)
+add_subdirectory(bin)
 add_subdirectory(include)
 add_subdirectory(tests)
 add_subdirectory(generated_tests)
 
-add_subdirectory(signal_calc)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

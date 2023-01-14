@@ -125,10 +125,16 @@ def generate_trade_pressure_circuit(
 # trigger the always-valid checks
 
 
-def generate_cmake_file(lib_name: str, cc_names) -> str:
+def generate_cmake_file(cc_names) -> str:
     ccs = " ".join(cc_names)
-    return f"""add_library({lib_name} {ccs})
-target_link_libraries({lib_name} PRIVATE signal_calc_lib cppcuit_lib nlohmann_json::nlohmann_json)"""
+    return f"""\
+if (NOT DEFINED CODEGEN_TARGET_NAME)
+    message(FATAL_ERROR "The variable CODEGEN_TARGET_NAME must be set for codegen to call target_sources")
+endif (NOT DEFINED CODEGEN_TARGET_NAME)
+
+target_sources(${{CODEGEN_TARGET_NAME}} PRIVATE {ccs})
+
+"""
 
 
 def main():
@@ -232,7 +238,7 @@ def main():
 
     # TODO smarter parameterization
     with open(f"{out_dir}/CMakeLists.txt", "w") as cmake_file:
-        cmake_file.write(generate_cmake_file(HEADER, cc_names))
+        cmake_file.write(generate_cmake_file(cc_names))
 
 
 if __name__ == "__main__":

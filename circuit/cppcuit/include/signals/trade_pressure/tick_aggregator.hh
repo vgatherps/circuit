@@ -7,14 +7,11 @@
 #include "cppcuit/optional_reference.hh"
 #include "cppcuit/side.hh"
 #include "cppcuit/signal_requirements.hh"
+#include "md_types/trade_message_generated.h"
+#include "signals/trade_pressure/tick_detector.hh"
 #include "timer/timer_queue.hh"
-#include "trade_pressure/tick_detector.hh"
 
 #include <nlohmann/json_fwd.hpp>
-
-#include <md_types/trade_message_generated.h>
-
-#include <iostream>
 
 // This part of the trade pressure signal aggregates the ticks per-market
 // broadcasts an event whenever a 'tick' occurs

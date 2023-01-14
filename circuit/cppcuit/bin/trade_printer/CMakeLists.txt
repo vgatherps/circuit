@@ -10,6 +10,4 @@ target_link_libraries(
   nlohmann_json::nlohmann_json
   absl::flags_usage
   absl::flags_parse
-  signal_calc_lib
-  pressure
 )

@@ -1,8 +1,8 @@
-#include "trade_pressure/decaying_sum.hh"
+#include "signals/trade_pressure/decaying_sum.hh"
 
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
-#include <iostream>
 
 constexpr static double DECAY_THRESHOLD = 1e-6;
 
@@ -28,7 +28,6 @@ DecayingSum::compute_decay(std::uint64_t now, double current_sum,
     reschedule.schedule_call_at(now + this->reschedule_decay_timer);
   }
   return new_sum;
-
 }
 
 void DecayingSum::do_init(const nlohmann::json &json) {

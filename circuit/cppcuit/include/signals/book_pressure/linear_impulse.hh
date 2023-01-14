@@ -6,7 +6,7 @@
 
 // Impulse based book fair - the real meat involves:
 // 1. Inferring book state from trades and bbos, haven't added said code yet
-// 2. Inferring
+// 2. Inferring book state from own fills
 class LinearBookImpulse {
   double ref_price;
   double scale;
