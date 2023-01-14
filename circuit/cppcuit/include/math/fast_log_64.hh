@@ -1,11 +1,10 @@
 #define _USE_MATH_DEFINES
 
-#include <cmath>
+#include <concepts>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
-#include <stdexcept>
 
 // Here is a tradeoff between accuracy and cache usage
 constexpr static std::size_t LOG_CACHE_BITS = 5;
@@ -61,7 +60,42 @@ extern LogLookup _fast_log_tangents[1 << LOG_CACHE_BITS];
 
 double fast_ln_out_of_line(double x);
 
-inline double fast_ln(double x) {
+template <class T>
+concept BadLogInput = (
+    requires(T a) {
+      { a.negative() } -> std::same_as<double>;
+    } &&
+    requires(T a, double d) {
+      { a.nan_input(d) } -> std::same_as<double>;
+    } &&
+    requires(T a) {
+      { a.zero_input() } -> std::same_as<double>;
+    } && std::is_default_constructible_v<T>);
+
+struct RealLogBadReturns {
+  double negative() const { return std::numeric_limits<double>::quiet_NaN(); }
+  double nan_input(double x) const {
+    if (std::isinf(x)) {
+      return std::numeric_limits<double>::quiet_NaN();
+    } else {
+      return std::numeric_limits<double>::infinity();
+    }
+  }
+  double zero_input() const {
+    // zero or subnormal
+    return -std::numeric_limits<double>::infinity();
+  }
+};
+
+struct BadInputsNan {
+  double negative() const { return std::numeric_limits<double>::quiet_NaN(); }
+  double nan_input(double x) const {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  double zero_input() const { return std::numeric_limits<double>::quiet_NaN(); }
+};
+
+template <BadLogInput B = RealLogBadReturns> inline double fast_ln(double x) {
   using namespace _fast_log_detail;
   constexpr std::size_t double_mantissa_bits = 52;
   constexpr std::size_t double_exp_bits = 11;
@@ -80,17 +114,13 @@ inline double fast_ln(double x) {
 
   // check validity
 
+  // TODO we'll return infinity of huge values?
   if (x_bits < 0) [[unlikely]] {
-    return std::numeric_limits<double>::quiet_NaN();
+    return B().negative();
   } else if (exp_bits == exp_nan) [[unlikely]] {
-    if (std::isinf(x)) {
-      return std::numeric_limits<double>::quiet_NaN();
-    } else {
-      return std::numeric_limits<double>::infinity();
-    }
+    return B().nan_input(x);
   } else if (exp_bits == 0) [[unlikely]] {
-    // zero or subnormal
-    return -std::numeric_limits<double>::infinity();
+    return B().zero_input();
   }
 
   std::int64_t adjusted_exp = exp_bits - 1023;

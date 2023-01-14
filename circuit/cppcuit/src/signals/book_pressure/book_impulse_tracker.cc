@@ -1,6 +1,7 @@
 #include "signals/book_pressure/book_impulse_tracker.hh"
 
-double BookImpulseTracker::update_levels(const DepthUpdate *updates) {
+std::optional<double>
+BookImpulseTracker::update_levels(const DepthUpdate *updates) {
   auto updater = [this](Side side, const Level new_level, double &data) {
     this->impulse_tracker.add_impulse(side, new_level.price(),
                                       new_level.size() - data);

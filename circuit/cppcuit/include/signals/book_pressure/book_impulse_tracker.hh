@@ -8,5 +8,5 @@ class BookImpulseTracker {
   LinearBookImpulse impulse_tracker;
 
 public:
-  double update_levels(const DepthUpdate *updates);
+  std::optional<double> update_levels(const DepthUpdate *updates);
 };

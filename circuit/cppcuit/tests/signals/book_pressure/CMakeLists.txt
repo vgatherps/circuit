@@ -1,1 +1,1 @@
-target_sources(signal_tests PRIVATE linear_impulse.cc)
+target_sources(tests PRIVATE test_linear_impulse.cc)

@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cmath>
+#include <stdexcept>
 
 #include "math/fast_log_64.hh"
 
