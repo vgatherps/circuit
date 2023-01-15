@@ -67,6 +67,10 @@ TEST_P(LinearImpulseImbalancedTest, TestWideImbalance) {
 
   double true_price = unadjusted_true_value + reference;
 
+  for (double new_reference : {-1.0, 0.0, 1.0}) {
+    EXPECT_NEAR(*impulse.compute_fair(), true_price, 2e-4);
+    impulse.set_reference(new_reference);
+  }
   EXPECT_NEAR(*impulse.compute_fair(), true_price, 2e-4);
 }
 

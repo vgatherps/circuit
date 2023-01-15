@@ -24,8 +24,20 @@ class LinearBookImpulse {
       bid_ask_impulses[(std::uint64_t)side] += impulse * impulse_scale;
     }
 
+    void update_reference(double reference_price, double scale) {
+      double distance = (this->ref_price - reference_price) * scale;
+
+      // Is it worth maintaining full accuracy for this expression
+      double exp_distance = FastExpE.compute(distance);
+
+      bid_ask_impulses[(int)Side::Sell] *= exp_distance;
+      bid_ask_impulses[(int)Side::Buy] /= exp_distance;
+
+      this->ref_price = reference_price;
+    }
+
     double compute_fair(double scale) const {
-      // TODO better validity checcks other than just returning an infinite
+      // TODO better validity checks other than just returning an infinite
       // result?
       double adjusted_p_ref = fast_ln(bid_ask_impulses[(int)Side::Buy] /
                                       bid_ask_impulses[(int)Side::Sell]) /
@@ -56,6 +68,7 @@ public:
 
   void set_reference(double reference_price) {
     if (maybe_impulse.has_value()) {
+      maybe_impulse->update_reference(reference_price, scale);
     } else {
       maybe_impulse = TrueLinearImpulse(reference_price);
     }
