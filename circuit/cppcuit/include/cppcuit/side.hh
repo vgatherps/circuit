@@ -2,10 +2,6 @@
 
 #include <cstdint>
 
-#ifdef __SSE2__
-#include <emmintrin.h>
-#endif
-
 enum class Side : std::uint8_t { Buy = 0, Sell = 1 };
 
 inline Side other_side(Side s) {
@@ -37,6 +33,7 @@ template <class T> T most_aggressive(Side side, T a, T b) {
 }
 
 #ifdef __SSE2__
+#include <emmintrin.h>
 
 // Compilers understand how to constant propagate this quite well
 // So there's no need for a version that inlines / constant propagates better

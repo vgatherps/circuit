@@ -1,0 +1,8 @@
+digraph {
+external_c [shape=box label="external_c"]
+{rank=same; external_c;}
+add_out [label="add_out::call"]
+add1 [style=dashed]
+add1 -> add_out [style=solid label="out -> a"]
+external_c -> add_out [style=solid label="b"]
+}

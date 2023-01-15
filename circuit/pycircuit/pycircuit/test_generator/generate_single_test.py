@@ -2,7 +2,8 @@ from shutil import rmtree
 
 from pycircuit.loader.loader_config import CoreLoaderConfig
 from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circuit_call
-from pycircuit.loader.write_circuit_dot import generate_circuit_dot
+from pycircuit.loader.write_circuit_dot import generate_full_circuit_dot
+from pycircuit.loader.write_circuit_call_dot import generate_circuit_call_dot
 from pycircuit.loader.write_circuit_init import InitStructOptions, generate_circuit_init
 from pycircuit.loader.write_circuit_struct import generate_circuit_struct_file
 from pycircuit.loader.write_timer_call import (
@@ -66,7 +67,7 @@ def generate_test_in(
         with open(file_name, "w") as write_to:
             write_to.write(call_clang_format(content))
 
-        dot_content = generate_circuit_dot(
+        dot_content = generate_circuit_call_dot(
             struct_options=options,
             config=core_config,
             circuit=circuit,
@@ -100,8 +101,14 @@ def generate_test_in(
     struct_content = generate_circuit_struct_file(
         test_name, config=core_config, circuit=circuit
     )
+
     with open(f"{out_dir}/{HEADER}.hh", "w") as struct_file:
         struct_file.write(call_clang_format(struct_content))
+
+    dot_content = generate_full_circuit_dot(circuit)
+
+    with open(f"{out_dir}/{HEADER}.dot", "w") as circuit_dot_file:
+        circuit_dot_file.write(dot_content)
 
     init_content = generate_circuit_init(
         InitStructOptions(struct_name=test_name, struct_header=HEADER),
