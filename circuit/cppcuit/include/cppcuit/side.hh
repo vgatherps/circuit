@@ -52,7 +52,7 @@ inline double flip_sign_if_buy(Side s, double d) {
 
 #else
 inline double flip_sign_if_buy(Side s, double d) {
-  static constexpr double flippers[2] = {-1, 0};
+  static constexpr double flippers[2] = {-1, 1};
   return d * flippers[(int)s];
 }
 #endif
