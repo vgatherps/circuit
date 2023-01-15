@@ -29,19 +29,22 @@ TEST(LinearImpulse, TestJusAskImpulse) {
 }
 
 class LinearImpulseSymmetryTest
-    : public testing::TestWithParam<std::tuple<double, double>> {};
+    : public testing::TestWithParam<
+          std::tuple<double, double, double, double>> {};
 
 TEST_P(LinearImpulseSymmetryTest, TestWideSymmetry) {
-  auto [scale, width] = GetParam();
+  auto [scale, width, reference, mid] = GetParam();
   LinearBookImpulse impulse(scale);
-  impulse.set_reference(1.0);
-  impulse.add_impulse(Side::Sell, 1.0 + width, 1.0);
-  impulse.add_impulse(Side::Buy, 1.0 - width, 1.0);
-  EXPECT_FLOAT_EQ(*impulse.compute_fair(), 1.0);
+  impulse.set_reference(reference);
+  impulse.add_impulse(Side::Sell, mid + width, 1.0);
+  impulse.add_impulse(Side::Buy, mid - width, 1.0);
+  EXPECT_NEAR(*impulse.compute_fair(), mid, 2e-4);
 }
 
 INSTANTIATE_TEST_SUITE_P(
     LinearImpulse, LinearImpulseSymmetryTest,
-    ::testing::Combine(::testing::Values(0.1, 1.0, 2.0), // scale
-                       ::testing::Values(-1.0, 0.0, 1.0) // width
+    ::testing::Combine(::testing::Values(0.1, 1.0, 2.0),  // scale
+                       ::testing::Values(-1.0, 0.0, 1.0), // width
+                       ::testing::Values(-1.0, 0.0, 1.0), // reference
+                       ::testing::Values(-1.0, 0.0, 1.0)  // mid
                        ));

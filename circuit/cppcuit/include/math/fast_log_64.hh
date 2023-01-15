@@ -7,7 +7,7 @@
 #include <limits>
 
 // Here is a tradeoff between accuracy and cache usage
-constexpr static std::size_t LOG_CACHE_BITS = 5;
+constexpr static std::size_t LOG_CACHE_BITS = 6;
 
 // Reference:
 // https://en.wikipedia.org/wiki/Double-precision_floating-point_format The ieee

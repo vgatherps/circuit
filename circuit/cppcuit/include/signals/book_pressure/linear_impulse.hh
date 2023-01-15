@@ -4,6 +4,7 @@
 #include "math/fast_exp_64.hh"
 #include "math/fast_log_64.hh"
 
+#include <cmath>
 #include <optional>
 
 // Impulse based book fair - the real meat involves:
@@ -26,10 +27,9 @@ class LinearBookImpulse {
     double compute_fair(double scale) const {
       // TODO better validity checcks other than just returning an infinite
       // result?
-      double adjusted_p_ref =
-          fast_ln<BadInputsNan>(bid_ask_impulses[(int)Side::Buy] /
-                                bid_ask_impulses[(int)Side::Sell]) /
-          (2.0 * scale);
+      double adjusted_p_ref = fast_ln(bid_ask_impulses[(int)Side::Buy] /
+                                      bid_ask_impulses[(int)Side::Sell]) /
+                              (2.0 * scale);
       return adjusted_p_ref + ref_price;
     }
 
