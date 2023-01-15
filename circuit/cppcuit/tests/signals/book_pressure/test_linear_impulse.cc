@@ -48,3 +48,33 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(-1.0, 0.0, 1.0), // reference
                        ::testing::Values(-1.0, 0.0, 1.0)  // mid
                        ));
+
+class LinearImpulseImbalancedTest
+    : public testing::TestWithParam<
+          std::tuple<double, double, double, double, double>> {};
+
+TEST_P(LinearImpulseImbalancedTest, TestWideImbalance) {
+  auto [scale, width, reference, mid, bias] = GetParam();
+  LinearBookImpulse impulse(scale);
+  impulse.set_reference(reference);
+  impulse.add_impulse(Side::Sell, mid + width, 1.0 + bias);
+  impulse.add_impulse(Side::Buy, mid - width, 1.0);
+
+  double bid_cost = std::exp((reference - (mid - width)) * -scale);
+  double ask_cost = (1.0 + bias) * std::exp((mid + width - reference) * -scale);
+
+  double unadjusted_true_value = std::log(bid_cost / ask_cost) / (2.0 * scale);
+
+  double true_price = unadjusted_true_value + reference;
+
+  EXPECT_NEAR(*impulse.compute_fair(), true_price, 2e-4);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    LinearImpulse, LinearImpulseImbalancedTest,
+    ::testing::Combine(::testing::Values(0.1, 1.0, 2.0),  // scale
+                       ::testing::Values(-1.0, 0.0, 1.0), // width
+                       ::testing::Values(-1.0, 0.0, 1.0), // reference
+                       ::testing::Values(-1.0, 0.0, 1.0), // mid
+                       ::testing::Values(-0.5, 0.1, 1.0)  // bias
+                       ));
