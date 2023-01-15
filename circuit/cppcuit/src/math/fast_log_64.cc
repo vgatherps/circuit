@@ -6,6 +6,9 @@
 
 constexpr static std::size_t TANGENTS = 1 << LOG_CACHE_BITS;
 
+// TODO consider some sort of spline solution if this ever gets used for real
+// I expect you could drastically shrink the tangent space by doing so
+
 namespace _fast_log_detail {
 LogLookup _fast_log_tangents[TANGENTS];
 }
