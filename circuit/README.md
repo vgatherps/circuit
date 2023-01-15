@@ -33,5 +33,5 @@ The main selling point of circuit is to allow higher level construction of tacti
 1. Circuit composes many small units of functionality as a dataflow graph, allowing users to declaratively specify the desired computation without having to manually manage control flow for given events
 2. Circuit modules have no global state and are only concerned with their own inputs and outputs, making it safe and easy to compose anything
 3. Circuit allows a full type system of inputs and outputs, so it's easy to factor out any repeated computation
-4. Circuit allows programatic construction of tactics, making it easy to generate distinct signals for any given symbol
-5. Circuit generates C++ specialized C++ code for each given event, giving performance that rivals and can beat hand-written code
+4. Circuit generates C++ specialized C++ code for each given event, giving performance that rivals and can beat hand-written code
+5. Circuit allows programatic construction of tactics, moving towards a code-is-data model. This allows for example generating many different signal graphs for different signals, using whatever from the library gives the best predictive power instead of a one-size-fits-all model
