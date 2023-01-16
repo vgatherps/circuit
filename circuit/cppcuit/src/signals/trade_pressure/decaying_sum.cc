@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <stdexcept>
 
 constexpr static double DECAY_THRESHOLD = 1e-6;
 
@@ -37,11 +36,11 @@ void DecayingSum::do_init(const nlohmann::json &json) {
   // anything less than this is almost certainly an error
   if (half_life_ns <= 10000.0) {
     // todo format in C++
-    throw std::runtime_error("Got bogus half life for decaying sum");
+    cold_runtime_error("Got bogus half life for decaying sum");
   }
 
   if (tick_decay <= 0.0 || tick_decay > 1.0) {
-    throw std::runtime_error("Got bogus tick decay");
+    cold_runtime_error("Got bogus tick decay");
   }
 
   this->inv_half_life_ns = 1.0 / half_life_ns;

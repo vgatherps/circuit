@@ -99,8 +99,8 @@ def generate_output_metadata_for(
     for output in component.definition.outputs():
         ephemeral = is_ephemeral(component, output, all_non_ephemeral_outputs)
         always_valid = component.definition.d_output_specs[output].always_valid
-        assume_invalid = component.definition.d_output_specs[output].assume_invalid
-        if ephemeral or always_valid or assume_invalid:
+        assume_default = component.definition.d_output_specs[output].assume_default
+        if ephemeral or always_valid or assume_default:
             this_output_metadata = OutputMetadata(
                 validity_index=None, is_value_ephemeral=ephemeral
             )

@@ -4,13 +4,14 @@
 #include "math/fast_exp_64.hh"
 #include "math/fast_log_64.hh"
 
-#include <cmath>
 #include <optional>
+
+#include "signals/bookbuilder.hh"
 
 namespace detail {
 struct TrueLinearImpulse {
   double ref_price;
-  double bid_ask_impulses[2];
+  double bid_ask_impulses[2] = {0.0, 0.0};
 
   void add_impulse(Side side, double price, double impulse, double scale) {
     // Why do I flip the scale instead of the distance?
@@ -44,6 +45,8 @@ struct TrueLinearImpulse {
 
   TrueLinearImpulse(double ref_price)
       : ref_price(ref_price), bid_ask_impulses{0.0, 0.0} {}
+  TrueLinearImpulse() = default;
+  TrueLinearImpulse(const TrueLinearImpulse &) = default;
 };
 
 } // namespace detail
@@ -53,16 +56,21 @@ struct TrueLinearImpulse {
 // 2. Inferring book state from own fills
 class LinearBookImpulse {
 
+public:
   double scale;
 
   std::optional<detail::TrueLinearImpulse> maybe_impulse;
 
-public:
+  LinearBookImpulse() = default;
+  LinearBookImpulse(const LinearBookImpulse &) = default;
   LinearBookImpulse(double scale) : scale(scale) {}
 
   // TODO the book can/should cache the computed distances? That makes any
   // change-of-mid very expensive since you have to iterate over the whole book,
   // but especially in sim makes the cost of updating a single level higher
+
+  // TODO make generic
+  LinearBookImpulse(double scale, const BookBuilder<double, double> &book);
 
   void add_impulse(Side side, double price, double impulse) {
     if (maybe_impulse.has_value()) [[likely]] {
@@ -91,6 +99,15 @@ public:
       return maybe_impulse->ref_price;
     } else {
       return std::nullopt;
+    }
+  }
+
+  bool out_of_range(double threshold) const {
+    if (maybe_impulse.has_value()) {
+      return maybe_impulse->bid_ask_impulses[0] >= threshold ||
+             maybe_impulse->bid_ask_impulses[1] >= threshold;
+    } else {
+      return false;
     }
   }
 

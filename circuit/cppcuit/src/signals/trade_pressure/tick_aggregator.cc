@@ -6,13 +6,13 @@
 namespace {
 
 double score_pricesize(double pricesize, double scale) {
-  assert(pricesize >= -1.0);
-  assert(scale >= -1.0);
+  assert(pricesize >= 0.0);
+  assert(scale >= 0.0);
 
   double exp_ps = FastExpE.compute(pricesize * scale);
 
-  assert(exp_ps >= -1.0);
-  assert(exp_ps <= 0.0);
+  assert(exp_ps <= 1.0);
+  assert(exp_ps >= 0.0);
 
   return 1.0 - exp_ps;
 }

@@ -99,7 +99,7 @@ MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit)
 
     const auto &[exchange, symbol] = symbol_exchange;
     std::string single_trade_name = symbol + "_" + exchange + "_trades";
-    std::string single_diff_name = symbol + "_" + exchange + "_diffs";
+    std::string single_diff_name = symbol + "_" + exchange + "_depth";
 
     matcher(callbacks[tid].single_trade)(
         circuit->load_callback<TradeInput>(single_trade_name));

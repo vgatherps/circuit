@@ -44,8 +44,8 @@ class TradePressureOptions:
     out_dir: str
 
 
-def generate_circuit_for_market_venue(
-    circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
+def generate_trades_circuit_for_market_venue(
+    circuit: CircuitBuilder, market: str, venue: str, fair: ComponentOutput
 ) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
 
@@ -63,7 +63,7 @@ def generate_circuit_for_market_venue(
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
             "trade": circuit.get_external(trades_name, "const Trade *").output(),
-            "fair": circuit.get_external(f"{market}_{venue}_fair", "double").output(),
+            "fair": fair,
             "tick": tick_detector.output(),
         },
     )
@@ -76,14 +76,47 @@ def generate_circuit_for_market_venue(
     return raw_venue_pressure.output("tick"), raw_venue_pressure.output("running")
 
 
+def generate_depth_circuit_for_market_venue(
+    circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
+) -> ComponentOutput:
+    depth_name = f"{market}_{venue}_depth"
+    book = circuit.make_component(
+        definition_name="book_updater",
+        name=f"{market}_{venue}_book_updater",
+        inputs={
+            "depth": circuit.get_external(depth_name, "const DepthUpdate *").output(),
+        },
+    )
+
+    fair = circuit.make_component(
+        definition_name="book_impulse_tracker",
+        name=f"{market}_{venue}_book_impulse_tracker",
+        inputs={
+            "updates": book.output("updates"),
+            "book": book.output("book"),
+            "time": circuit.get_external("time", TIME_TYPE).output(),
+        },
+    )
+
+    circuit.add_call_group(
+        depth_name,
+        CallGroup(struct="DepthUpdate", external_field_mapping={"depth": depth_name}),
+    )
+
+    return fair.output()
+
+
 def generate_circuit_for_market(
     circuit: CircuitBuilder, market: str, config: TradePressureMarketConfig
 ):
     all_running = []
     all_ticks = []
     for (venue, venue_config) in config.venues.items():
-        tick, running = generate_circuit_for_market_venue(
+        fair = generate_depth_circuit_for_market_venue(
             circuit, market, venue, venue_config
+        )
+        tick, running = generate_trades_circuit_for_market_venue(
+            circuit, market, venue, fair
         )
 
         all_ticks.append(tick)
@@ -167,6 +200,15 @@ def main():
         ),
     )
 
+    circuit.add_call_struct_from(
+        "DepthUpdate",
+        depth="const DepthUpdate *",
+        external_struct=ExternalStruct(
+            struct_name="DiffInput",
+            header="replay/md_inputs.hh",
+        ),
+    )
+
     with CircuitContextManager(circuit) as c:
         generate_trade_pressure_circuit(circuit, trade_pressure)
 
@@ -199,6 +241,35 @@ def main():
             )
 
             with open(f"{out_dir}/{market}_{venue}_trades.dot", "w") as write_to:
+                write_to.write(dot_content)
+
+    for (market, market_config) in trade_pressure.markets.items():
+        for venue in market_config.venues.keys():
+            local_name = f"{market}_{venue}_depth.cc"
+            cc_names.append(local_name)
+            file_name = f"{out_dir}/{local_name}"
+            depth_call_name = f"{market}_{venue}_depth"
+
+            options = CallStructOptions(
+                struct_name=STRUCT,
+                struct_header=HEADER,
+                call_name=depth_call_name,
+            )
+            content = generate_circuit_call(
+                struct_options=options,
+                config=core_config,
+                circuit=circuit,
+            )
+            with open(file_name, "w") as write_to:
+                write_to.write(call_clang_format(content))
+
+            dot_content = generate_circuit_call_dot(
+                struct_options=options,
+                config=core_config,
+                circuit=circuit,
+            )
+
+            with open(f"{out_dir}/{market}_{venue}_depth.dot", "w") as write_to:
                 write_to.write(dot_content)
 
     # Fill out some timer calls

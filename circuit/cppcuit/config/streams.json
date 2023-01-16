@@ -20,6 +20,16 @@
             "category": "depth",
             "symbol": "btcusdt",
             "exchange": "binance_futures"
+        },
+        {
+            "category": "depth",
+            "symbol": "ethusdt",
+            "exchange": "binance_futures"
+        },
+        {
+            "category": "depth",
+            "symbol": "solusdt",
+            "exchange": "binance_futures"
         }
     ]
 }

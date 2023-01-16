@@ -55,9 +55,9 @@ class CallSpec(DataClassJsonMixin):
 
     written_set: frozenset[str]
 
-    observes: frozenset[str]
-
     callback: Optional[str]
+
+    observes: frozenset[str] = frozenset()
 
     metadata: frozenset[Metadata] = field(
         default_factory=frozenset, metadata=config(decoder=decode_metadata)
@@ -106,12 +106,15 @@ class OutputSpec(DataClassJsonMixin):
                         if it has not been written to
     """
 
-    ephemeral: bool
     type_path: str
+    ephemeral: bool = False
     always_valid: bool = False
     assume_invalid: bool = False
     assume_default: bool = False
     default_constructor: Optional[str] = None
+
+    # TODO proper forcibly edge-triggered component
+    # make an input that you can only reference when it's actualy triggered?
 
     # TODO should we do this for normal struct generation as well?
     def get_ctor(self) -> str:

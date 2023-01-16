@@ -8,7 +8,6 @@
             ],
             "output_specs": {
                 "running": {
-                    "ephemeral": false,
                     "type_path": "RunningTickScore",
                     "always_valid": true
                 },
@@ -162,6 +161,86 @@
                 "outputs": [
                     "running_sum"
                 ],
+                "metadata": [
+                    "timer"
+                ]
+            }
+        },
+        "book_updater": {
+            "inputs": [
+                "depth"
+            ],
+            "output_specs": {
+                "bbo": {
+                    "type_path": "BBO"
+                },
+                "book": {
+                    "type_path": "PlainBook"
+                },
+                "updates": {
+                    "type_path": "UpdatedLevels",
+                    "assume_invalid": true
+                }
+            },
+            "class_name": "BookUpdater",
+            "static_call": true,
+            "header": "signals/book_pressure/book_updater.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "depth"
+                    ],
+                    "callback": "on_depth",
+                    "outputs": [
+                        "bbo",
+                        "book",
+                        "updates"
+                    ]
+                }
+            ]
+        },
+        "book_impulse_tracker": {
+            "inputs": [
+                "updates",
+                "book",
+                "time"
+            ],
+            "output_specs": {
+                "fair": {
+                    "type_path": "FairPrice"
+                }
+            },
+            "class_name": "BookImpulseTracker",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true,
+                "metadata": [
+                    "timer"
+                ]
+            },
+            "header": "signals/book_pressure/book_impulse_tracker.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "updates"
+                    ],
+                    "observes": [
+                        "book"
+                    ],
+                    "callback": "on_book_updates",
+                    "outputs": [
+                        "fair"
+                    ]
+                }
+            ],
+            "timer_callset": {
+                "written_set": [],
+                "observes": [
+                    "time",
+                    "book"
+                ],
+                "callback": "recompute",
                 "metadata": [
                     "timer"
                 ]

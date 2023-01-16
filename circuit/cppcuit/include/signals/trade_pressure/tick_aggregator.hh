@@ -89,8 +89,7 @@ public:
       // check, forward ticks regardless
       double current_impulse;
       if (inputs.fair.valid()) [[likely]] {
-        current_impulse =
-            this->handle_trade(*inputs.trade, (*inputs.trade)->price());
+        current_impulse = this->handle_trade(*inputs.trade, *inputs.fair);
       } else {
         current_impulse = this->running.impulse();
       }

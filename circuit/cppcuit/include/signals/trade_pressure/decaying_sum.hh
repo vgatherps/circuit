@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <nlohmann/json_fwd.hpp>
 
+#include "cppcuit/runtime_error.hh"
 #include "cppcuit/signal_requirements.hh"
 #include "math/fast_exp_64.hh"
 #include "timer/timer_queue.hh"
@@ -42,7 +43,7 @@ public:
              HAS_FIELD(M, TimerHandle, timer))
   void decay(I input, O output, M metadata) {
     has_timer_scheduled = false;
-    if (input.time.valid()) {
+    if (input.time.valid()) [[likely]] {
       double decayed_sum =
           this->compute_decay(*input.time, output.running_sum, metadata.timer);
 
@@ -51,7 +52,7 @@ public:
       // this is an outright error, tbh. should either raise exception,
       // assume optimizer removes it? assert? make time sp special that
       // it's literally always valid?
-      throw "impossible";
+      cold_runtime_error("Time was invalid, impossible");
     }
   }
 

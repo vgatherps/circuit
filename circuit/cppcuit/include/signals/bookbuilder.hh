@@ -28,7 +28,7 @@ concept LevelCreator = requires(F f, Side s, BookLevel l) {
 // Bookbuilder with attached state to each level
 
 template <class Price, class Metadata, class Comparator> class BookBuilderSide {
-  absl::btree_map<Price, Metadata> levels;
+  absl::btree_map<Price, Metadata, Comparator> levels;
 
 public:
   template <class C, class U>
@@ -99,8 +99,8 @@ public:
   }
 
   template <LevelCreator<Metadata> C, LevelUpdater<Metadata> U>
-  void update_leve(Side s, BookLevel level, const C &creator,
-                   const U &updater) {
+  void update_level(Side s, BookLevel level, const C &creator,
+                    const U &updater) {
 
     if (s == Side::Buy) {
       bids.update_levels(
@@ -117,4 +117,21 @@ public:
   auto asks_begin() const { return this->asks.begin(); }
   auto bids_end() const { return this->bids.end(); }
   auto asks_end() const { return this->asks.end(); }
+
+  const auto &bid_levels() const { return this->bids; }
+  const auto &ask_levels() const { return this->asks; }
+
+  std::optional<BBO> bbo() const {
+    auto bids_iter = bids_begin();
+    auto asks_iter = asks_begin();
+
+    if (bids_iter != bids_end() && asks_iter != asks_end()) {
+      return BBO{
+          .bid = {.price = bids_iter->first, .size = bids_iter->second},
+          .ask = {.price = asks_iter->first, .size = asks_iter->second},
+      };
+    } else {
+      return std::nullopt;
+    }
+  }
 };

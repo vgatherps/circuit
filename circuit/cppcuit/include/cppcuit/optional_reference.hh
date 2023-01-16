@@ -16,6 +16,14 @@ public:
   optional_reference(T &t, bool is_valid) : optional_reference(&t, is_valid) {}
   optional_reference(T &t) : optional_reference(t, true) {}
 
+  const T &value_or(const T &value) {
+    if (this->valid()) {
+      return *ref;
+    } else {
+      return value;
+    }
+  }
+
   T *ptr() const { return this->ref; }
 
   bool valid() const { return this->ref; }

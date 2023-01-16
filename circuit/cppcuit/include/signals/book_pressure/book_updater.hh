@@ -16,36 +16,40 @@ concept HasBBOChanges =
     HAS_REF_FIELD(O, BBO, bbo) && HasChanges<O> && HasBook<O>;
 
 class BookUpdater {
-  std::vector<AnnotatedLevel> bid_changes;
-  std::vector<AnnotatedLevel> ask_changes;
-
-  std::optional<BBO> update_levels(const DepthUpdate *updates, PlainBook &book);
+  static std::optional<BBO> update_levels(const DepthUpdate *updates,
+                                          PlainBook &book,
+                                          UpdatedLevels &levels);
 
 public:
+  using BBO = ::BBO;
+  using UpdatedLevels = ::UpdatedLevels;
+  using PlainBook = ::PlainBook;
+
+  using ConstDepthUpdate = const DepthUpdate *;
   struct OutputsValid {
     bool bbo;
     bool updates;
+    bool book;
   };
 
   template <class I, HasBBOChanges O>
-  OutputsValid on_depth(I inputs, O outputs)
-    requires HAS_OPT_REF(I, DepthUpdate *, depth)
+  static OutputsValid on_depth(I inputs, O outputs)
+    requires HAS_OPT_REF(I, ConstDepthUpdate, depth)
   {
     if (const DepthUpdate *depth = inputs.depth.value_or(nullptr)) {
-      std::optional<BBO> bbo = update_levels(depth, outputs.book);
+      std::optional<BBO> bbo =
+          update_levels(depth, outputs.book, outputs.updates);
 
-      OutputsValid validity{.bbo = false, .updates = false};
+      OutputsValid validity{.bbo = false, .updates = true, .book = true};
 
       if (bbo.has_value()) {
         outputs.bbo = *bbo;
         validity.bbo = true;
       }
 
-      outputs.updates = UpdatedLevels{.bids = bid_changes, .asks = ask_changes};
-
       return validity;
     } else {
-      return OutputsValid{.bbo = false, .updates = false};
+      return OutputsValid{.bbo = false, .updates = false, .book = false};
     }
   }
 };

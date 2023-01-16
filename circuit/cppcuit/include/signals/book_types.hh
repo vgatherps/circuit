@@ -1,6 +1,6 @@
 #pragma once
 
-#include <span>
+#include <vector>
 
 struct AnnotatedLevel {
   double price;
@@ -15,8 +15,10 @@ struct BookLevel {
 
 struct BBO {
   BookLevel bid, ask;
+
+  double mid() const { return 0.5 * (bid.price + ask.price); }
 };
 
 struct UpdatedLevels {
-  std::span<AnnotatedLevel> bids, asks;
+  std::vector<AnnotatedLevel> bids, asks;
 };

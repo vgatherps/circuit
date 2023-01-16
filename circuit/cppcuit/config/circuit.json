@@ -40,5 +40,23 @@
     "btcusdt_binance_futures_tick_detector": {
         "us_till_batch_ends": 50,
         "ns_till_batch_invalidation": 2000000
+    },
+    "ethusdt_okex_futures_book_impulse_tracker": {
+        "scale": 10
+    },
+    "ethusdt_binance_futures_book_impulse_tracker": {
+        "scale": 10
+    },
+    "solusdt_okex_futures_book_impulse_tracker": {
+        "scale": 300
+    },
+    "solusdt_binance_futures_book_impulse_tracker": {
+        "scale": 300
+    },
+    "btcusdt_okex_futures_book_impulse_tracker": {
+        "scale": 0.5
+    },
+    "btcusdt_binance_futures_book_impulse_tracker": {
+        "scale": 0.5
     }
 }
