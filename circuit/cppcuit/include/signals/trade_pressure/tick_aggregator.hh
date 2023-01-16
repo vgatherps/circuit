@@ -78,7 +78,6 @@ public:
              HAS_OPT_REF(I, double, fair) &&
              HAS_REF_FIELD(O, RunningTickScore, running))
   void on_trade(I inputs, O outputs) {
-
     // if the trade is invalid, don't waste time reasoning about ticks...
     // could be complex with the whole 'end-of-tick', but tbh assume
     // we're not getting a whole lot of secretly invalid end-of-ticks

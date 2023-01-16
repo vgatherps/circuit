@@ -4,9 +4,14 @@
 #include "signals/bookbuilder.hh"
 
 class BookImpulseTracker {
-  BookBuilder<double, double> book;
   LinearBookImpulse impulse_tracker;
 
+  void recompute_from_book(const BookBuilder<double, double> &book);
+
 public:
-  std::optional<double> update_levels(const DepthUpdate *updates);
+  std::optional<double> update_levels(UpdatedLevels updates);
+
+  std::optional<double>
+  update_reference(std::optional<double> new_ref,
+                   const BookBuilder<double, double> &book);
 };
