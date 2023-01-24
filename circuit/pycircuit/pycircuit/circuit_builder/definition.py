@@ -181,13 +181,15 @@ class Definition(DataClassJsonMixin):
                    called by the circuit and shouldn't ever use up any storage
     """
 
-    inputs: frozenset[str]
-
-    output_specs: frozendict[str, OutputSpec]
-
     class_name: str
 
     header: str
+
+    output_specs: frozendict[str, OutputSpec] = frozenset()
+
+    inputs: frozenset[str] = frozenset()
+
+    aggregate_inputs: frozenset[str] = frozenset()
 
     callsets: frozenset[CallSpec] = frozenset()
 
@@ -211,7 +213,7 @@ class Definition(DataClassJsonMixin):
 
     def validate_generics(self):
         for key in self.generics_order:
-            assert key in self.inputs, "Generic input is not real input"
+            assert key in self.all_inputs(), "Generic input is not real input"
 
         assert len(set(self.generics_order)) == len(
             self.generics_order
@@ -223,7 +225,7 @@ class Definition(DataClassJsonMixin):
                 f"A callset if both skippable but has outputs {callset.outputs} for {self.class_name}"
             )
         for written in callset.written_set:
-            if written not in self.inputs:
+            if written not in self.all_inputs():
                 raise ValueError(
                     f"Written observable {written} in {self.class_name} is not an input"
                 )
@@ -235,7 +237,7 @@ class Definition(DataClassJsonMixin):
                 )
 
         for observed in callset.observes:
-            if observed not in self.inputs:
+            if observed not in self.all_inputs():
                 raise ValueError(
                     f"Observable {observed} in {self.class_name} is not an input"
                 )
@@ -289,14 +291,26 @@ class Definition(DataClassJsonMixin):
                     f"Output {output} of {self.class_name} has a default constructor but is not assumed to be default"
                 )
 
+    def validate_inputs(self):
+        aggregate_intersection = self.inputs.intersection(self.aggregate_inputs)
+
+        if aggregate_intersection:
+            raise ValueError(
+                f"Input names repeated across aggregate and normal inputs: {aggregate_intersection}"
+            )
+
     def validate(self):
         self.validate_generics()
+        self.validate_inputs()
         self.validate_callsets()
         self.validate_outputs()
         self.validate_timer()
 
     def outputs(self) -> List[str]:
         return list(self.output_specs.keys())
+
+    def all_inputs(self) -> Set[str]:
+        return set(self.aggregate_inputs.union(self.inputs))
 
     def triggering_inputs(self) -> Set[str]:
         triggering = set()

@@ -10,9 +10,7 @@ LOAD_CALL_TYPE = "TriggerCall"
 
 def generate_lookup_of(call_name: str, type_name: str, prefix="", postfix="") -> str:
     return f"""\
-if (
-    "{call_name}" == {INPUT_STR_NAME}
-) {{
+if ("{call_name}" == {INPUT_STR_NAME}) {{
     const std::type_info &the_type = typeid(InputTypes::{type_name});
     if (the_type == {INPUT_TYPEID_NAME}) {{
         return (void *)&{prefix}{call_name}{postfix};

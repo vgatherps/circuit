@@ -14,7 +14,7 @@ INIT_A_LINE = (
     f"{COMPONENT_NAME}TypeAlias::{OUT_A_CLASS} {COMPONENT_NAME}_{OUT_A}_EV__{{}};"
 )
 REF_A_LINE = f"{COMPONENT_NAME}TypeAlias::{OUT_A_CLASS}& {COMPONENT_NAME}_{OUT_A} = {COMPONENT_NAME}_{OUT_A}_EV__;"
-REF_B_LINE = f"{COMPONENT_NAME}TypeAlias::{OUT_B_CLASS}& {COMPONENT_NAME}_{OUT_B} = this->outputs.{COMPONENT_NAME}_{OUT_B};"
+REF_B_LINE = f"{COMPONENT_NAME}TypeAlias::{OUT_B_CLASS}& {COMPONENT_NAME}_{OUT_B} = _outputs.{COMPONENT_NAME}_{OUT_B};"
 
 
 def test_no_output_init():
