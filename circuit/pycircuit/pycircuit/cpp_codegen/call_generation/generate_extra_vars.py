@@ -34,27 +34,28 @@ def generate_extra_validity_references(
         for input in child.callset.written_set | child.callset.observes
     ]
 
-    input_with_component = [
-        (input, metadata.annotated_components[input.parent])
+    output_with_component = [
+        (output, metadata.annotated_components[output.parent])
         for input in requested_inputs
-        if input.parent != "external"
+        for output in input.outputs()
+        if output.parent != "external"
     ]
 
     static_valid_defs = [
-        f"constexpr bool {get_valid_path(component, input.output_name)} = true;"
-        for (input, component) in input_with_component
-        if (input.parent not in called_children_names)
+        f"constexpr bool {get_valid_path(component, output.output_name)} = true;"
+        for (output, component) in output_with_component
+        if (output.parent not in called_children_names)
         and component.component.definition.d_output_specs[
-            input.output_name
+            output.output_name
         ].always_valid
     ]
 
     static_invalid_defs = [
-        f"constexpr bool {get_valid_path(component, input.output_name)} = false;"
-        for (input, component) in input_with_component
-        if (input.parent not in called_children_names)
+        f"constexpr bool {get_valid_path(component, output.output_name)} = false;"
+        for (output, component) in output_with_component
+        if (output.parent not in called_children_names)
         and component.component.definition.d_output_specs[
-            input.output_name
+            output.output_name
         ].assume_invalid
     ]
 
@@ -72,29 +73,30 @@ def generate_default_value_generators(
         for input in child.callset.written_set | child.callset.observes
     ]
 
-    unwritten_inputs = [
-        input
+    unwritten_outputs = set(
+        output
         for input in requested_inputs
-        if input.output() not in written_outputs and input.parent != "external"
-    ]
+        for output in input.outputs()
+        if output not in written_outputs and output.parent != "external"
+    )
 
     annotated_unwritten = [
-        (input, metadata.annotated_components[input.parent])
-        for input in unwritten_inputs
+        (output, metadata.annotated_components[output.parent])
+        for output in unwritten_outputs
     ]
 
-    unwritten_assumed_default_inputs = [
-        (input, annotated)
-        for (input, annotated) in annotated_unwritten
+    unwritten_assumed_default_outputs = [
+        (output, annotated)
+        for (output, annotated) in annotated_unwritten
         if annotated.component.definition.d_output_specs[
-            input.output_name
+            output.output_name
         ].assume_default
     ]
 
     all_lines: List[str] = sum(
         [
-            generate_output_init(annotated, input.output_name)
-            for (input, annotated) in unwritten_assumed_default_inputs
+            generate_output_init(annotated, output.output_name)
+            for (output, annotated) in unwritten_assumed_default_outputs
         ],
         [],
     )

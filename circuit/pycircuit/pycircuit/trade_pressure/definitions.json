@@ -1,11 +1,11 @@
 {
     "definitions": {
         "tick_aggregator": {
-            "inputs": [
-                "trade",
-                "tick",
-                "fair"
-            ],
+            "inputs": {
+                "trade": {},
+                "tick": {},
+                "fair": {}
+            },
             "output_specs": {
                 "running": {
                     "type_path": "RunningTickScore",
@@ -67,10 +67,10 @@
             ]
         },
         "tick_detector": {
-            "inputs": [
-                "trade",
-                "time"
-            ],
+            "inputs": {
+                "trade": {},
+                "time": {}
+            },
             "output_specs": {
                 "tick": {
                     "ephemeral": true,
@@ -117,10 +117,10 @@
             }
         },
         "decaying_sum": {
-            "inputs": [
-                "tick",
-                "time"
-            ],
+            "inputs": {
+                "tick": {},
+                "time": {}
+            },
             "output_specs": {
                 "running_sum": {
                     "ephemeral": false,
@@ -167,9 +167,9 @@
             }
         },
         "book_updater": {
-            "inputs": [
-                "depth"
-            ],
+            "inputs": {
+                "depth": {}
+            },
             "output_specs": {
                 "bbo": {
                     "type_path": "BBO"
@@ -200,11 +200,11 @@
             ]
         },
         "book_impulse_tracker": {
-            "inputs": [
-                "updates",
-                "book",
-                "time"
-            ],
+            "inputs": {
+                "updates": {},
+                "book": {},
+                "time": {}
+            },
             "output_specs": {
                 "fair": {
                     "type_path": "FairPrice"

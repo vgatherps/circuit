@@ -12,6 +12,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
     GenerationMetadata,
 )
 from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
+from pycircuit.circuit_builder.circuit import SingleComponentInput
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
@@ -33,43 +34,42 @@ INPUT_NAME = "__input__"
 
 
 def get_parent_name(
-    c: ComponentInput, meta: GenerationMetadata, written_outputs: Set[ComponentOutput]
+    output: ComponentOutput, meta: GenerationMetadata, written_outputs: Set[ComponentOutput]
 ) -> str:
-    if c.parent == "external":
-        return f"_externals.{c.output_name}"
+    if output.parent == "external":
+        return f"_externals.{output.output_name}"
     else:
-        parent = meta.annotated_components[c.parent]
+        parent = meta.annotated_components[output.parent]
 
-        output_spec = parent.output_data[c.output_name]
+        output_spec = parent.output_data[output.output_name]
         if output_spec.is_value_ephemeral:
-            output_def = parent.component.definition.d_output_specs[c.output_name]
-            if output_def.assume_invalid and c.output() not in written_outputs:
+            output_def = parent.component.definition.d_output_specs[output.output_name]
+            if output_def.assume_invalid and output.output() not in written_outputs:
                 root_name = "nullptr"
             else:
-                root_name = f"{parent.component.name}_{c.output_name}_EV__"
+                root_name = f"{parent.component.name}_{output.output_name}_EV__"
 
         else:
             # TODO post-refactor nest this struct
-            root_name = f"_outputs.{c.parent}_{c.output_name}"
+            root_name = f"_outputs.{output.parent}_{output.output_name}"
 
         return root_name
 
 
-def get_valid_path_external(input: ComponentInput, gen_data: GenerationMetadata):
-    if input.parent == "external":
-        the_external = gen_data.circuit.external_inputs[input.output_name]
+def get_valid_path_external(output: ComponentOutput, gen_data: GenerationMetadata):
+    if output.parent == "external":
+        the_external = gen_data.circuit.external_inputs[output.output_name]
         return f"_externals.is_valid[{the_external.index}]"
     else:
         return get_valid_path(
-            gen_data.annotated_components[input.parent], input.output_name
+            gen_data.annotated_components[output.parent], output.output_name
         )
 
 
 # This is pretty close to what we run for initialization...
 # init has no inputs, really only difference
 
-
-def generate_input_calldata(
+def generate_single_input_calldata(
     annotated_component: AnnotatedComponent,
     callset: CallSpec,
     gen_data: GenerationMetadata,
@@ -79,19 +79,21 @@ def generate_input_calldata(
 
     component = annotated_component.component
 
-    inputs = get_inputs_for_callset(callset, component)
+    all_inputs = get_inputs_for_callset(callset, component)
 
-    input_names = [f"{get_parent_name(c, gen_data, all_written)}" for c in inputs]
+    inputs = set(input for input in all_inputs if isinstance(input, SingleComponentInput))
 
-    all_type_names = [get_type_name_for_input(component, c.input_name) for c in inputs]
+    input_names = [f"{get_parent_name(single_input.output(), gen_data, all_written)}" for single_input in inputs]
+
+    all_type_names = [get_type_name_for_input(component, single_input.input_name) for single_input in inputs]
 
     # TODO get tests set up that create the entire set of metadata
     all_values = [
         f"""
-            bool is_{c.input_name}_v = {get_valid_path_external(c, gen_data)};
-            optional_reference<const {t_name}> {c.input_name}_v({name}, is_{c.input_name}_v);
+            bool is_{single_inpuut.input_name}_v = {get_valid_path_external(single_inpuut.output(), gen_data)};
+            optional_reference<const {t_name}> {single_inpuut.input_name}_v({name}, is_{single_inpuut.input_name}_v);
         """
-        for (t_name, c, name) in zip(all_type_names, inputs, input_names)
+        for (t_name, single_inpuut, name) in zip(all_type_names, inputs, input_names)
     ]
 
     values = "\n".join(all_values)

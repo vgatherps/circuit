@@ -348,7 +348,6 @@ class Definition(DataClassJsonMixin):
 
     def validate(self):
         self.validate_generics()
-        self.validate_inputs()
         self.validate_callsets()
         self.validate_outputs()
         self.validate_timer()

@@ -17,7 +17,7 @@ def generate_constant_definition(
                 default_constructor=f" = {constructor}",
             )
         ),
-        inputs=frozenset(),
+        inputs=frozendict(),
         static_call=True,
         header="signals/constant.hh",
         generic_callset=CallSpec(

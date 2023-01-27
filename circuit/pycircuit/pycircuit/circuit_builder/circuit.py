@@ -98,6 +98,12 @@ class ArrayComponentInput(DataClassJsonMixin):
     def parents(self) -> Set[str]:
         return set(output.parent for output in self.outputs())
 
+    def as_single_at(self, idx: int) -> SingleComponentInput:
+        return SingleComponentInput(
+            input_name=self.input_name,
+            input=self.outputs()[idx]
+        )
+
 
 
 ComponentInput = Union[SingleComponentInput, ArrayComponentInput]

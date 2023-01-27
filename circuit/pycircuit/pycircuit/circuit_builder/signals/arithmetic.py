@@ -1,12 +1,13 @@
 from frozendict import frozendict
 from pycircuit.circuit_builder.definition import CallSpec, Definition, OutputSpec
+from pycircuit.circuit_builder.definition import BasicInput
 
 
 def generate_binary_definition(operator_name: str) -> Definition:
     return Definition(
         class_name=operator_name,
         output_specs=frozendict(out=OutputSpec(ephemeral=True, type_path="Output")),
-        inputs=frozenset(["a", "b"]),
+        inputs=frozendict({"a": BasicInput(), "b": BasicInput()}),
         static_call=True,
         header="signals/basic_arithmetic.hh",
         generic_callset=CallSpec(

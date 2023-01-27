@@ -3,8 +3,8 @@ from typing import List, Set
 from pycircuit.circuit_builder.circuit import ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, assemble_call_from
-from pycircuit.cpp_codegen.call_generation.single_call.generate_input_calldata import (
-    generate_input_calldata,
+from pycircuit.cpp_codegen.call_generation.single_call.generate_single_input_calldata import (
+    generate_single_input_calldata,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_metadata_calldata import (
     generate_metadata_calldata,
@@ -31,7 +31,7 @@ def generate_single_call(
     call_data = []
 
     if callset.inputs():
-        input_data = generate_input_calldata(
+        input_data = generate_single_input_calldata(
             annotated_component, callset, gen_data, all_written
         )
         call_data.append(input_data)
