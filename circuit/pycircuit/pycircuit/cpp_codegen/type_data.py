@@ -7,6 +7,10 @@ from pycircuit.cpp_codegen.type_names import (
     get_alias_for,
     get_type_name_for_input,
 )
+from pycircuit.circuit_builder.circuit import SingleComponentInput
+from pycircuit.circuit_builder.circuit import ComponentOutput
+from pycircuit.circuit_builder.circuit import ArrayComponentInput
+from pycircuit.cpp_codegen.type_names import get_type_name_for_array_input
 
 
 def get_class_declaration_type_for(component: AnnotatedComponent) -> str:
@@ -20,18 +24,11 @@ def get_using_declarations_for(
     component = annotated.component
     names = []
     for c in component.inputs.values():
-        if c.parent == "external":
-            dtype = circuit.external_inputs[c.output_name].type
-        else:
-            parent_c = circuit.components[c.parent]
-            parent_output_path = parent_c.definition.d_output_specs[
-                c.output_name
-            ].type_path
-            dtype = f"{get_alias_for(parent_c)}::{parent_output_path}"
-
-        type_name = get_type_name_for_input(component, c.input_name)
-        name = f"using {type_name} = {dtype};"
-        names.append(name)
+        match c:
+            case SingleComponentInput():
+                names.append(generate_usings_for_single_input(component, c, circuit))
+            case ArrayComponentInput():
+                names += generate_usings_for_array_input(component, c, circuit)
 
     names += [f"using {get_alias_for(component)} = {class_declaration};"]
 
@@ -39,4 +36,37 @@ def get_using_declarations_for(
         names.append(generate_output_type_alias(component, output))
 
     names += ["\n"]
+    return names
+
+
+def get_datatype_for_output(output: ComponentOutput, circuit: CircuitData) -> str:
+    if output.parent == "external":
+        return circuit.external_inputs[output.output_name].type
+    else:
+        parent_c = circuit.components[output.parent]
+        parent_output_path = parent_c.definition.d_output_specs[
+            output.output_name
+        ].type_path
+        return f"{get_alias_for(parent_c)}::{parent_output_path}"
+
+
+
+def generate_usings_for_single_input(component: Component, input: SingleComponentInput, circuit: CircuitData) -> str:
+    output = input.output()
+    
+    dtype = get_datatype_for_output(output, circuit)
+    type_name = get_type_name_for_input(component, input.input_name)
+    name = f"using {type_name} = {dtype};"
+    return name
+
+
+def generate_usings_for_array_input(component: Component, input: ArrayComponentInput, circuit: CircuitData) -> List[str]:
+
+    names = []
+    for (idx, output) in enumerate(input.outputs()):
+        dtype = get_datatype_for_output(output, circuit)
+        type_name = get_type_name_for_array_input(component, idx, input.input_name)
+        name = f"using {type_name} = {dtype};"
+        names.append(name)
+
     return names

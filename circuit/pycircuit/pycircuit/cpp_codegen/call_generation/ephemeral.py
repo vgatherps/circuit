@@ -33,6 +33,7 @@ def find_nonephemeral_outputs(
     }
 
     # Filter out always-invalid outputs. They're ephemeral
+
     # TODO this is a hack, this filtering here is depended upon in a spaghetti-like fashion
     # throughout the codebase to ensure that invalidity always works.
 
@@ -40,10 +41,10 @@ def find_nonephemeral_outputs(
     for called_component in called_components:
 
         component = called_component.component
-        # TODO ignore times for now as we need to properly build graphs for those
 
         for input in component.inputs.values():
-            if input.parent not in own_component_names:
-                non_ephemeral_outputs.add(input.output())
+            for output in input.outputs():
+                if output.parent not in own_component_names:
+                    non_ephemeral_outputs.add(output)
 
     return non_ephemeral_outputs

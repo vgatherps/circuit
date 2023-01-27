@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Dict, List, Mapping, Optional, Set, Union
 
 from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
-from pycircuit.circuit_builder.definition import Definition
+from pycircuit.circuit_builder.definition import Definition, BasicInput
 
 from .signals.arithmetic import generate_binary_definition
 from .signals.constant import generate_constant_definition
@@ -61,16 +61,6 @@ class ComponentOutput(DataClassJsonMixin, HasOutput):
         return self
 
 
-@dataclass(eq=True, frozen=True)
-class ComponentInput(DataClassJsonMixin, HasOutput):
-    parent: str
-    output_name: str
-    input_name: str
-
-    def output(self) -> ComponentOutput:
-        return ComponentOutput(parent=self.parent, output_name=self.output_name)
-
-
 @dataclass
 class ExternalInput(DataClassJsonMixin, HasOutput):
     type: str
@@ -80,6 +70,38 @@ class ExternalInput(DataClassJsonMixin, HasOutput):
 
     def output(self) -> ComponentOutput:
         return ComponentOutput(parent="external", output_name=self.name)
+
+
+@dataclass(eq=True, frozen=True)
+class SingleComponentInput(DataClassJsonMixin):
+    input: ComponentOutput
+    input_name: str
+
+    def output(self) -> ComponentOutput:
+        return self.input
+
+    def outputs(self) -> List[ComponentOutput]:
+        return [self.output()]
+
+    def parents(self) -> Set[str]:
+        return set(output.parent for output in self.outputs())
+
+
+@dataclass(eq=True, frozen=True)
+class ArrayComponentInput(DataClassJsonMixin):
+    inputs: List[ComponentOutput]
+    input_name: str
+
+    def outputs(self) -> List[ComponentOutput]:
+        return self.inputs
+
+    def parents(self) -> Set[str]:
+        return set(output.parent for output in self.outputs())
+
+
+
+ComponentInput = Union[SingleComponentInput, ArrayComponentInput]
+
 
 
 @dataclass
@@ -132,36 +154,46 @@ class Component(HasOutput):
                         f"Component {self.name} requested output {output} be stored, despite being assumed_invalid"
                     )
 
-        for (input, comp_input) in self.inputs.items():
+        for (input_name, comp_input) in self.inputs.items():
             # this really only possible via api misuse, no point in real exception
-            assert input == comp_input.input_name
+            assert input_name == comp_input.input_name
 
-            if input not in self.definition.inputs:
+            if input_name not in self.definition.inputs:
                 raise ValueError(
-                    f"Component {self.name} has input {input} which is not in definitions"
+                    f"Component {self.name} has input {input_name} which is not in definitions"
                 )
 
-            if comp_input.parent == "external":
-                external = circuit.external_inputs[comp_input.output_name]
+            match (comp_input, self.definition.inputs[input_name]):
+                case (SingleComponentInput(), BasicInput()):
+                    pass
 
-                if external.must_trigger:
-                    in_callset = False
-                    for callset in list(self.definition.callsets) + [
-                        self.definition.timer_callset,
-                        self.definition.generic_callset,
-                    ]:
-                        if callset:
-                            in_callset |= comp_input.input_name in callset.observes
+                case _:
+                    raise ValueError(
+                        f"Input of type {type(comp_input)} was given but expected {type(self.definition.inputs[input_name])}"
+                    )
 
-                    if in_callset:
-                        raise ValueError(
-                            f"Component {self.name} has input {input} which links to a an external "
-                            "that requires triggering, and is not triggered"
-                        )
+            for comp_output in comp_input.outputs():
+                if comp_output.parent == "external":
+                    external = circuit.external_inputs[comp_output.output_name]
 
-        for input in self.definition.inputs:
-            if input not in self.inputs:
-                raise ValueError(f"Component {self.name} is missing input {input}")
+                    if external.must_trigger:
+                        in_callset = False
+                        for callset in list(self.definition.callsets) + [
+                            self.definition.timer_callset,
+                            self.definition.generic_callset,
+                        ]:
+                            if callset:
+                                in_callset |= comp_input.input_name in callset.observes
+
+                        if in_callset:
+                            raise ValueError(
+                                f"Component {self.name} has input {input_name} which links to a an external "
+                                "that requires triggering, and is not triggered"
+                            )
+
+        for input_name in self.definition.inputs:
+            if input_name not in self.inputs:
+                raise ValueError(f"Component {self.name} is missing input {input_name}")
 
     def triggering_inputs(self) -> List[ComponentInput]:
         return [self.inputs[inp] for inp in self.definition.triggering_inputs()]
@@ -224,6 +256,17 @@ class _PartialJsonCircuit(DataClassJsonMixin):
     call_groups: Dict[str, CallGroup]
     call_structs: Dict[str, CallStruct]
 
+
+@dataclass
+class SingleInput:
+    input: HasOutput
+
+@dataclass
+class ArrayInput:
+    inputs: List[HasOutput]
+
+
+InputForComponent = Union[HasOutput, SingleInput, ArrayInput]
 
 # TODO going to be A TON of wasted space here
 @dataclass
@@ -392,20 +435,28 @@ class CircuitBuilder(CircuitData):
         self,
         definition_name: str,
         name: str,
-        inputs: Mapping[str, HasOutput],
+        inputs: Mapping[str, InputForComponent],
         output_options: Dict[str, OutputOptions] = {},
     ) -> "Component":
         assert name not in self.components
 
         definition = self.definitions[definition_name]
-        converted = {}
+        converted: Dict[str, ComponentInput] = {}
 
-        for (in_name, input) in inputs.items():
-            converted[in_name] = ComponentInput(
-                parent=input.output().parent,
-                output_name=input.output().output_name,
-                input_name=in_name,
-            )
+        for (in_name, an_input) in inputs.items():
+            match an_input:
+                case (HasOutput() as input) | SingleInput(input):
+                    converted[in_name] = SingleComponentInput(
+                        input=input.output(),
+                        input_name=in_name,
+                    )
+                case ArrayInput(inputs=arr_input):
+                    converted[in_name] = ArrayComponentInput(
+                        inputs=[o.output() for o in arr_input],
+                        input_name=in_name
+                    )
+                case _:
+                    raise ValueError("")
 
         comp = Component(
             inputs=converted,
@@ -455,14 +506,17 @@ class CircuitBuilder(CircuitData):
             )
 
         # TODO add reverse mapping table to speed up this step
-        for component in self.components.values():
+        for other_component in self.components.values():
+            if other_component is component:
+                continue
             # TODO only do for triggering inputs?
-            for input in component.inputs.values():
-                if input.parent == component.name:
-                    raise ValueError(
-                        f"Trying to rename component {component.name} to {new_name} "
-                        f"but {input.parent} already depends on it"
-                    )
+            for input in other_component.inputs.values():
+                for parent in input.parents():
+                    if parent == component.name:
+                        raise ValueError(
+                            f"Trying to rename component {component.name} to {new_name} "
+                            f"but {other_component.name} already depends on it"
+                        )
 
         del self.components[component.name]
         component.name = new_name

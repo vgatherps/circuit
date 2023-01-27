@@ -12,7 +12,7 @@ def find_all_callsets(
         callset_matches = True
         for requested in call_spec.written_set:
             the_input = component.inputs[requested]
-            if the_input.output() not in all_outputs:
+            if any(i_output not in all_outputs for i_output in the_input.outputs()):
                 callset_matches = False
                 break
         if callset_matches:
@@ -47,12 +47,11 @@ def disambiguate_callsets(name: str, callsets: Set[CallSpec]) -> Optional[CallSp
 
         assert len(matching) == 1
 
-        callsets = matching
-
-    if len(callsets) == 0:
+        return list(callsets)[0]
+    elif len(callsets) == 0:
         return None
-
-    if len(callsets) == 1:
+    else:
+        assert len(callsets) == 1
         return list(callsets)[0]
 
 

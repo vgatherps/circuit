@@ -1,9 +1,59 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, Union
 
 from dataclasses_json import DataClassJsonMixin, config
 from frozendict import frozendict
+
+
+@dataclass(eq=True, frozen=True)
+class BasicInput:
+    pass
+
+
+@dataclass(eq=True, frozen=True)
+class ArrayInput:
+    per_entry: frozenset[str]
+
+
+InputType = BasicInput
+
+
+def decode_input(input: Any) -> InputType:
+    match input:
+        case {} | {'input_type': 'single'}:
+            return BasicInput()
+        case {'input_type': 'array', 'fields': [*fields]}:
+            raise ValueError("Array inputs not supported yet")
+        case {'input_type': 'mapping', 'fields': [*fields]}:
+            raise ValueError("Array inputs not supported yet")
+        case _:
+            raise ValueError(f"Input specification did not match known input types: {input}")
+
+def encode_input(input: InputType) -> Dict[str, Any]:
+    match input:
+        case BasicInput():
+            return {'input_type': 'single'}
+        case _:
+            raise ValueError("Wrong input type passed")
+
+T = TypeVar('T')
+
+def encode_dict_with(encoder: Callable[[T], Dict[str, Any]]) -> Callable[[Dict[str, T]], Dict[str, Any]]:
+    def do_encode(vals: Dict[str, T]) -> Dict[str, Any]:
+        return {
+            name: encoder(val) for (name, val) in vals.items()
+        }
+
+    return do_encode
+
+def decode_dict_with(decoder: Callable[[Any], T]) -> Callable[[Dict[str, Any]], frozendict[str, T]]:
+    def do_decode(vals: Dict[str, Any]) -> Dict[str, Any]:
+        return frozendict({
+            name: decoder(val) for (name, val) in vals.items()
+        })
+
+    return do_decode
 
 
 class Metadata(Enum):
@@ -30,6 +80,11 @@ def decode_metadata(metas: List[Any]) -> frozenset[Metadata]:
         meta_set.add(meta_lookup[v])
 
     return frozenset(meta_set)
+
+
+@dataclass(eq=True, frozen=True)
+class InputBatch:
+    names: frozenset[str] = frozenset()
 
 
 @dataclass(eq=True, frozen=True)
@@ -187,9 +242,9 @@ class Definition(DataClassJsonMixin):
 
     output_specs: frozendict[str, OutputSpec] = frozenset()
 
-    inputs: frozenset[str] = frozenset()
-
-    aggregate_inputs: frozenset[str] = frozenset()
+    inputs: frozendict[str, InputType] = field(
+        default_factory=frozenset, metadata=(config(decoder=decode_dict_with(decode_input), encoder=encode_dict_with(encode_input)))
+    )
 
     callsets: frozenset[CallSpec] = frozenset()
 
@@ -291,14 +346,6 @@ class Definition(DataClassJsonMixin):
                     f"Output {output} of {self.class_name} has a default constructor but is not assumed to be default"
                 )
 
-    def validate_inputs(self):
-        aggregate_intersection = self.inputs.intersection(self.aggregate_inputs)
-
-        if aggregate_intersection:
-            raise ValueError(
-                f"Input names repeated across aggregate and normal inputs: {aggregate_intersection}"
-            )
-
     def validate(self):
         self.validate_generics()
         self.validate_inputs()
@@ -310,7 +357,7 @@ class Definition(DataClassJsonMixin):
         return list(self.output_specs.keys())
 
     def all_inputs(self) -> Set[str]:
-        return set(self.aggregate_inputs.union(self.inputs))
+        return set(self.inputs.keys())
 
     def triggering_inputs(self) -> Set[str]:
         triggering = set()

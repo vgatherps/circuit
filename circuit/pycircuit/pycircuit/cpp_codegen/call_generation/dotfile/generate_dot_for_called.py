@@ -36,9 +36,10 @@ def generate_dot_for_called(
     }
 
     all_outputs = {
-        component.component.inputs[input].output()
+        output
         for component in all_called
         for input in component.callset.written_set | component.callset.observes
+        for output in component.component.inputs[input].outputs()
     }
 
     uncalled_outputs = all_outputs - called_outputs
@@ -91,26 +92,26 @@ def generate_dot_for_called(
     for component in all_called:
         for input_name in component.callset.written_set | component.callset.observes:
             input = component.component.inputs[input_name]
-            output = input.output()
+            for output in input.outputs():
 
-            if output in IGNORED_SET and output not in external_triggered:
-                continue
+                if output in IGNORED_SET and output not in external_triggered:
+                    continue
 
-            if input_name in component.callset.written_set:
-                line_style = "solid"
-            else:
-                line_style = "dashed"
+                if input_name in component.callset.written_set:
+                    line_style = "solid"
+                else:
+                    line_style = "dashed"
 
-            parent_node_name = get_parent_name(output)
-            own_node_name = component.component.name
+                parent_node_name = get_parent_name(output)
+                own_node_name = component.component.name
 
-            if output.parent == "external":
-                line_label = input.input_name
-            else:
-                line_label = f"{input.output_name} -> {input.input_name}"
+                if output.parent == "external":
+                    line_label = input.input_name
+                else:
+                    line_label = f"{output.output_name} -> {input.input_name}"
 
-            lines.append(
-                f'{parent_node_name} -> {own_node_name} [style={line_style} label="{line_label}"]'
-            )
+                lines.append(
+                    f'{parent_node_name} -> {own_node_name} [style={line_style} label="{line_label}"]'
+                )
 
     return "\n".join(lines)

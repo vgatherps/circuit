@@ -26,14 +26,16 @@ def get_uncalled_outline(output: ComponentOutput) -> str:
     return "dashed"
 
 
+# TODO generate different input linkages for array and ampping so it's obvious
 def generate_dot_for_circuit(circuit: CircuitData) -> str:
 
     lines = []
 
     used_outputs = set(
-        input.output()
+        output
         for component in circuit.components.values()
         for input in component.inputs.values()
+        for output in input.outputs()
     )
 
     # First, add list of triggered
@@ -61,23 +63,23 @@ def generate_dot_for_circuit(circuit: CircuitData) -> str:
         lines.append(f'{component.name} [label="{component.name}"]')
 
         for (input_name, input) in component.inputs.items():
-            output = input.output()
+            for output in input.outputs():
 
-            if input in component.triggering_inputs():
-                line_style = "solid"
-            else:
-                line_style = "dashed"
+                if input in component.triggering_inputs():
+                    line_style = "solid"
+                else:
+                    line_style = "dashed"
 
-            parent_node_name = get_parent_name(output)
-            own_node_name = component.name
+                parent_node_name = get_parent_name(output)
+                own_node_name = component.name
 
-            if output.parent == "external":
-                line_label = input.input_name
-            else:
-                line_label = f"{input.output_name} -> {input.input_name}"
+                if output.parent == "external":
+                    line_label = input.input_name
+                else:
+                    line_label = f"{output.output_name} -> {input.input_name}"
 
-            lines.append(
-                f'{parent_node_name} -> {own_node_name} [style={line_style} label="{line_label}"]'
-            )
+                lines.append(
+                    f'{parent_node_name} -> {own_node_name} [style={line_style} label="{line_label}"]'
+                )
 
     return "\n".join(lines)
