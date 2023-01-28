@@ -30,6 +30,11 @@ constexpr static std::size_t LOG_CACHE_BITS = 7;
 // Maintain a cache to do linear interpolation
 // using lines tangent to log2(x) between 1 and 2
 
+// I should realistcally change this to be a spline of sorts.
+// The tangent lines aren't terribly accurate, and I could
+// probably get a drastic reduction in bits for the cache with
+// say a cubic spline
+
 // A final optimization -
 // the final term looks like ln(2) * (exponent + (slope * mantissa) + intercept)
 // by writing this as ln(2) * (exponent + (slope * mantissa)) + ln(2)*intercept

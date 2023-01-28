@@ -3,7 +3,7 @@ from typing import List, Union
 
 
 from pycircuit.circuit_builder.circuit import CallGroup
-from pycircuit.circuit_builder.circuit import ComponentOutput
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.circuit import CircuitData
 
 

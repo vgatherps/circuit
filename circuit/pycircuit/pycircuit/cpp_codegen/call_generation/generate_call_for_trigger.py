@@ -1,17 +1,25 @@
+from typing import Set
+
 from pycircuit.circuit_builder.circuit import CallGroup, CircuitData
+from pycircuit.circuit_builder.component import ArrayComponentInput, ComponentOutput
+from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.find_children_of import find_all_children_of
 from pycircuit.cpp_codegen.call_generation.generate_extra_vars import (
     generate_default_value_generators,
     generate_extra_validity_references,
 )
+from pycircuit.cpp_codegen.call_generation.single_call.generate_array_call import (
+    generate_array_call,
+)
 from pycircuit.cpp_codegen.call_generation.single_call.generate_single_call import (
     generate_single_call,
 )
 from pycircuit.cpp_codegen.generation_metadata import (
+    CALL_VAR,
     LOCAL_DATA_LOAD_PREFIX,
     STRUCT_VAR,
-    CALL_VAR,
+    AnnotatedComponent,
     GenerationMetadata,
     generate_true_call_signature,
 )
@@ -32,6 +40,25 @@ _externals.is_valid[{external.index}] = false;
         lines.append(init_code)
 
     return "\n".join(lines)
+
+
+def call_dispatch(
+    annotated_component: AnnotatedComponent,
+    callset: CallSpec,
+    gen_data: GenerationMetadata,
+    all_written: Set[ComponentOutput],
+) -> str:
+    pass
+
+    is_array = any(
+        isinstance(annotated_component.component.inputs[written], ArrayComponentInput)
+        for written in callset.written_set
+    )
+
+    if is_array:
+        return generate_array_call(annotated_component, callset, gen_data, all_written)
+    else:
+        return generate_single_call(annotated_component, callset, gen_data, all_written)
 
 
 def generate_external_call_body_for(
@@ -56,7 +83,7 @@ def generate_external_call_body_for(
     )
 
     all_children = "\n".join(
-        generate_single_call(
+        call_dispatch(
             gen_data.annotated_components[called_component.component.name],
             called_component.callset,
             gen_data,

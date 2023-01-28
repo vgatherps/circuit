@@ -2,7 +2,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Dict, List, Set
 
-from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentOutput
+from pycircuit.circuit_builder.circuit import CircuitData
+from pycircuit.circuit_builder.component import Component, ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.callset import find_callset_for
 
@@ -35,7 +36,11 @@ def topologically_sort(
             if component.name in conservatively_called:
                 continue
 
-            if any(i_output in used_outputs for i in component.triggering_inputs() for i_output in i.outputs()):
+            if any(
+                i_output in used_outputs
+                for i in component.triggering_inputs()
+                for i_output in i.outputs()
+            ):
                 potentially_written = {
                     ComponentOutput(parent=component.name, output_name=field)
                     for field in component.definition.outputs()
@@ -71,7 +76,8 @@ def find_all_children_of_from_outputs(
 
         # Skip calling components where *nothing* is triggered
         if not any(
-            i_output in seen_outputs for input in component.triggering_inputs()
+            i_output in seen_outputs
+            for input in component.triggering_inputs()
             for i_output in input.outputs()
         ):
             continue

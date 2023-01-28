@@ -1,249 +1,27 @@
-from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Set, Union
 
 from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
-from pycircuit.circuit_builder.definition import Definition, BasicInput
+from frozenlist import FrozenList
 
-from .signals.arithmetic import generate_binary_definition
+from pycircuit.circuit_builder.definition import Definition, BasicInput, ArrayInput
+from pycircuit.circuit_builder.definition import InputType
+from pycircuit.circuit_builder.component import Component
+from pycircuit.circuit_builder.component import (
+    TIME_TYPE,
+    ArrayComponentInput,
+    ComponentInput,
+    ExternalInput,
+    HasOutput,
+    InputBatch,
+    OutputOptions,
+    SingleComponentInput,
+)
+from pycircuit.circuit_builder.component import ComponentOutput
+
 from .signals.constant import generate_constant_definition
-from .signals.running_name import get_novel_name
-
-TIME_TYPE = "std::uint64_t"
-
-# TODO remove component running indices
-
-
-class HasOutput(ABC):
-    @abstractmethod
-    def output(self) -> "ComponentOutput":
-        pass
-
-    def _make_math_component(
-        self, other: "HasOutput", def_name: str, class_name: str
-    ) -> "Component":
-
-        from .circuit_context import CircuitContextManager
-
-        context = CircuitContextManager.active_circuit()
-
-        definition = generate_binary_definition(class_name)
-
-        context.add_definititon(def_name, definition)
-
-        return context.make_component(
-            definition_name=def_name,
-            name=get_novel_name(def_name),
-            inputs={"a": self.output(), "b": other.output()},
-        )
-
-    def __add__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "add", "AddComponent")
-
-    def __sub__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "sub", "SubComponent")
-
-    def __mul__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "mul", "MulComponent")
-
-    def __truediv__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "div", "DivComponent")
-
-    def __lt__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "lt", "LtComponent")
-
-    def __le__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "le", "LeComponent")
-
-    def __gt__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "gt", "GtComponent")
-
-    def __ge__(self, other: "HasOutput") -> "Component":
-        return self._make_math_component(other, "ge", "GeComponent")
-
-    def __eq__(self, other) -> "Component":  # type: ignore
-        if not issubclass(other, HasOutput):
-            raise ValueError(
-                "Can only compare an output for equality against another output"
-            )
-        return self._make_math_component(other, "eq", "eqComponent")
-
-
-@dataclass(frozen=True, eq=True)
-class ComponentOutput(DataClassJsonMixin, HasOutput):
-    parent: str
-    output_name: str
-
-    def output(self) -> "ComponentOutput":
-        return self
-
-
-@dataclass
-class ExternalInput(DataClassJsonMixin, HasOutput):
-    type: str
-    name: str
-    index: int
-    must_trigger: bool = False
-
-    def output(self) -> ComponentOutput:
-        return ComponentOutput(parent="external", output_name=self.name)
-
-
-@dataclass(eq=True, frozen=True)
-class SingleComponentInput(DataClassJsonMixin):
-    input: ComponentOutput
-    input_name: str
-
-    def output(self) -> ComponentOutput:
-        return self.input
-
-    def outputs(self) -> List[ComponentOutput]:
-        return [self.output()]
-
-    def parents(self) -> Set[str]:
-        return set(output.parent for output in self.outputs())
-
-
-@dataclass(eq=True, frozen=True)
-class ArrayComponentInput(DataClassJsonMixin):
-    inputs: List[ComponentOutput]
-    input_name: str
-
-    def outputs(self) -> List[ComponentOutput]:
-        return self.inputs
-
-    def parents(self) -> Set[str]:
-        return set(output.parent for output in self.outputs())
-
-    def as_single_at(self, idx: int) -> SingleComponentInput:
-        return SingleComponentInput(
-            input_name=self.input_name, input=self.outputs()[idx]
-        )
-
-
-ComponentInput = Union[SingleComponentInput, ArrayComponentInput]
-
-
-@dataclass
-class OutputOptions(DataClassJsonMixin):
-    force_stored: bool
-
-
-@dataclass
-class Component(HasOutput):
-    inputs: Dict[str, ComponentInput]
-    output_options: Dict[str, OutputOptions]
-    definition: Definition
-    name: str
-
-    def output(self, which=None) -> ComponentOutput:
-        if which is None:
-            n_outputs = len(self.definition.output_specs)
-            if n_outputs == 1:
-                which = iter(self.definition.output_specs).__next__()
-            else:
-                raise ValueError(
-                    f"Cannot take default output of component with {n_outputs}"
-                )
-
-        if which not in self.definition.output_specs:
-            raise ValueError(f"Component {self.name} does not have output {which}")
-        return ComponentOutput(
-            parent=self.name,
-            output_name=which,
-        )
-
-    def validate(self, circuit: "CircuitData"):
-
-        self.definition.validate()
-
-        for (output, output_options) in self.output_options.items():
-            if output not in self.definition.output_specs:
-                raise ValueError(
-                    f"Component {self.name} has output options for {output} which is not an output"
-                )
-
-            # TODO maybe we preserve this with the same mechanism cantor did
-            # allow a callback to be done intra-invalidate?
-            # feels dodgy, like this one better. almost always the right thing
-            if output_options.force_stored:
-                # Could let this pass if the output happens to not be ephemeral, but imo
-                # that's asking for magic troubles down the line
-                if self.definition.d_output_specs[output].assume_invalid:
-                    raise ValueError(
-                        f"Component {self.name} requested output {output} be stored, despite being assumed_invalid"
-                    )
-
-        for (input_name, comp_input) in self.inputs.items():
-            # this really only possible via api misuse, no point in real exception
-            assert input_name == comp_input.input_name
-
-            if input_name not in self.definition.inputs:
-                raise ValueError(
-                    f"Component {self.name} has input {input_name} which is not in definitions"
-                )
-
-            match (comp_input, self.definition.inputs[input_name]):
-                case (SingleComponentInput(), BasicInput()):
-                    pass
-
-                case _:
-                    raise ValueError(
-                        f"Input of type {type(comp_input)} was given but expected {type(self.definition.inputs[input_name])}"
-                    )
-
-            match self.definition.inputs[input_name]:
-                case BasicInput(always_valid=always_valid):
-                    pass
-                case _:
-                    always_valid=False
-
-            for comp_output in comp_input.outputs():
-                if comp_output.parent == "external":
-                    if always_valid:
-                        raise ValueError(
-                            f"Input {input_name} of component {self.name} "
-                            f"must always be valid but references an external input "
-                            f"{comp_output.output_name}"
-                        )
-                    external = circuit.external_inputs[comp_output.output_name]
-
-
-                    if external.must_trigger:
-                        in_callset = False
-                        for callset in list(self.definition.callsets) + [
-                            self.definition.timer_callset,
-                            self.definition.generic_callset,
-                        ]:
-                            if callset:
-                                in_callset |= comp_input.input_name in callset.observes
-
-                        if in_callset:
-                            raise ValueError(
-                                f"Component {self.name} has input {input_name} which links to a an external "
-                                "that requires triggering, and is not triggered"
-                            )
-                else:
-                    parent_comp = circuit.components[comp_output.parent]
-                    parent_valid = parent_comp.definition.d_output_specs[comp_output.output_name].always_valid
-                    if always_valid and not parent_valid:
-                        raise ValueError(
-                            f"Input {input_name} of component {self.name} "
-                            f"must always be valid but references a output "
-                            f"{comp_output.output_name} of component {comp_output.parent} "
-                            "which is not always valid"
-                        )
-                        
-
-
-        for input_name in self.definition.inputs:
-            if input_name not in self.inputs:
-                raise ValueError(f"Component {self.name} is missing input {input_name}")
-
-    def triggering_inputs(self) -> List[ComponentInput]:
-        return [self.inputs[inp] for inp in self.definition.triggering_inputs()]
 
 
 @dataclass
@@ -252,6 +30,7 @@ class _PartialComponent(DataClassJsonMixin):
     output_options: Dict[str, OutputOptions]
     name: str
     definition: str
+    class_generics: Dict[str, str]
 
 
 @dataclass(eq=True, frozen=True)
@@ -305,16 +84,16 @@ class _PartialJsonCircuit(DataClassJsonMixin):
 
 
 @dataclass
-class SingleInput:
+class OutputSingle:
     input: HasOutput
 
 
 @dataclass
-class ArrayInput:
-    inputs: List[HasOutput]
+class OutputArray:
+    inputs: List[Dict[str, HasOutput]]
 
 
-InputForComponent = Union[HasOutput, SingleInput, ArrayInput]
+InputForComponent = Union[HasOutput, OutputSingle, OutputArray]
 
 # TODO going to be A TON of wasted space here
 @dataclass
@@ -324,6 +103,11 @@ class CircuitData:
     definitions: Dict[str, Definition]
     call_groups: Dict[str, CallGroup]
     call_structs: Dict[str, CallStruct]
+
+    def _must_trigger_outputs(self) -> Set[ComponentOutput]:
+        return {
+            ext.output() for ext in self.external_inputs.values() if ext.must_trigger
+        }
 
     @staticmethod
     def from_dict(the_json: Dict[str, Any]) -> "CircuitData":
@@ -342,6 +126,7 @@ class CircuitData:
                     output_options=comp.output_options,
                     name=comp.name,
                     definition=partial.definitions[comp.definition],
+                    class_generics=comp.class_generics,
                 )
                 for (comp_name, comp) in partial.components.items()
             },
@@ -369,6 +154,7 @@ class CircuitData:
                     inputs=comp.inputs,
                     definition=def_to_name[comp.definition],
                     output_options=comp.output_options,
+                    class_generics=comp.class_generics,
                 )
                 for (comp_name, comp) in self.components.items()
             },
@@ -483,6 +269,7 @@ class CircuitBuilder(CircuitData):
         name: str,
         inputs: Mapping[str, InputForComponent],
         output_options: Dict[str, OutputOptions] = {},
+        generics: Dict[str, str] = {},
     ) -> "Component":
         assert name not in self.components
 
@@ -491,14 +278,27 @@ class CircuitBuilder(CircuitData):
 
         for (in_name, an_input) in inputs.items():
             match an_input:
-                case (HasOutput() as input) | SingleInput(input):
+                case (HasOutput() as input) | OutputSingle(input):
                     converted[in_name] = SingleComponentInput(
                         input=input.output(),
                         input_name=in_name,
                     )
-                case ArrayInput(inputs=arr_input):
+                case OutputArray(inputs=arr_input):
+                    fronzen_inputs = FrozenList(
+                        InputBatch(
+                            frozendict(
+                                {
+                                    batch_key: batch_val.output()
+                                    for (batch_key, batch_val) in batch.items()
+                                }
+                            )
+                        )
+                        for batch in arr_input
+                    )
+
+                    fronzen_inputs.freeze()
                     converted[in_name] = ArrayComponentInput(
-                        inputs=[o.output() for o in arr_input], input_name=in_name
+                        inputs=fronzen_inputs, input_name=in_name
                     )
                 case _:
                     raise ValueError("")
@@ -508,9 +308,12 @@ class CircuitBuilder(CircuitData):
             definition=definition,
             output_options=output_options,
             name=name,
+            class_generics=generics,
         )
-        self.components[name] = comp
+
         comp.validate(self)
+
+        self.components[name] = comp
         return comp
 
     def make_constant(self, type: str, constructor: Optional[str]) -> "Component":
@@ -528,6 +331,7 @@ class CircuitBuilder(CircuitData):
             definition=definition,
             inputs={},
             output_options={},
+            class_generics={},
         )
         if def_name in self.components:
             if self.components[def_name].definition == definition:

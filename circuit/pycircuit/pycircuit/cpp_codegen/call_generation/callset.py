@@ -1,6 +1,10 @@
 from typing import Optional, Set
 
-from pycircuit.circuit_builder.circuit import Component, ComponentInput, ComponentOutput
+from pycircuit.circuit_builder.component import (
+    Component,
+    ComponentInput,
+    ComponentOutput,
+)
 from pycircuit.circuit_builder.definition import CallSpec
 
 
@@ -11,6 +15,11 @@ def find_all_callsets(
     for call_spec in component.definition.callsets:
         for requested in call_spec.written_set:
             the_input = component.inputs[requested]
+
+            # should this be (not any) or (not all)
+            # it's not clear how to disambiguate a batch update.
+            # I think I should change this to *only* match entirely correct batches?
+            # So that we we can get a proper disambiguation method here.
             if not any(i_output in all_outputs for i_output in the_input.outputs()):
                 break
         else:
@@ -75,4 +84,5 @@ def find_callset_for(
 def get_inputs_for_callset(
     callset: CallSpec, component: Component
 ) -> Set[ComponentInput]:
-    return {component.inputs[name] for name in (callset.observes | callset.written_set)}
+    all_inputs = callset.observes | callset.written_set
+    return {component.inputs[name] for name in all_inputs}

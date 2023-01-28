@@ -1,15 +1,15 @@
 from frozendict import frozendict
-from pycircuit.circuit_builder.circuit import Component, ComponentInput
+from pycircuit.circuit_builder.component import Component, ComponentInput
 from pycircuit.circuit_builder.definition import (
     CallSpec,
     Definition,
     BasicInput,
     OutputSpec,
-    InitSpec
+    InitSpec,
 )
 from pycircuit.cpp_codegen.generation_metadata import AnnotatedComponent, OutputMetadata
-from pycircuit.circuit_builder.circuit import SingleComponentInput
-from pycircuit.circuit_builder.circuit import ComponentOutput
+from pycircuit.circuit_builder.component import SingleComponentInput
+from pycircuit.circuit_builder.component import ComponentOutput
 
 OUT_B_VALID_INDEX = 2
 COMPONENT_NAME = "test"
@@ -21,11 +21,21 @@ OUT_B_CLASS = "OutB"
 OUT_C = "out_c"
 OUT_C_CLASS = "OutC"
 
-A_INPUT = SingleComponentInput(input=ComponentOutput(parent="external",  output_name="val_a"), input_name="a")
-B_INPUT = SingleComponentInput(ComponentOutput(parent="fake", output_name="fake_out"), input_name="b")
-C_INPUT = SingleComponentInput(ComponentOutput(parent="fake", output_name="fake_out_c"), input_name="c")
-D_INPUT = SingleComponentInput(ComponentOutput(parent="fake", output_name="fake_out_d"), input_name="d")
-E_INPUT = SingleComponentInput(ComponentOutput(parent="fake", output_name="fake_out_e"), input_name="e")
+A_INPUT = SingleComponentInput(
+    input=ComponentOutput(parent="external", output_name="val_a"), input_name="a"
+)
+B_INPUT = SingleComponentInput(
+    ComponentOutput(parent="fake", output_name="fake_out"), input_name="b"
+)
+C_INPUT = SingleComponentInput(
+    ComponentOutput(parent="fake", output_name="fake_out_c"), input_name="c"
+)
+D_INPUT = SingleComponentInput(
+    ComponentOutput(parent="fake", output_name="fake_out_d"), input_name="d"
+)
+E_INPUT = SingleComponentInput(
+    ComponentOutput(parent="fake", output_name="fake_out_e"), input_name="e"
+)
 
 AB_CALLSET = CallSpec(
     written_set=frozenset({"a", "b"}),
@@ -80,13 +90,15 @@ GENERIC_CALLSET = CallSpec(
 
 def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
     return Definition(
-        inputs=frozendict({
+        inputs=frozendict(
+            {
                 "a": BasicInput(),
                 "b": BasicInput(),
                 "c": BasicInput(),
                 "d": BasicInput(),
                 "e": BasicInput(),
-        }),
+            }
+        ),
         output_specs=frozendict(
             {
                 OUT_A: OutputSpec(ephemeral=True, type_path=OUT_A_CLASS),

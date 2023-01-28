@@ -1,6 +1,6 @@
 import pytest
 from frozendict import frozendict
-from pycircuit.circuit_builder.circuit import ComponentOutput, OutputOptions
+from pycircuit.circuit_builder.component import ComponentOutput, OutputOptions
 from pycircuit.cpp_codegen.generation_metadata import (
     OutputMetadata,
     generate_output_metadata_for,

@@ -10,8 +10,8 @@ from pycircuit.circuit_builder.circuit import (
     CircuitBuilder,
     CircuitData,
     ComponentOutput,
-    OutputOptions,
 )
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.circuit_context import CircuitContextManager
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.loader.loader_config import CoreLoaderConfig
@@ -24,6 +24,8 @@ from pycircuit.loader.write_timer_call import (
     generate_timer_call,
 )
 from pycircuit.circuit_builder.circuit import ExternalStruct
+from pycircuit.circuit_builder.component import OutputOptions
+from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     TradePressureConfig,
     TradePressureMarketConfig,
@@ -44,7 +46,10 @@ class TradePressureOptions:
 
 
 def generate_trades_circuit_for_market_venue(
-    circuit: CircuitBuilder, market: str, venue: str, fair: ComponentOutput,
+    circuit: CircuitBuilder,
+    market: str,
+    venue: str,
+    fair: ComponentOutput,
 ) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
 
@@ -104,7 +109,10 @@ def generate_depth_circuit_for_market_venue(
 
 
 def generate_circuit_for_market(
-    circuit: CircuitBuilder, market: str, config: TradePressureMarketConfig, decay_source: ComponentOutput
+    circuit: CircuitBuilder,
+    market: str,
+    config: TradePressureMarketConfig,
+    decay_source: ComponentOutput,
 ):
     all_running = []
     all_ticks = []
@@ -119,7 +127,7 @@ def generate_circuit_for_market(
         all_ticks.append(tick)
         all_running.append(running)
 
-    per_market_ticks_sum = tree_sum(all_ticks)
+    per_market_ticks_sum = ephemeral_sum(circuit, all_ticks)
     per_market_running_sum = tree_sum(all_running)
 
     per_market_decaying_ticks_sum = circuit.make_component(
@@ -207,8 +215,8 @@ def main():
     )
 
     decay_source = circuit.make_component(
-        definition_name='decay_source',
-        name='global_decay_source',
+        definition_name="decay_source",
+        name="global_decay_source",
         inputs={},
     )
 

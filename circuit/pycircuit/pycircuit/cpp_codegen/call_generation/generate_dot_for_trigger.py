@@ -1,4 +1,4 @@
-from pycircuit.circuit_builder.circuit import ComponentOutput
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.dotfile.generate_dot_for_called import (
     generate_dot_for_called,

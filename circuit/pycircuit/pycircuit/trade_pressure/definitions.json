@@ -264,6 +264,40 @@
                     "time"
                 ]
             }
+        },
+        "ephemeral_sum_of": {
+            "inputs": {
+                "value": {
+                    "input_type": "array",
+                    "fields": [],
+                    "always_valid": true
+                }
+            },
+            "output_specs": {
+                "sum": {
+                    "type_path": "Output",
+                    "ephemeral": true,
+                    "always_valid": true,
+                    "assume_default": true
+                }
+            },
+            "class_name": "SumOf",
+            "static_call": true,
+            "header": "signals/sum_of.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "value"
+                    ],
+                    "callback": "call",
+                    "outputs": [
+                        "sum"
+                    ]
+                }
+            ],
+            "class_generics": {
+                "T": 0
+            }
         }
     }
 }

@@ -1,15 +1,15 @@
 from typing import List
 
-from pycircuit.circuit_builder.circuit import CircuitData, Component, ComponentInput
+from pycircuit.circuit_builder.circuit import CircuitData, Component
 from pycircuit.cpp_codegen.generation_metadata import AnnotatedComponent
 from pycircuit.cpp_codegen.type_names import (
     generate_output_type_alias,
     get_alias_for,
     get_type_name_for_input,
 )
-from pycircuit.circuit_builder.circuit import SingleComponentInput
-from pycircuit.circuit_builder.circuit import ComponentOutput
-from pycircuit.circuit_builder.circuit import ArrayComponentInput
+from pycircuit.circuit_builder.component import SingleComponentInput
+from pycircuit.circuit_builder.component import ComponentOutput
+from pycircuit.circuit_builder.component import ArrayComponentInput
 from pycircuit.cpp_codegen.type_names import get_type_name_for_array_input
 
 
@@ -50,19 +50,23 @@ def get_datatype_for_output(output: ComponentOutput, circuit: CircuitData) -> st
         return f"{get_alias_for(parent_c)}::{parent_output_path}"
 
 
-
-def generate_usings_for_single_input(component: Component, input: SingleComponentInput, circuit: CircuitData) -> str:
+def generate_usings_for_single_input(
+    component: Component, input: SingleComponentInput, circuit: CircuitData
+) -> str:
     output = input.output()
-    
+
     dtype = get_datatype_for_output(output, circuit)
     type_name = get_type_name_for_input(component, input.input_name)
     name = f"using {type_name} = {dtype};"
     return name
 
 
-def generate_usings_for_array_input(component: Component, input: ArrayComponentInput, circuit: CircuitData) -> List[str]:
+def generate_usings_for_array_input(
+    component: Component, input: ArrayComponentInput, circuit: CircuitData
+) -> List[str]:
 
     names = []
+
     for (idx, output) in enumerate(input.outputs()):
         dtype = get_datatype_for_output(output, circuit)
         type_name = get_type_name_for_array_input(component, idx, input.input_name)

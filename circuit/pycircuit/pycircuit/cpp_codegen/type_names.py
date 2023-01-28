@@ -10,6 +10,7 @@ def get_type_name_for_input(component: Component, input_name: str):
     assert input_name in component.definition.inputs
     return f"{component.name}_{input_name}_T"
 
+
 def get_type_name_for_array_input(component: Component, idx: int, input_name: str):
     assert input_name in component.inputs
     assert input_name in component.definition.inputs

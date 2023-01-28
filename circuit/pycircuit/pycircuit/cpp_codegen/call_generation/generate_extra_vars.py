@@ -1,7 +1,6 @@
 from typing import List, Set
 
-from pycircuit.circuit_builder.circuit import ComponentOutput
-from pycircuit.circuit_builder.definition import OutputSpec
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.cpp_codegen.call_generation.find_children_of import CalledComponent
 from pycircuit.cpp_codegen.call_generation.single_call.generate_output_calldata import (
     generate_output_init,

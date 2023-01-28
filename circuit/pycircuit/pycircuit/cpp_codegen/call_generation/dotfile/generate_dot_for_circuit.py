@@ -1,7 +1,6 @@
 from typing import List, Set
 
-from pycircuit.circuit_builder.circuit import ComponentOutput
-from pycircuit.cpp_codegen.call_generation.find_children_of import CalledComponent
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.circuit import CircuitData
 
 IGNORED_SET = {ComponentOutput(parent="external", output_name="time")}

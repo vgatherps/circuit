@@ -6,8 +6,8 @@ from pycircuit.circuit_builder.circuit import (
     TIME_TYPE,
     CircuitData,
     Component,
-    ComponentOutput,
 )
+from pycircuit.circuit_builder.component import Component, ComponentOutput
 from pycircuit.cpp_codegen.call_generation.call_metadata import CallMetaData
 from pycircuit.cpp_codegen.call_generation.ephemeral import (
     find_nonephemeral_outputs,
@@ -208,12 +208,23 @@ def generate_global_metadata(
             component, all_non_ephemeral_component_outputs, validity_marker_count
         )
 
+        specified_generic_kv = list(component.class_generics.items())
+
+        specified_generic_kv = sorted(
+            specified_generic_kv,
+            key=lambda kv: component.definition.class_generics[kv[0]],
+        )
+
+        class_generic_types = [ty for (name, ty) in specified_generic_kv]
+
         if component.definition.generics_order:
-            generic_types = [
+            class_generic_types += [
                 get_type_name_for_input(component, component.inputs[inp].input_name)
                 for inp in get_ordered_generic_inputs(component)
             ]
-            inner_generics = ",".join(generic_types)
+
+        inner_generics = ",".join(class_generic_types)
+        if inner_generics:
             generics_str = f"<{inner_generics}>"
         else:
             generics_str = ""

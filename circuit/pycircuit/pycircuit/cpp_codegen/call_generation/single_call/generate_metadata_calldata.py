@@ -47,11 +47,7 @@ def create_timer_field(component: Component, struct_name: str) -> MetaVar:
 
 
 def create_time_value(component: Component, struct_name: str) -> MetaVar:
-    return MetaVar(
-        local_lines="",
-        param_type=TIME_TYPE,
-        param_name=TIME_VAR
-    )
+    return MetaVar(local_lines="", param_type=TIME_TYPE, param_name=TIME_VAR)
     pass
 
 

@@ -18,6 +18,9 @@ from pycircuit.cpp_codegen.generation_metadata import (
 )
 from pycircuit.circuit_builder.circuit import TIME_TYPE
 from pycircuit.cpp_codegen.generation_metadata import TIME_VAR, INPUT_VOID_VAR
+from pycircuit.cpp_codegen.call_generation.generate_call_for_trigger import (
+    call_dispatch,
+)
 
 
 def generate_timer_name(component: Component):
@@ -68,13 +71,25 @@ def generate_timer_call_body_for(
     )
 
     all_children = "\n".join(
-        generate_single_call(
+        call_dispatch(
             gen_data.annotated_components[child_component.component.name],
             child_component.callset,
             gen_data,
             all_outputs,
         )
         for child_component in children_for_call
+    )
+
+    all_cleanups = "\n".join(
+        generate_single_call(
+            gen_data.annotated_components[called_component.component.name],
+            called_component.callset,
+            gen_data,
+            all_outputs,
+            is_cleanup=True,
+        )
+        for called_component in children_for_call
+        if called_component.callset.cleanup is not None
     )
 
     signature = generate_timer_signature(
@@ -92,4 +107,5 @@ def generate_timer_call_body_for(
 {default_values}
 {timer_callback}
 {all_children}
+{all_cleanups}
 }}"""

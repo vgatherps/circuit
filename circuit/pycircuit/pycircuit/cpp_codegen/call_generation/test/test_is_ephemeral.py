@@ -1,4 +1,4 @@
-from pycircuit.circuit_builder.circuit import ComponentOutput, OutputOptions
+from pycircuit.circuit_builder.component import ComponentOutput, OutputOptions
 from pycircuit.cpp_codegen.call_generation.ephemeral import is_ephemeral
 from pycircuit.cpp_codegen.test.test_common import (
     COMPONENT_NAME,

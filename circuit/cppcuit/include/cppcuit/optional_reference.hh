@@ -4,6 +4,8 @@ template <class T> class optional_reference {
   T *ref;
 
 public:
+  using Type = T;
+
   optional_reference() : ref(nullptr) {}
   optional_reference(const optional_reference<T> &) = default;
   optional_reference(optional_reference<T> &&) = default;

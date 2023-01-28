@@ -1,6 +1,6 @@
-from typing import Set
+from typing import Optional, Set
 
-from pycircuit.circuit_builder.circuit import ComponentInput, ComponentOutput
+from pycircuit.circuit_builder.component import ComponentInput, ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData
 from pycircuit.cpp_codegen.call_generation.callset import get_inputs_for_callset
@@ -15,6 +15,7 @@ from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_in
 from pycircuit.circuit_builder.circuit import SingleComponentInput
 from pycircuit.circuit_builder.circuit import Component
 from pycircuit.circuit_builder.definition import BasicInput
+from pycircuit.circuit_builder.component import ArrayComponentInput
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
@@ -29,7 +30,9 @@ INPUT_NAME = "__input__"
 
 
 def get_parent_name(
-    output: ComponentOutput, meta: GenerationMetadata, written_outputs: Set[ComponentOutput]
+    output: ComponentOutput,
+    meta: GenerationMetadata,
+    written_outputs: Set[ComponentOutput],
 ) -> str:
     if output.parent == "external":
         return f"_externals.{output.output_name}"
@@ -61,7 +64,13 @@ def get_valid_path_external(output: ComponentOutput, gen_data: GenerationMetadat
         )
 
 
-def generate_input_field_for(t_name: str, single_input: SingleComponentInput, name: str, component: Component, gen_data: GenerationMetadata) -> str:
+def generate_input_field_for(
+    t_name: str,
+    single_input: SingleComponentInput,
+    name: str,
+    component: Component,
+    gen_data: GenerationMetadata,
+) -> str:
     match component.definition.inputs[single_input.input_name]:
         case BasicInput(always_valid=True):
             return f"""\
@@ -75,33 +84,48 @@ const {t_name} &{single_input.input_name}_v = {name};"""
 bool is_{single_input.input_name}_v = {get_valid_path_external(single_input.output(), gen_data)};
 optional_reference<const {t_name}> {single_input.input_name}_v({name}, is_{single_input.input_name}_v);"""
 
-def generate_struct_field_for(t_name: str, input: SingleComponentInput, component: Component) -> str:
+
+def generate_struct_field_for(
+    t_name: str, input: SingleComponentInput, component: Component
+) -> str:
     match component.definition.inputs[input.input_name]:
         case BasicInput(always_valid=True):
             return f"const {t_name} &{input.input_name};"
         case _:
             return f"optional_reference<const {t_name}> {input.input_name};"
 
-def generate_single_input_calldata(
+
+def generate_single_input_prefix(
     annotated_component: AnnotatedComponent,
     callset: CallSpec,
     gen_data: GenerationMetadata,
     all_written: Set[ComponentOutput],
-) -> CallData:
-
+) -> Optional[str]:
     component = annotated_component.component
 
     all_inputs = get_inputs_for_callset(callset, component)
 
-    inputs = set(input for input in all_inputs if isinstance(input, SingleComponentInput))
+    single_inputs = set(
+        input for input in all_inputs if isinstance(input, SingleComponentInput)
+    )
 
-    input_names = [f"{get_parent_name(single_input.output(), gen_data, all_written)}" for single_input in inputs]
+    if not single_inputs:
+        return None
 
-    all_type_names = [get_type_name_for_input(component, single_input.input_name) for single_input in inputs]
+    input_names = [
+        f"{get_parent_name(single_input.output(), gen_data, all_written)}"
+        for single_input in single_inputs
+    ]
+    all_type_names = [
+        get_type_name_for_input(component, single_input.input_name)
+        for single_input in single_inputs
+    ]
 
     all_values = [
         generate_input_field_for(t_name, single_input, name, component, gen_data)
-        for (t_name, single_input, name) in zip(all_type_names, inputs, input_names)
+        for (t_name, single_input, name) in zip(
+            all_type_names, single_inputs, input_names
+        )
     ]
 
     values = "\n".join(all_values)
@@ -110,7 +134,7 @@ def generate_single_input_calldata(
     # Those manually specifying a struct should be sorted as well to ensure initialization
     # order is correct
     input_struct_initializers_list = sorted(
-        f".{c.input_name} = {c.input_name}_v," for c in inputs
+        f".{c.input_name} = {c.input_name}_v," for c in single_inputs
     )
 
     input_struct_initializers = "\n".join(input_struct_initializers_list)
@@ -118,7 +142,7 @@ def generate_single_input_calldata(
     if callset.input_struct_path is None:
         input_struct_fields_list = sorted(
             generate_struct_field_for(t_name, single_input, component)
-            for (t_name, single_input) in zip(all_type_names, inputs)
+            for (t_name, single_input) in zip(all_type_names, single_inputs)
         )
         input_struct_fields = "\n".join(input_struct_fields_list)
         input_struct = f"struct {INPUT_STRUCT_NAME} {{{input_struct_fields}}};"
@@ -128,7 +152,7 @@ def generate_single_input_calldata(
         input_struct = ""
         input_struct_name = f"{class_name}::{callset.input_struct_path}"
 
-    inputs_prefix = f"""
+    return f"""
 {input_struct}
 
 {values}
@@ -136,5 +160,3 @@ def generate_single_input_calldata(
 {input_struct_name} {INPUT_NAME} = {{
     {input_struct_initializers}
 }};"""
-
-    return CallData(local_prefix=inputs_prefix, call_params=[INPUT_NAME])

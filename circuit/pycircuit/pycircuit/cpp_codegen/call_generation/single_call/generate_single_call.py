@@ -1,9 +1,9 @@
 from typing import List, Set
 
-from pycircuit.circuit_builder.circuit import ComponentOutput
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
 from pycircuit.cpp_codegen.call_generation.call_data import CallData, assemble_call_from
-from pycircuit.cpp_codegen.call_generation.single_call.generate_single_input_calldata import (
+from pycircuit.cpp_codegen.call_generation.single_call.generate_input_calldata import (
     generate_single_input_calldata,
 )
 from pycircuit.cpp_codegen.call_generation.single_call.generate_metadata_calldata import (
