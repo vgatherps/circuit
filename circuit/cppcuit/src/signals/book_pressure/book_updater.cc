@@ -38,5 +38,5 @@ std::optional<BBO> BookUpdater::update_levels(const DepthUpdate *updates,
 
   book.update_levels(updates, creator, updater);
 
-  return book.bbo();
+  return {};
 }

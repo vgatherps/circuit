@@ -28,3 +28,5 @@ static int fill_exp_arrays() {
 }
 
 int __force_fast_exp_early_fill = fill_exp_arrays();
+
+double FastExpCache::compute_out_of_line(double x) const { return compute(x); }

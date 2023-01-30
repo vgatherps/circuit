@@ -51,6 +51,25 @@ class HasOutput(ABC):
     def __truediv__(self, other: "HasOutput") -> "Component":
         return self._make_math_component(other, "div", "DivComponent")
 
+    def __lt__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "lt", "LtComponent")
+
+    def __le__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "le", "LeComponent")
+
+    def __gt__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "gt", "GtComponent")
+
+    def __ge__(self, other: "HasOutput") -> "Component":
+        return self._make_math_component(other, "ge", "GeComponent")
+
+    def __eq__(self, other) -> "Component":  # type: ignore
+        if not issubclass(other, HasOutput):
+            raise ValueError(
+                "Can only compare an output for equality against another output"
+            )
+        return self._make_math_component(other, "eq", "eqComponent")
+
 
 @dataclass(frozen=True, eq=True)
 class ComponentOutput(DataClassJsonMixin, HasOutput):
@@ -100,14 +119,11 @@ class ArrayComponentInput(DataClassJsonMixin):
 
     def as_single_at(self, idx: int) -> SingleComponentInput:
         return SingleComponentInput(
-            input_name=self.input_name,
-            input=self.outputs()[idx]
+            input_name=self.input_name, input=self.outputs()[idx]
         )
 
 
-
 ComponentInput = Union[SingleComponentInput, ArrayComponentInput]
-
 
 
 @dataclass
@@ -266,6 +282,7 @@ class _PartialJsonCircuit(DataClassJsonMixin):
 @dataclass
 class SingleInput:
     input: HasOutput
+
 
 @dataclass
 class ArrayInput:
@@ -458,8 +475,7 @@ class CircuitBuilder(CircuitData):
                     )
                 case ArrayInput(inputs=arr_input):
                     converted[in_name] = ArrayComponentInput(
-                        inputs=[o.output() for o in arr_input],
-                        input_name=in_name
+                        inputs=[o.output() for o in arr_input], input_name=in_name
                     )
                 case _:
                     raise ValueError("")

@@ -17,13 +17,13 @@ enum class LevelDecision { Keep, Discard };
 
 template <class F, class Metadata>
 concept LevelUpdater = requires(F f, Side s, BookLevel l, Metadata &m) {
-                         { f(s, l, m) } -> std::same_as<LevelDecision>;
-                       };
+  { f(s, l, m) } -> std::same_as<LevelDecision>;
+};
 
 template <class F, class Metadata>
 concept LevelCreator = requires(F f, Side s, BookLevel l) {
-                         { f(s, l) } -> std::same_as<std::optional<Metadata>>;
-                       };
+  { f(s, l) } -> std::same_as<std::optional<Metadata>>;
+};
 
 // Bookbuilder with attached state to each level
 
@@ -37,10 +37,6 @@ public:
 
     bool keep = true;
     if (did_insert) {
-      // deesign assumes this case is very rare - exchange sending out bogus
-      // zero levels. Mostly trying to take advantage of hinting (should
-      // benchmark) and replicating entry api, assuming most default ctors are
-      // trivial
       std::optional<Metadata> maybe_level = creator(level);
       if (maybe_level.has_value()) {
         position->second = std::move(*maybe_level);
@@ -72,12 +68,10 @@ public:
 };
 
 template <class Price, class Metadata>
-  requires std::is_default_constructible_v<Metadata> &&
-           std::is_move_assignable_v<Metadata> && requires(Price a, Price p) {
-                                                    {
-                                                      a > p
-                                                      } -> std::same_as<bool>;
-                                                  }
+requires std::is_default_constructible_v<Metadata> &&
+    std::is_move_assignable_v<Metadata> && requires(Price a, Price p) {
+  { a > p } -> std::same_as<bool>;
+}
 class BookBuilder {
   BookBuilderSide<Price, Metadata, std::less<Price>> asks;
   BookBuilderSide<Price, Metadata, std::greater<Price>> bids;

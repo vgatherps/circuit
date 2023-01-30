@@ -103,6 +103,7 @@ class FastExpCache {
       : multiplier(multiplier), max_bits_as_double(max_bits_as_double) {}
 
 public:
+  double compute_out_of_line(double x) const;
   double compute(double x) const {
 
     union Bits {
@@ -123,7 +124,7 @@ public:
         *reinterpret_cast<const std::uint64_t *>(&this->max_bits_as_double);
 
     // For zero, this *just works*
-    // so i skip the check as zero is likely a rare input
+    // so I skip the check as zero is likely a rare input
     // the exp will be zero, leaving us with no change
     // and each of the powers will be zero at the zeroth index
     if (bits <= max_bits) [[likely]] {

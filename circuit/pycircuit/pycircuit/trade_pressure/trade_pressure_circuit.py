@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
-from typing import List, Tuple
+from typing import Tuple
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
@@ -9,7 +9,6 @@ from pycircuit.circuit_builder.circuit import (
     CallGroup,
     CircuitBuilder,
     CircuitData,
-    Component,
     ComponentOutput,
     OutputOptions,
 )
@@ -33,7 +32,7 @@ from pycircuit.trade_pressure.trade_pressure_config import (
 from pycircuit.loader.write_circuit_dot import generate_full_circuit_dot
 
 from .call_clang_format import call_clang_format
-from .tree_sum import tree_sum
+from pycircuit.circuit_builder.signals.tree_sum import tree_sum
 
 HEADER = "pressure"
 STRUCT = "TradePressure"
@@ -122,8 +121,8 @@ def generate_circuit_for_market(
         all_ticks.append(tick)
         all_running.append(running)
 
-    per_market_ticks_sum = tree_sum(circuit, all_ticks)
-    per_market_running_sum = tree_sum(circuit, all_running)
+    per_market_ticks_sum = tree_sum(all_ticks)
+    per_market_running_sum = tree_sum(all_running)
 
     per_market_decaying_ticks_sum = circuit.make_component(
         definition_name="decaying_sum",

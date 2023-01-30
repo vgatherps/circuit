@@ -39,7 +39,7 @@ public:
 
     if (maybe_call.has_value()) {
       std::uint64_t time_to_use;
-      if (USE_NOW || maybe_call->call_at_ns == 0) {
+      if (USE_NOW) {
         time_to_use = current_time;
       } else {
         time_to_use = maybe_call->call_at_ns;

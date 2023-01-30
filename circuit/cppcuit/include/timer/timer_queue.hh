@@ -33,8 +33,11 @@ class RawTimerQueue {
                       std::greater<RawTimerCall>>
       timer_events;
 
+  bool has_first_time = false;
+
   // Put the nontrivial pieces of work into their own cc file
   void pop_head();
+  void adjust_early_timestamps(std::uint64_t);
 
 public:
   void add_event(RawTimerCall call);
@@ -48,6 +51,10 @@ public:
   }
 
   std::optional<RawTimerCall> get_next_event(std::uint64_t now) {
+    if (!this->has_first_time) [[unlikely]] {
+      this->adjust_early_timestamps(now);
+      this->has_first_time = true;
+    }
     if (timer_events.size() == 0) {
       return {};
     }
