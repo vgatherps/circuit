@@ -9,8 +9,8 @@ struct AnnotatedLevel {
 };
 
 struct BookLevel {
-  double size;
   double price;
+  double size;
 };
 
 struct BBO {

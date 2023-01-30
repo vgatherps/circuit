@@ -12,8 +12,8 @@ template <class O>
 concept HasBook = HAS_REF_FIELD(O, PlainBook, book);
 
 template <class O>
-concept HasBBOChanges =
-    HAS_REF_FIELD(O, BBO, bbo) && HasChanges<O> && HasBook<O>;
+concept HasBBOChanges = HAS_REF_FIELD(O, BBO,
+                                      bbo) && HasChanges<O> && HasBook<O>;
 
 class BookUpdater {
   static std::optional<BBO> update_levels(const DepthUpdate *updates,
@@ -21,9 +21,9 @@ class BookUpdater {
                                           UpdatedLevels &levels);
 
 public:
-  using BBO = ::BBO;
-  using UpdatedLevels = ::UpdatedLevels;
-  using PlainBook = ::PlainBook;
+  using BBOType = BBO;
+  using UpdatedLevelsType = UpdatedLevels;
+  using PlainBookType = PlainBook;
 
   using ConstDepthUpdate = const DepthUpdate *;
   struct OutputsValid {
@@ -33,9 +33,8 @@ public:
   };
 
   template <class I, HasBBOChanges O>
-  static OutputsValid on_depth(I inputs, O outputs)
-    requires HAS_OPT_REF(I, ConstDepthUpdate, depth)
-  {
+  static OutputsValid on_depth(I inputs, O outputs) requires
+      HAS_OPT_REF(I, ConstDepthUpdate, depth) {
     if (const DepthUpdate *depth = inputs.depth.value_or(nullptr)) {
       std::optional<BBO> bbo =
           update_levels(depth, outputs.book, outputs.updates);

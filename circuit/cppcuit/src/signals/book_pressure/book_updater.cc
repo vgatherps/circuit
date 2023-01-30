@@ -15,9 +15,9 @@ std::optional<BBO> BookUpdater::update_levels(const DepthUpdate *updates,
   };
   auto updater = [&vec_for_side](Side side, const BookLevel new_level,
                                  double &data) {
-    AnnotatedLevel annotated{.current_size = new_level.size,
+    AnnotatedLevel annotated{.price = new_level.price,
                              .previous_size = data,
-                             .price = new_level.price};
+                             .current_size = new_level.size};
     vec_for_side(side).push_back(annotated);
     data = new_level.size;
     return new_level.size == 0.0 ? LevelDecision::Discard : LevelDecision::Keep;
@@ -26,9 +26,9 @@ std::optional<BBO> BookUpdater::update_levels(const DepthUpdate *updates,
   auto creator = [&vec_for_side](Side side, BookLevel new_level) {
     if (new_level.size > 0.0) {
 
-      AnnotatedLevel annotated{.current_size = new_level.size,
+      AnnotatedLevel annotated{.price = new_level.price,
                                .previous_size = 0,
-                               .price = new_level.price};
+                               .current_size = new_level.size};
       vec_for_side(side).push_back(annotated);
       return std::optional<double>(new_level.size);
     } else {

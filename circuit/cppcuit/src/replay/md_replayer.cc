@@ -153,7 +153,7 @@ MarketStreamConfig from_config(const nlohmann::json &j) {
   }
 
   return MarketStreamConfig{
-      .category = cat, .exchange = j["exchange"], .symbol = j["symbol"]};
+      .category = cat, .symbol = j["symbol"], .exchange = j["exchange"]};
 }
 
 MdConfig::MdConfig(const nlohmann::json &config) {

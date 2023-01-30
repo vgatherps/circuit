@@ -172,13 +172,13 @@
             },
             "output_specs": {
                 "bbo": {
-                    "type_path": "BBO"
+                    "type_path": "BBOType"
                 },
                 "book": {
-                    "type_path": "PlainBook"
+                    "type_path": "PlainBookType"
                 },
                 "updates": {
-                    "type_path": "UpdatedLevels",
+                    "type_path": "UpdatedLevelsType",
                     "assume_invalid": true
                 }
             },

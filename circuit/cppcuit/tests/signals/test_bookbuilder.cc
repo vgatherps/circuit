@@ -94,9 +94,9 @@ struct BookBuilderTestIter {
   std::vector<std::tuple<double, double>> bids, asks;
   std::vector<std::tuple<double, double>> expected_bids, expected_asks;
 
-  std::vector<AnnotatedLevel> bid_updates, ask_updates;
-
   std::optional<BBO> bbo;
+
+  std::vector<AnnotatedLevel> bid_updates, ask_updates;
 };
 
 void run_test_loop(BookBuilder<double, double> &book,
@@ -150,7 +150,7 @@ TEST(BookBuilder, TestJustOneBid) {
       .bids = {{1.0, 10.0}},
       .expected_bids = {{1.0, 10.0}},
       .bid_updates = {
-          {.current_size = 10.0, .previous_size = 0.0, .price = 1.0}}};
+          {.price = 1.0, .previous_size = 0.0, .current_size = 10.0}}};
 
   run_test_loop(book, just_bid);
 }
@@ -161,7 +161,7 @@ TEST(BookBuilder, TestJustOneAsk) {
       .asks = {{1.0, 10.0}},
       .expected_asks = {{1.0, 10.0}},
       .ask_updates = {
-          {.current_size = 10.0, .previous_size = 0.0, .price = 1.0}}};
+          {.price = 1.0, .previous_size = 0.0, .current_size = 10.0}}};
 
   run_test_loop(book, just_ask);
 }
@@ -172,15 +172,15 @@ TEST(BookBuilder, TestBidAsk) {
 
       .bids = {{0.5, 5.9}},
       .asks = {{1.0, 10.0}},
-      .expected_asks = {{1.0, 10.0}},
       .expected_bids = {{0.5, 5.9}},
+      .expected_asks = {{1.0, 10.0}},
       .bbo = BBO{.bid = {.price = 0.5, .size = 5.9},
                  .ask = {.price = 1.0, .size = 10.0}},
-      .bid_updates = {{.current_size = 5.9,
+      .bid_updates = {{.price = 0.5,
                        .previous_size = 0.0,
-                       .price = 0.5}},
+                       .current_size = 5.9}},
       .ask_updates = {
-          {.current_size = 10.0, .previous_size = 0.0, .price = 1.0}}};
+          {.price = 1.0, .previous_size = 0.0, .current_size = 10.0}}};
 
   run_test_loop(book, bid_ask);
 }
@@ -191,11 +191,11 @@ static BookBuilderTestIter two_level_test{
     .expected_asks = {{0.9, 11.1}, {1.0, 10.0}},
     .bbo = BBO{.bid = {.price = 0.5, .size = 5.9},
                .ask = {.price = 0.9, .size = 11.1}},
-    .bid_updates = {{.current_size = 5.9, .previous_size = 0.0, .price = 0.5},
-                    {.current_size = 3.4, .previous_size = 0.0, .price = 0.3}},
+    .bid_updates = {{.price = 0.5, .previous_size = 0.0, .current_size = 5.9},
+                    {.price = 0.3, .previous_size = 0.0, .current_size = 3.4}},
     .ask_updates = {
-        {.current_size = 10.0, .previous_size = 0.0, .price = 1.0},
-        {.current_size = 11.1, .previous_size = 0.0, .price = 0.9}}};
+        {.price = 1.0, .previous_size = 0.0, .current_size = 10.0},
+        {.price = 0.9, .previous_size = 0.0, .current_size = 11.1}}};
 
 TEST(BookBuilder, TestMultiBidAsk) {
   PlainBook book;
@@ -212,7 +212,7 @@ TEST(BookBuilder, TestReplaceBid) {
       .bbo = BBO{.bid = {.price = 0.5, .size = 6.1},
                  .ask = {.price = 0.9, .size = 11.1}},
       .bid_updates = {
-          {.current_size = 6.1, .previous_size = 5.9, .price = 0.5}}};
+          {.price = 0.5, .previous_size = 5.9, .current_size = 6.1}}};
 
   run_test_loop(book, two_level_test);
   run_test_loop(book, replace_bid);
@@ -227,7 +227,7 @@ TEST(BookBuilder, TestReplaceAsk) {
       .bbo = BBO{.bid = {.price = 0.5, .size = 5.9},
                  .ask = {.price = 0.9, .size = 3.2}},
       .ask_updates = {
-          {.current_size = 3.2, .previous_size = 11.1, .price = 0.9}}};
+          {.price = 0.9, .previous_size = 11.1, .current_size = 3.2}}};
 
   run_test_loop(book, two_level_test);
   run_test_loop(book, replace_ask);
@@ -242,7 +242,7 @@ TEST(BookBuilder, TestDeleteBid) {
       .bbo = BBO{.bid = {.price = 0.3, .size = 3.4},
                  .ask = {.price = 0.9, .size = 11.1}},
       .bid_updates = {
-          {.current_size = 0.0, .previous_size = 5.9, .price = 0.5}}};
+          {.price = 0.5, .previous_size = 5.9, .current_size = 0.0}}};
 
   run_test_loop(book, two_level_test);
   run_test_loop(book, delete_bid);
@@ -257,7 +257,7 @@ TEST(BookBuilder, TestDeleteAsk) {
       .bbo = BBO{.bid = {.price = 0.5, .size = 5.9},
                  .ask = {.price = 1.0, .size = 10.0}},
       .ask_updates = {
-          {.current_size = 0.0, .previous_size = 11.1, .price = 0.9}}};
+          {.price = 0.9, .previous_size = 11.1, .current_size = 0.0}}};
 
   run_test_loop(book, two_level_test);
   run_test_loop(book, delete_ask);
@@ -270,8 +270,8 @@ TEST(BookBuilder, TestInvalidateBids) {
       .expected_bids = {},
       .expected_asks = {{0.9, 11.1}, {1.0, 10.0}},
       .bid_updates = {
-          {.current_size = 0.0, .previous_size = 5.9, .price = 0.5},
-          {.current_size = 0.0, .previous_size = 3.4, .price = 0.3}}};
+          {.price = 0.5, .previous_size = 5.9, .current_size = 0.0},
+          {.price = 0.3, .previous_size = 3.4, .current_size = 0.0}}};
 
   run_test_loop(book, two_level_test);
   run_test_loop(book, delete_bids);
@@ -284,8 +284,8 @@ TEST(BookBuilder, TestInvalidateAsks) {
       .expected_bids = {{0.5, 5.9}, {0.3, 3.4}},
       .expected_asks = {},
       .ask_updates = {
-          {.current_size = 0.0, .previous_size = 11.1, .price = 0.9},
-          {.current_size = 0.0, .previous_size = 10.0, .price = 1.0}}};
+          {.price = 0.9, .previous_size = 11.1, .current_size = 0.0},
+          {.price = 1.0, .previous_size = 10.0, .current_size = 0.0}}};
 
   run_test_loop(book, two_level_test);
   run_test_loop(book, delete_asks);
