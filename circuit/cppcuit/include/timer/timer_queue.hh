@@ -6,6 +6,8 @@
 #include <queue>
 #include <vector>
 
+using CircuitTime = std::uint64_t;
+
 struct RawTimerCall {
   std::uint64_t call_at_ns;
   void (*callback)(void *, std::uint64_t);

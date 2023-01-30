@@ -53,7 +53,6 @@ def generate_trades_circuit_for_market_venue(
         name=f"{market}_{venue}_tick_detector",
         inputs={
             "trade": circuit.get_external(trades_name, "const Trade *").output(),
-            "time": circuit.get_external("time", TIME_TYPE).output(),
         },
     )
 
@@ -93,7 +92,6 @@ def generate_depth_circuit_for_market_venue(
         inputs={
             "updates": book.output("updates"),
             "book": book.output("book"),
-            "time": circuit.get_external("time", TIME_TYPE).output(),
         },
     )
 
@@ -129,7 +127,6 @@ def generate_circuit_for_market(
         name=f"{market}_decaying_tick_sum",
         inputs={
             "tick": per_market_ticks_sum,
-            "time": circuit.get_external("time", TIME_TYPE).output(),
         },
     )
 

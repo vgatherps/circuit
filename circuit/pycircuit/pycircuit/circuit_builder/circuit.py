@@ -397,8 +397,6 @@ class CircuitBuilder(CircuitData):
         )
         self.running_external = 0
 
-        self.get_external("time", TIME_TYPE)
-
     def get_external(
         self, name: str, type: str, must_trigger: bool = False
     ) -> ExternalInput:

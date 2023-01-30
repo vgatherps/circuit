@@ -68,8 +68,7 @@
         },
         "tick_detector": {
             "inputs": {
-                "trade": {},
-                "time": {}
+                "trade": {}
             },
             "output_specs": {
                 "tick": {
@@ -90,36 +89,31 @@
                     "written_set": [
                         "trade"
                     ],
-                    "observes": [
-                        "time"
-                    ],
                     "callback": "on_trade",
                     "outputs": [
                         "tick"
                     ],
                     "metadata": [
-                        "timer"
+                        "timer",
+                        "time"
                     ]
                 }
             ],
             "timer_callset": {
                 "written_set": [],
-                "observes": [
-                    "time"
-                ],
                 "callback": "invalidate",
                 "outputs": [
                     "tick"
                 ],
                 "metadata": [
-                    "timer"
+                    "timer",
+                    "time"
                 ]
             }
         },
         "decaying_sum": {
             "inputs": {
-                "tick": {},
-                "time": {}
+                "tick": {}
             },
             "output_specs": {
                 "running_sum": {
@@ -140,29 +134,25 @@
                     "written_set": [
                         "tick"
                     ],
-                    "observes": [
-                        "time"
-                    ],
                     "callback": "on_tick",
                     "outputs": [
                         "running_sum"
                     ],
                     "metadata": [
-                        "timer"
+                        "timer",
+                        "time"
                     ]
                 }
             ],
             "timer_callset": {
                 "written_set": [],
-                "observes": [
-                    "time"
-                ],
                 "callback": "decay",
                 "outputs": [
                     "running_sum"
                 ],
                 "metadata": [
-                    "timer"
+                    "timer",
+                    "time"
                 ]
             }
         },
@@ -202,8 +192,7 @@
         "book_impulse_tracker": {
             "inputs": {
                 "updates": {},
-                "book": {},
-                "time": {}
+                "book": {}
             },
             "output_specs": {
                 "fair": {
@@ -237,12 +226,12 @@
             "timer_callset": {
                 "written_set": [],
                 "observes": [
-                    "time",
                     "book"
                 ],
                 "callback": "recompute",
                 "metadata": [
-                    "timer"
+                    "timer",
+                    "time"
                 ]
             }
         }

@@ -30,8 +30,24 @@ protected:
   virtual RawDiscoveredCallback do_real_call_lookup(const std::string &,
                                                     const std::type_info &) = 0;
 
+protected:
+  CircuitTime last_called_time = 0;
+
+  void update_time(CircuitTime new_time) {
+    last_called_time =
+        new_time > last_called_time ? new_time : last_called_time;
+  }
+
 public:
   RawTimerQueue timer;
+
+  std::optional<CircuitTime> last_called_at() const {
+    if (last_called_time == 0) [[unlikely]] {
+      return std::nullopt;
+    } else {
+      return last_called_time;
+    }
+  }
 
   template <bool USE_NOW = true>
   bool examine_timer_queue(std::uint64_t current_time) {

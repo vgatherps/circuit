@@ -1,5 +1,7 @@
 #include "signals/trade_pressure/decaying_sum.hh"
 
+#include "cppcuit/runtime_error.hh"
+
 #include <iostream>
 #include <nlohmann/json.hpp>
 

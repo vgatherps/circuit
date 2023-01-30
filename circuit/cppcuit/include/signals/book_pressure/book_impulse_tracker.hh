@@ -2,7 +2,6 @@
 
 #include "linear_impulse.hh"
 
-#include "cppcuit/runtime_error.hh"
 #include "cppcuit/signal_requirements.hh"
 #include "signals/bookbuilder.hh"
 #include "timer/timer_queue.hh"
@@ -47,15 +46,11 @@ public:
   }
 
   template <class I, class M>
-    requires(HAS_OPT_REF(I, std::uint64_t, time) &&
-             HAS_OPT_REF(I, PlainBook, book) &&
-             HAS_FIELD(M, TimerHandle, timer))
+    requires(HAS_OPT_REF(I, PlainBook, book) &&
+             HAS_FIELD(M, TimerHandle, timer) &&
+             HAS_FIELD(M, CircuitTime, time))
   void recompute(I input, M metadata) {
-    if (input.time.valid()) [[likely]] {
-      recompute_from_book(*input.time, input.book, metadata.timer);
-    } else {
-      cold_runtime_error("Time was invalid, impossible");
-    }
+    recompute_from_book(metadata.time, input.book, metadata.timer);
   }
 
   template <class O, class M>

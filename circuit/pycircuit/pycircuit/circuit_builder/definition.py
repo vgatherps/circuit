@@ -58,6 +58,7 @@ def decode_dict_with(decoder: Callable[[Any], T]) -> Callable[[Dict[str, Any]], 
 
 class Metadata(Enum):
     Timer = "timer"
+    Time = 'time'
 
     def __str__(self):
         return self.value

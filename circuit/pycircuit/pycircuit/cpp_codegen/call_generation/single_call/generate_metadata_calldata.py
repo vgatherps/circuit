@@ -8,6 +8,8 @@ from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
 )
+from pycircuit.circuit_builder.circuit import TIME_TYPE
+from pycircuit.cpp_codegen.generation_metadata import TIME_VAR
 
 # This is pretty close to what we run for initialization...
 # init has no inputs, really only difference
@@ -18,6 +20,8 @@ META_STRUCT_TYPE = "LocalMetadata"
 META_VAR_NAME = "__metadata__"
 TIMER_VAR_NAME = "__timer_handle_var__"
 TIMER_CALL_NAME = "__timer_handle_call__"
+
+TIME_VAR_NAME = "__time__"
 
 
 @dataclass
@@ -42,7 +46,16 @@ def create_timer_field(component: Component, struct_name: str) -> MetaVar:
     )
 
 
-META_CREATORS = {Metadata.Timer: create_timer_field}
+def create_time_value(component: Component, struct_name: str) -> MetaVar:
+    return MetaVar(
+        local_lines="",
+        param_type=TIME_TYPE,
+        param_name=TIME_VAR
+    )
+    pass
+
+
+META_CREATORS = {Metadata.Timer: create_timer_field, Metadata.Time: create_time_value}
 
 # TODO testme
 
@@ -68,8 +81,8 @@ def generate_metadata_calldata(
         struct_inits_list.append(f".{meta.value} = {var.param_name}")
 
     local_lines = "\n".join(local_lines_list)
-    struct_lines = ",\n".join(struct_lines_list)
-    struct_inits = "\n".join(struct_inits_list)
+    struct_lines = ";\n".join(struct_lines_list)
+    struct_inits = ",\n".join(struct_inits_list)
 
     prefix_lines = f"""
 {local_lines}

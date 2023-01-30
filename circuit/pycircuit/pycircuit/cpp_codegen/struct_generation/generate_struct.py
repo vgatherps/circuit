@@ -248,7 +248,5 @@ struct {gen_data.struct_name} final : public Circuit {{
 
     {output_loader};
 
-    void update_time({TIME_TYPE} new_time) {{
-        externals.time = new_time > externals.time ? new_time : externals.time;
-    }}
+
 }};"""

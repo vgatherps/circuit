@@ -58,7 +58,7 @@ class TickCompletionDetector {
     return new_tick;
   }
 
-void do_init(const nlohmann::json &params);
+  void do_init(const nlohmann::json &params);
 
 public:
   using TickOutput = Tick;
@@ -70,27 +70,26 @@ public:
   // 2. we're inside the callback, and have a new expiry time
   template <class I, class O, class M>
     requires(HAS_OPT_REF(I, ConstTradeUpdate, trade) &&
-             HAS_OPT_REF(I, std::uint64_t, time) &&
              HAS_REF_FIELD(O, TickOutput, tick) &&
-             HAS_FIELD(M, TimerHandle, timer)) bool
+             HAS_FIELD(M, TimerHandle, timer) &&
+             HAS_FIELD(M, CircuitTime, time)) bool
   on_trade(I inputs, O outputs, M metadata) {
     if (inputs.trade.valid()) [[likely]] {
-      return this->handle_trade(*inputs.trade, *inputs.time, metadata.timer);
+      return this->handle_trade(*inputs.trade, metadata.time, metadata.timer);
     } else {
       return false;
     }
   }
 
-  template <class I, class O, class M>
-    requires(HAS_OPT_REF(I, std::uint64_t, time) &&
-             HAS_REF_FIELD(O, Tick, tick) &&
-             HAS_FIELD(M, TimerHandle, timer)) bool
-  invalidate(I input, O output, M metadata) {
+  template <class O, class M>
+    requires(HAS_REF_FIELD(O, Tick, tick) && HAS_FIELD(M, TimerHandle, timer) &&
+             HAS_FIELD(M, CircuitTime, time)) bool
+  invalidate(O output, M metadata) {
 
     if (last_trade_in_batch.has_value()) {
       std::uint64_t invalidate_at =
           last_received_timestamp + ns_till_batch_invalidation;
-      if (*input.time >= invalidate_at) {
+      if (metadata.time >= invalidate_at) {
         return true;
       } else {
         schedule_invalidation_at(invalidate_at, metadata.timer);
@@ -102,8 +101,8 @@ public:
   }
 
   template <class O>
-    requires(HAS_REF_FIELD(O, Tick, tick))
-  bool init(O output, const nlohmann::json &params) {
+    requires(HAS_REF_FIELD(O, Tick, tick)) bool
+  init(O output, const nlohmann::json &params) {
     this->do_init(params);
     return false;
   }
