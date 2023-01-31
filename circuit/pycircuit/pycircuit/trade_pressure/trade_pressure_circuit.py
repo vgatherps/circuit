@@ -44,7 +44,7 @@ class TradePressureOptions:
 
 
 def generate_trades_circuit_for_market_venue(
-    circuit: CircuitBuilder, market: str, venue: str, fair: ComponentOutput
+    circuit: CircuitBuilder, market: str, venue: str, fair: ComponentOutput,
 ) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
 
@@ -104,7 +104,7 @@ def generate_depth_circuit_for_market_venue(
 
 
 def generate_circuit_for_market(
-    circuit: CircuitBuilder, market: str, config: TradePressureMarketConfig
+    circuit: CircuitBuilder, market: str, config: TradePressureMarketConfig, decay_source: ComponentOutput
 ):
     all_running = []
     all_ticks = []
@@ -127,6 +127,7 @@ def generate_circuit_for_market(
         name=f"{market}_decaying_tick_sum",
         inputs={
             "tick": per_market_ticks_sum,
+            "decay": decay_source,
         },
     )
 
@@ -142,11 +143,11 @@ def generate_circuit_for_market(
 
 
 def generate_trade_pressure_circuit(
-    circuit: CircuitBuilder, config: TradePressureConfig
+    circuit: CircuitBuilder, config: TradePressureConfig, decay_source: ComponentOutput
 ) -> CircuitData:
 
     for (market, market_config) in config.markets.items():
-        generate_circuit_for_market(circuit, market, market_config)
+        generate_circuit_for_market(circuit, market, market_config, decay_source)
 
     return circuit
 
@@ -205,8 +206,14 @@ def main():
         ),
     )
 
-    with CircuitContextManager(circuit) as c:
-        generate_trade_pressure_circuit(circuit, trade_pressure)
+    decay_source = circuit.make_component(
+        definition_name='decay_source',
+        name='global_decay_source',
+        inputs={},
+    )
+
+    with CircuitContextManager(circuit):
+        generate_trade_pressure_circuit(circuit, trade_pressure, decay_source)
 
     # This could be much better abstracted...
     cc_names = []

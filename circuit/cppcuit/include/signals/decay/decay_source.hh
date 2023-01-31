@@ -1,9 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <nlohmann/json_fwd.hpp>
 #include <type_traits>
-
-#include "fast_exp_64.hh"
 
 #include "cppcuit/optional_reference.hh"
 #include "cppcuit/signal_requirements.hh"
@@ -19,25 +18,30 @@ class DecaySource {
   // expected decay? would have to ensure we get exact or close-to-exact timer
   // ticks
 
-  double inv_half_life;
+  double inv_half_life_ns;
   std::uint64_t last_decay;
+  std::uint64_t reschedule_decay_timer;
+
+  double compute_decay(std::uint64_t now, TimerHandle reschedule);
+  void do_init(TimerHandle timer, const nlohmann::json &json);
 
 public:
-  template <class I, class O, class M>
-    requires(HAS_OPT_REF(I, std::uint64_t, time) &&
-             HAS_FIELD(M, TimerHandle, timer))
-  void decay(I input, O output, M metadata) {
-    // TODO make time a metadata
-    if (input.time.valid()) [[likely]] {
-      double decayed_sum =
-          this->compute_decay(*input.time, output.running_sum, metadata.timer);
+  using Decay = double;
 
-      output.running_sum = decayed_sum;
-    } else {
-      // this is an outright error, tbh. should either raise exception,
-      // assume optimizer removes it? assert? make time sp special that
-      // it's literally always valid?
-      cold_runtime_error("Time was invalid, impossible");
-    }
+  template <class O, class M>
+    requires(HAS_REF_FIELD(O, Decay, decay) &&
+             HAS_FIELD(M, TimerHandle, timer) &&
+             HAS_FIELD(M, CircuitTime, time)) bool
+  decay(O output, M metadata) {
+    // TODO make time a metadata
+    output.decay = this->compute_decay(metadata.time, metadata.timer);
+    return true;
+  }
+  template <class O, class M>
+    requires(HAS_REF_FIELD(O, double, decay) &&
+             HAS_FIELD(M, TimerHandle, timer))
+  void init(O output, M metadata, const nlohmann::json &json) {
+    output.decay = 0;
+    do_init(metadata.timer, json);
   }
 };

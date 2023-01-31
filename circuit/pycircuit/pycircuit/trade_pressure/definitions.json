@@ -113,7 +113,8 @@
         },
         "decaying_sum": {
             "inputs": {
-                "tick": {}
+                "tick": {},
+                "decay": {}
             },
             "output_specs": {
                 "running_sum": {
@@ -137,24 +138,9 @@
                     "callback": "on_tick",
                     "outputs": [
                         "running_sum"
-                    ],
-                    "metadata": [
-                        "timer",
-                        "time"
                     ]
                 }
-            ],
-            "timer_callset": {
-                "written_set": [],
-                "callback": "decay",
-                "outputs": [
-                    "running_sum"
-                ],
-                "metadata": [
-                    "timer",
-                    "time"
-                ]
-            }
+            ]
         },
         "book_updater": {
             "inputs": {
@@ -229,6 +215,39 @@
                     "book"
                 ],
                 "callback": "recompute",
+                "metadata": [
+                    "timer",
+                    "time"
+                ]
+            }
+        },
+        "decay_source": {
+            "output_specs": {
+                "decay": {
+                    "type_path": "Decay",
+                    "ephemeral": true,
+                    "always_valid": true,
+                    "assume_default": true,
+                    "default_constructor": "{1.0}"
+                }
+            },
+            "class_name": "DecaySource",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true,
+                "metadata": [
+                    "timer"
+                ]
+            },
+            "header": "signals/decay/decay_source.hh",
+            "timer_callset": {
+                "written_set": [],
+                "observes": [],
+                "callback": "decay",
+                "outputs": [
+                    "decay"
+                ],
                 "metadata": [
                     "timer",
                     "time"

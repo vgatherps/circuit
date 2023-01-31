@@ -1,2 +1,3 @@
 add_subdirectory(book_pressure)
+add_subdirectory(decay)
 add_subdirectory(trade_pressure)

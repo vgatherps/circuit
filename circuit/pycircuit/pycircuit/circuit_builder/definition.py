@@ -244,7 +244,7 @@ class Definition(DataClassJsonMixin):
     output_specs: frozendict[str, OutputSpec] = frozenset()
 
     inputs: frozendict[str, InputType] = field(
-        default_factory=frozenset, metadata=(config(decoder=decode_dict_with(decode_input), encoder=encode_dict_with(encode_input)))
+        default_factory=frozendict, metadata=(config(decoder=decode_dict_with(decode_input), encoder=encode_dict_with(encode_input)))
     )
 
     callsets: frozenset[CallSpec] = frozenset()
