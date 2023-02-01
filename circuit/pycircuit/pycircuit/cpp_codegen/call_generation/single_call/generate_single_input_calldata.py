@@ -64,7 +64,12 @@ def get_valid_path_external(output: ComponentOutput, gen_data: GenerationMetadat
 def generate_input_field_for(t_name: str, single_input: SingleComponentInput, name: str, component: Component, gen_data: GenerationMetadata) -> str:
     match component.definition.inputs[single_input.input_name]:
         case BasicInput(always_valid=True):
-            return f"const {t_name} &{single_input.input_name}_v = {name};"
+            return f"""\
+static_assert(
+    {get_valid_path_external(single_input.output(), gen_data)},
+    "If this fails internal codegen error - always valid input always constexpr true"
+);
+const {t_name} &{single_input.input_name}_v = {name};"""
         case _:
             return f"""\
 bool is_{single_input.input_name}_v = {get_valid_path_external(single_input.output(), gen_data)};
