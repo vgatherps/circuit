@@ -13,6 +13,8 @@ from pycircuit.cpp_codegen.generation_metadata import (
 )
 from pycircuit.cpp_codegen.type_names import get_alias_for, get_type_name_for_input
 from pycircuit.circuit_builder.circuit import SingleComponentInput
+from pycircuit.circuit_builder.circuit import Component
+from pycircuit.circuit_builder.definition import BasicInput
 
 # On one hand, having this largely rely on auto
 # make the codegen easier.
@@ -24,13 +26,6 @@ from pycircuit.circuit_builder.circuit import SingleComponentInput
 
 INPUT_STRUCT_NAME = "__INPUT__"
 INPUT_NAME = "__input__"
-
-# TODO main thing we must do - figure out if an output is:
-# 1. ephemeral
-# 2. assume_invalid
-# 3. not written this cycle.
-#
-# If so, then we just initialize the input with a nullptr
 
 
 def get_parent_name(
@@ -66,8 +61,21 @@ def get_valid_path_external(output: ComponentOutput, gen_data: GenerationMetadat
         )
 
 
-# This is pretty close to what we run for initialization...
-# init has no inputs, really only difference
+def generate_input_field_for(t_name: str, single_input: SingleComponentInput, name: str, component: Component, gen_data: GenerationMetadata) -> str:
+    match component.definition.inputs[single_input.input_name]:
+        case BasicInput(always_valid=True):
+            return f"const {t_name} &{single_input.input_name}_v = {name};"
+        case _:
+            return f"""\
+bool is_{single_input.input_name}_v = {get_valid_path_external(single_input.output(), gen_data)};
+optional_reference<const {t_name}> {single_input.input_name}_v({name}, is_{single_input.input_name}_v);"""
+
+def generate_struct_field_for(t_name: str, input: SingleComponentInput, component: Component) -> str:
+    match component.definition.inputs[input.input_name]:
+        case BasicInput(always_valid=True):
+            return f"const {t_name} &{input.input_name};"
+        case _:
+            return f"optional_reference<const {t_name}> {input.input_name};"
 
 def generate_single_input_calldata(
     annotated_component: AnnotatedComponent,
@@ -75,7 +83,6 @@ def generate_single_input_calldata(
     gen_data: GenerationMetadata,
     all_written: Set[ComponentOutput],
 ) -> CallData:
-    # TODO How to deal with generics? Can/should just do in order
 
     component = annotated_component.component
 
@@ -87,13 +94,9 @@ def generate_single_input_calldata(
 
     all_type_names = [get_type_name_for_input(component, single_input.input_name) for single_input in inputs]
 
-    # TODO get tests set up that create the entire set of metadata
     all_values = [
-        f"""
-            bool is_{single_inpuut.input_name}_v = {get_valid_path_external(single_inpuut.output(), gen_data)};
-            optional_reference<const {t_name}> {single_inpuut.input_name}_v({name}, is_{single_inpuut.input_name}_v);
-        """
-        for (t_name, single_inpuut, name) in zip(all_type_names, inputs, input_names)
+        generate_input_field_for(t_name, single_input, name, component, gen_data)
+        for (t_name, single_input, name) in zip(all_type_names, inputs, input_names)
     ]
 
     values = "\n".join(all_values)
@@ -109,8 +112,8 @@ def generate_single_input_calldata(
 
     if callset.input_struct_path is None:
         input_struct_fields_list = sorted(
-            f"optional_reference<const {t_name}> {c.input_name};"
-            for (t_name, c) in zip(all_type_names, inputs)
+            generate_struct_field_for(t_name, single_input, component)
+            for (t_name, single_input) in zip(all_type_names, inputs)
         )
         input_struct_fields = "\n".join(input_struct_fields_list)
         input_struct = f"struct {INPUT_STRUCT_NAME} {{{input_struct_fields}}};"

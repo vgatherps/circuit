@@ -194,9 +194,22 @@ class Component(HasOutput):
                         f"Input of type {type(comp_input)} was given but expected {type(self.definition.inputs[input_name])}"
                     )
 
+            match self.definition.inputs[input_name]:
+                case BasicInput(always_valid=always_valid):
+                    pass
+                case _:
+                    always_valid=False
+
             for comp_output in comp_input.outputs():
                 if comp_output.parent == "external":
+                    if always_valid:
+                        raise ValueError(
+                            f"Input {input_name} of component {self.name} "
+                            f"must always be valid but references an external input "
+                            f"{comp_output.output_name}"
+                        )
                     external = circuit.external_inputs[comp_output.output_name]
+
 
                     if external.must_trigger:
                         in_callset = False
@@ -212,6 +225,18 @@ class Component(HasOutput):
                                 f"Component {self.name} has input {input_name} which links to a an external "
                                 "that requires triggering, and is not triggered"
                             )
+                else:
+                    parent_comp = circuit.components[comp_output.parent]
+                    parent_valid = parent_comp.definition.d_output_specs[comp_output.output_name].always_valid
+                    if always_valid and not parent_valid:
+                        raise ValueError(
+                            f"Input {input_name} of component {self.name} "
+                            f"must always be valid but references a output "
+                            f"{comp_output.output_name} of component {comp_output.parent} "
+                            "which is not always valid"
+                        )
+                        
+
 
         for input_name in self.definition.inputs:
             if input_name not in self.inputs:

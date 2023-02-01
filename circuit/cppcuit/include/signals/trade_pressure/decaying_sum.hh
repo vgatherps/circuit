@@ -8,9 +8,6 @@
 #include "cppcuit/signal_requirements.hh"
 #include "timer/timer_queue.hh"
 
-// Right now this only takes doubles
-// TODO refactor to take a decay source as an input
-// instead of managing the timer itself?
 class DecayingSum {
   double tick_decay;
   void do_init(const nlohmann::json &json);
@@ -28,16 +25,10 @@ public:
   }
 
   template <class I, class O>
-    requires(HAS_OPT_REF(I, double, decay) &&
+    requires(HAS_REF_FIELD(I, const double, decay) &&
              HAS_REF_FIELD(O, double, running_sum))
   void decay(I input, O output) {
-    // TODO have some idea of always valid inputs?
-    // This would basically be like the time metadata?
-    if (input.decay.valid()) {
-      output.running_sum *= *input.decay;
-    } else {
-      cold_runtime_error("Decay was impossibly invalid");
-    }
+    output.running_sum *= input.decay;
   }
 
   template <class O>

@@ -8,7 +8,7 @@ from frozendict import frozendict
 
 @dataclass(eq=True, frozen=True)
 class BasicInput:
-    pass
+    always_valid: bool = False
 
 
 @dataclass(eq=True, frozen=True)
@@ -18,22 +18,31 @@ class ArrayInput:
 
 InputType = BasicInput
 
-
+# Test this more - python pattern matching has some weird edge cases with dict overrides
 def decode_input(input: Any) -> InputType:
+
     match input:
-        case {} | {'input_type': 'single'}:
-            return BasicInput()
+
+        case {'input_type': 'single', **kwargs}:
+            return decode_input(kwargs)
+        case {'always_valid': valid, **rest} if len(rest) == 0:
+            return BasicInput(always_valid=valid)
+
         case {'input_type': 'array', 'fields': [*fields]}:
             raise ValueError("Array inputs not supported yet")
+
         case {'input_type': 'mapping', 'fields': [*fields]}:
             raise ValueError("Array inputs not supported yet")
-        case _:
-            raise ValueError(f"Input specification did not match known input types: {input}")
+
+        case dict() as input if len(input) == 0:
+            return BasicInput()
+    
+    raise ValueError(f"Input specification did not match known input types: {input}")
 
 def encode_input(input: InputType) -> Dict[str, Any]:
     match input:
-        case BasicInput():
-            return {'input_type': 'single'}
+        case BasicInput(always_valid=valid):
+            return {'input_type': 'single', 'always_valid': valid}
         case _:
             raise ValueError("Wrong input type passed")
 
@@ -301,9 +310,27 @@ class Definition(DataClassJsonMixin):
         if callset.callback is None and len(callset.outputs) > 0:
             raise ValueError("A non-triggering callback has outputs listed")
 
+
     def validate_callsets(self):
-        for callset in self.callsets:
+        for callset in self.all_callsets():
             self.validate_a_callset(callset)
+
+        all_used_inputs = set(
+            input
+            for callset in self.all_callsets()
+            for input in callset.inputs()
+        )
+
+        all_my_inputs = set(self.inputs.keys())
+
+        # We know that every used input is in all_inputs from the validation
+        # So we can just check for equality to ensure nothing is lost
+        unused_inputs = all_my_inputs.difference(all_used_inputs)
+        if unused_inputs:
+            raise ValueError(
+                f"Definition {self.class_name} has unused inputs "
+                f"{unused_inputs}"
+            )
 
         if self.generic_callset is not None:
             if self.generic_callset.observes:
@@ -369,6 +396,13 @@ class Definition(DataClassJsonMixin):
             triggering |= self.generic_callset.written_set
 
         return triggering
+
+    def all_callsets(self) -> Set[CallSpec]:
+        return {
+            callset
+            for callset in list(self.callsets) + [self.generic_callset, self.timer_callset]
+            if callset is not None
+        }
 
     @property
     def d_output_specs(self) -> Dict[str, OutputSpec]:

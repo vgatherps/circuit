@@ -114,7 +114,9 @@
         "decaying_sum": {
             "inputs": {
                 "tick": {},
-                "decay": {}
+                "decay": {
+                    "always_valid": true
+                }
             },
             "output_specs": {
                 "running_sum": {
@@ -136,6 +138,15 @@
                         "tick"
                     ],
                     "callback": "on_tick",
+                    "outputs": [
+                        "running_sum"
+                    ]
+                },
+                {
+                    "written_set": [
+                        "decay"
+                    ],
+                    "callback": "decay",
                     "outputs": [
                         "running_sum"
                     ]
