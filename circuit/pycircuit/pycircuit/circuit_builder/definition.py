@@ -18,7 +18,7 @@ class ArrayInput:
 
 InputType = BasicInput
 
-# Test this more - python pattern matching has some weird edge cases with dict overrides
+# Test this more - python pattern matching has some weird behavior with dict overrides
 def decode_input(input: Any) -> InputType:
 
     match input:
@@ -34,7 +34,7 @@ def decode_input(input: Any) -> InputType:
         case {'input_type': 'mapping', 'fields': [*fields]}:
             raise ValueError("Array inputs not supported yet")
 
-        case dict() as input if len(input) == 0:
+        case {**kwargs} as input if not kwargs:
             return BasicInput()
     
     raise ValueError(f"Input specification did not match known input types: {input}")
