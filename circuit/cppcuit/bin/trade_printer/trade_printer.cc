@@ -20,7 +20,7 @@ ABSL_FLAG(std::string, circuit_config, "",
 ABSL_FLAG(std::string, stream_config, "",
           "File path to load stream configuration");
 
-ABSL_FLAG(std::string, data_dir, "./", "Directory to serach for data files in");
+ABSL_FLAG(std::string, data_dir, "./", "Directory to search for data files in");
 
 int main(int argc, char **argv) {
   absl::SetProgramUsageMessage(

@@ -1,14 +1,14 @@
 {
+    "global_decay_source": {
+        "half_life_ns": 1000000
+    },
     "ethusdt_decaying_tick_sum": {
-        "half_life_ns": 1000000,
         "tick_decay": 0.99
     },
     "solusdt_decaying_tick_sum": {
-        "half_life_ns": 1000000,
         "tick_decay": 0.99
     },
     "btcusdt_decaying_tick_sum": {
-        "half_life_ns": 1000000,
         "tick_decay": 0.99
     },
     "ethusdt_binance_futures_tick_aggregator": {},
