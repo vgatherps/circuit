@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
-from typing import Tuple
+from typing import List, Tuple
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
@@ -24,7 +24,8 @@ from pycircuit.loader.write_timer_call import (
     generate_timer_call,
 )
 from pycircuit.circuit_builder.circuit import ExternalStruct
-from pycircuit.circuit_builder.component import OutputOptions
+from pycircuit.circuit_builder.circuit import OutputArray
+from pycircuit.circuit_builder.component import HasOutput
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     TradePressureConfig,
@@ -50,6 +51,7 @@ def generate_trades_circuit_for_market_venue(
     market: str,
     venue: str,
     fair: ComponentOutput,
+    decay_source: HasOutput,
 ) -> Tuple[ComponentOutput, ComponentOutput]:
     trades_name = f"{market}_{venue}_trades"
 
@@ -76,7 +78,24 @@ def generate_trades_circuit_for_market_venue(
         CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
     )
 
-    return raw_venue_pressure.output("tick"), raw_venue_pressure.output("running")
+    triggered_tick_decay = circuit.make_triggerable_constant(
+        "double", raw_venue_pressure.output("tick"), "0.98"
+    )
+
+    per_market_venue_decaying_ticks_sum = circuit.make_component(
+        definition_name="running_sum",
+        name=f"{market}_{venue}_decaying_tick_sum",
+        inputs={
+            "tick": raw_venue_pressure.output("tick"),
+            "decay": OutputArray(
+                inputs=[{"decay": decay_source}, {"decay": triggered_tick_decay}]
+            ),
+        },
+    )
+
+    return per_market_venue_decaying_ticks_sum.output(), raw_venue_pressure.output(
+        "running"
+    )
 
 
 def generate_depth_circuit_for_market_venue(
@@ -115,39 +134,27 @@ def generate_circuit_for_market(
     decay_source: ComponentOutput,
 ):
     all_running = []
-    all_ticks = []
+    all_ticks: List[ComponentOutput] = []
     for (venue, venue_config) in config.venues.items():
         fair = generate_depth_circuit_for_market_venue(
             circuit, market, venue, venue_config
         )
         tick, running = generate_trades_circuit_for_market_venue(
-            circuit, market, venue, fair
+            circuit, market, venue, fair, decay_source
         )
 
         all_ticks.append(tick)
         all_running.append(running)
 
-    per_market_ticks_sum = ephemeral_sum(circuit, all_ticks)
     per_market_running_sum = tree_sum(all_running)
 
-    per_market_decaying_ticks_sum = circuit.make_component(
-        definition_name="decaying_sum",
-        name=f"{market}_decaying_tick_sum",
-        inputs={
-            "tick": per_market_ticks_sum,
-            "decay": decay_source,
-        },
-    )
+    # todo tick_decay_source as well
 
-    circuit.make_component(
-        definition_name="add",
-        name=f"{market}_sum_tick_running",
-        inputs={
-            "a": per_market_decaying_ticks_sum,
-            "b": per_market_running_sum,
-        },
-        output_options={"out": OutputOptions(force_stored=True)},
-    )
+    per_market_ticks_sum = ephemeral_sum(circuit, all_ticks)
+
+    total_pressure = per_market_running_sum + per_market_ticks_sum
+    total_pressure.force_stored()
+    circuit.rename_component(total_pressure, f"{market}_sum_tick_running")
 
 
 def generate_trade_pressure_circuit(
@@ -215,7 +222,7 @@ def main():
     )
 
     decay_source = circuit.make_component(
-        definition_name="decay_source",
+        definition_name="exp_decay_source",
         name="global_decay_source",
         inputs={},
     )

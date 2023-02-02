@@ -1,4 +1,4 @@
-#include "signals/decay/decay_source.hh"
+#include "signals/decay/exp_decay_source.hh"
 
 #include "cppcuit/runtime_error.hh"
 #include "math/fast_exp_64.hh"
@@ -8,7 +8,8 @@
 
 constexpr static double DECAY_THRESHOLD = 1e-6;
 
-double DecaySource::compute_decay(std::uint64_t now, TimerHandle reschedule) {
+double ExpDecaySource::compute_decay(std::uint64_t now,
+                                     TimerHandle reschedule) {
   if (now <= this->last_decay) {
     return 1.0;
   }
@@ -26,7 +27,7 @@ double DecaySource::compute_decay(std::uint64_t now, TimerHandle reschedule) {
   return decay_by;
 }
 
-void DecaySource::do_init(TimerHandle timer, const nlohmann::json &json) {
+void ExpDecaySource::do_init(TimerHandle timer, const nlohmann::json &json) {
   double half_life_ns = json["half_life_ns"].get<double>();
 
   // anything less than this is almost certainly an error

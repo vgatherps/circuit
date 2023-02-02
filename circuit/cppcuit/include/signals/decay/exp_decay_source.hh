@@ -13,7 +13,7 @@
 // to limit the amount of compute propagated by any single event that updates
 // time, meaning that the major 'whole tree updates' tend to be
 // relegated to timer calls maintaining state
-class DecaySource {
+class ExpDecaySource {
   // Since this is running on a timer, one could theoretically cache the
   // expected decay? would have to ensure we get exact or close-to-exact timer
   // ticks

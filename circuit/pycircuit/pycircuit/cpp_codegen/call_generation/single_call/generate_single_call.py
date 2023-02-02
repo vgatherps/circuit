@@ -2,7 +2,6 @@ from typing import List, Set
 
 from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
-from pycircuit.cpp_codegen.call_generation.call_data import CallData, assemble_call_from
 from pycircuit.cpp_codegen.call_generation.single_call.generate_input_calldata import (
     generate_single_input_calldata,
 )
@@ -16,6 +15,7 @@ from pycircuit.cpp_codegen.generation_metadata import (
     AnnotatedComponent,
     GenerationMetadata,
 )
+from pycircuit.cpp_codegen.call_generation.call_data import CallGen
 
 
 def generate_single_call(
@@ -23,33 +23,37 @@ def generate_single_call(
     callset: CallSpec,
     gen_data: GenerationMetadata,
     all_written: Set[ComponentOutput],
-    is_cleanup: bool = False,
-) -> str:
-    if callset.callback is None:
+) -> List[CallGen]:
+    calls = callset.calls()
+    if calls is None:
         raise ValueError("Call generation called for a callset with no callback")
 
-    call_data = []
+    gen_calls = []
 
-    if callset.inputs():
-        input_data = generate_single_input_calldata(
-            annotated_component, callset, gen_data, all_written
-        )
-        call_data.append(input_data)
+    for callback in calls:
+        call_data = []
 
-    if callset.outputs:
-        output_data = generate_output_calldata(
-            annotated_component,
-            set(callset.outputs),
-            initialize_outputs=not is_cleanup,
-        )
-        call_data.append(output_data)
+        if callset.inputs():
+            input_data = generate_single_input_calldata(
+                annotated_component, callset, gen_data, all_written
+            )
+            call_data.append(input_data)
 
-    if callset.metadata:
-        metadata = generate_metadata_calldata(
-            annotated_component, set(callset.metadata), gen_data
-        )
-        call_data.append(metadata)
+        if callset.outputs:
+            output_data = generate_output_calldata(
+                annotated_component,
+                set(callset.outputs),
+            )
+            call_data.append(output_data)
 
-    call_path = f"{annotated_component.call_root}{callset.callback}"
+        if callset.metadata:
+            metadata = generate_metadata_calldata(
+                annotated_component, set(callset.metadata), gen_data
+            )
+            call_data.append(metadata)
 
-    return assemble_call_from(call_path, call_data)
+        call_path = f"{annotated_component.call_root}{callback}"
+
+        gen_calls.append(CallGen(call_datas=call_data, call_path=call_path))
+
+    return gen_calls

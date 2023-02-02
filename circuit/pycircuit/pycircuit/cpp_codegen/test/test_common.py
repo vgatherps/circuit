@@ -1,4 +1,5 @@
 from frozendict import frozendict
+from frozenlist import FrozenList
 from pycircuit.circuit_builder.component import Component, ComponentInput
 from pycircuit.circuit_builder.definition import (
     CallSpec,
@@ -10,6 +11,7 @@ from pycircuit.circuit_builder.definition import (
 from pycircuit.cpp_codegen.generation_metadata import AnnotatedComponent, OutputMetadata
 from pycircuit.circuit_builder.component import SingleComponentInput
 from pycircuit.circuit_builder.component import ComponentOutput
+from pycircuit.circuit_builder.definition import CallsetGroup
 
 OUT_B_VALID_INDEX = 2
 COMPONENT_NAME = "test"
@@ -42,6 +44,7 @@ AB_CALLSET = CallSpec(
     observes=frozenset(),
     callback="call_out_a",
     outputs=frozenset({OUT_A}),
+    name="AB",
 )
 
 BC_CALLSET = CallSpec(
@@ -49,30 +52,18 @@ BC_CALLSET = CallSpec(
     observes=frozenset(),
     callback="call_out_b",
     outputs=frozenset({OUT_B}),
+    name="BC",
 )
 
-ABC_CALLSET = CallSpec(
-    written_set=frozenset({"a", "b", "c"}),
-    observes=frozenset(),
-    callback="call_out_b",
-    outputs=frozenset({OUT_B}),
-)
-
-BCD_CALLSET = CallSpec(
-    written_set=frozenset({"b", "c", "d"}),
-    observes=frozenset(),
-    callback="call_out_b",
-    outputs=frozenset({OUT_B}),
-)
-
-CDE_CALLSET_1 = CallSpec(
-    written_set=frozenset({"c", "d", "e"}),
+CD_CALLSET = CallSpec(
+    written_set=frozenset({"c", "d"}),
     observes=frozenset(),
     callback="call_e1",
     outputs=frozenset({OUT_B}),
+    name="CD",
 )
 
-CDE_CALLSET_2 = CallSpec(
+CDE_CALLSET = CallSpec(
     written_set=frozenset({"c", "d", "e"}),
     observes=frozenset({"a", "b"}),
     callback="call_e2",
@@ -88,8 +79,14 @@ GENERIC_CALLSET = CallSpec(
 )
 
 
+def freeze(l):
+    l = FrozenList(l)
+    l.freeze()
+    return l
+
+
 def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
-    return Definition(
+    defin = Definition(
         inputs=frozendict(
             {
                 "a": BasicInput(),
@@ -116,13 +113,14 @@ def basic_definition(generic_callset=GENERIC_CALLSET) -> Definition:
             {
                 AB_CALLSET,
                 BC_CALLSET,
-                ABC_CALLSET,
-                BCD_CALLSET,
-                CDE_CALLSET_1,
-                CDE_CALLSET_2,
+                CD_CALLSET,
+                CDE_CALLSET,
             }
         ),
+        callset_groups=frozenset({CallsetGroup(callsets=freeze(["BC", "AB"]))}),
     )
+    defin.validate()
+    return defin
 
 
 def basic_component() -> Component:
@@ -133,6 +131,7 @@ def basic_component() -> Component:
         output_options={},
         definition=basic_definition(),
         name="test",
+        class_generics={},
     )
     return comp
 

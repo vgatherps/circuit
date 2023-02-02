@@ -1,4 +1,4 @@
-from typing import Set
+from typing import List, Set
 
 from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.definition import CallSpec
@@ -18,6 +18,20 @@ from pycircuit.cpp_codegen.call_generation.single_call.generate_array_input_call
     ARRAY_INPUT_NAME,
     generate_array_input_prefix,
 )
+from pycircuit.circuit_builder.component import Component
+
+# TODO just dump these functions?
+
+
+def get_used_outputs(
+    component: Component, callset: CallSpec
+) -> Set[ComponentOutput]:
+    used_outputs = []
+    for input in callset.inputs():
+        for output in component.inputs[input].outputs():
+            if output.parent != "external":
+                used_outputs.append(output)
+    return set(used_outputs)
 
 
 def generate_single_input_calldata(
@@ -38,7 +52,11 @@ def generate_single_input_calldata(
 
     local_prefix = local_prefix + (inputs_prefix or "")
 
-    return CallData(local_prefix=local_prefix, call_params=[INPUT_NAME])
+    return CallData(
+        local_prefix=local_prefix,
+        call_params=[INPUT_NAME],
+        outputs=get_used_outputs(annotated_component.component, callset),
+    )
 
 
 def generate_array_input_calldata(
@@ -60,4 +78,8 @@ def generate_array_input_calldata(
 
     local_prefix = local_prefix + (inputs_prefix or "")
 
-    return CallData(local_prefix=local_prefix, call_params=[ARRAY_INPUT_NAME])
+    return CallData(
+        local_prefix=local_prefix,
+        call_params=[ARRAY_INPUT_NAME],
+        outputs=get_used_outputs(annotated_component.component, callset),
+    )

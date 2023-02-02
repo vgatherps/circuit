@@ -1,53 +1,96 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+import dataclasses
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar
 
 from dataclasses_json import DataClassJsonMixin, config
+from frozenlist import FrozenList
 from frozendict import frozendict
 
 
 @dataclass(eq=True, frozen=True)
-class BasicInput:
+class InputMetadata:
     always_valid: bool = False
+    optional: bool = False
+
+
+# don't really need this but makes refactoring easier
+class InputMetadataMixin(ABC):
+    @abstractmethod
+    def input_meta(self) -> InputMetadata:
+        pass
+
+    @property
+    def always_valid(self) -> bool:
+        return self.input_meta().always_valid
+
+    @property
+    def optional(self) -> bool:
+        return self.input_meta().optional
 
 
 @dataclass(eq=True, frozen=True)
-class ArrayInput:
+class BasicInput(InputMetadataMixin):
+    meta: InputMetadata = InputMetadata()
+
+    def input_meta(self) -> InputMetadata:
+        return self.meta
+
+
+@dataclass(eq=True, frozen=True)
+class ArrayInput(InputMetadataMixin):
     fields: frozenset[str]
-    always_valid: bool
+    meta: InputMetadata = InputMetadata()
+
+    def input_meta(self) -> InputMetadata:
+        return self.meta
 
     def get_fields_or(self, name: str):
         return self.fields or frozenset([name])
 
 
-InputType = Union[BasicInput, ArrayInput]
+InputType = BasicInput | ArrayInput
 
 # Test this more - python pattern matching has some weird behavior with dict overrides
 def decode_input(input: Any) -> InputType:
 
     always_valid = bool(input.pop("always_valid", False))
+    optional = bool(input.pop("optional", False))
+
+    meta = InputMetadata(always_valid=always_valid, optional=optional)
 
     match input:
         case {"input_type": "single", **kwargs} | {**kwargs} if not kwargs:
-            return BasicInput(always_valid=always_valid)
+            return BasicInput(meta=meta)
+
+        case {"input_type": "array", **rest} if not rest:
+            return ArrayInput(fields=frozendict(), meta=meta)
         case {"input_type": "array", "fields": [*fields], **rest} if not rest:
             for field in fields:
                 if not isinstance(field, str):
                     raise ValueError(f"Field  {field} in input is not a string")
-            return ArrayInput(fields=frozenset(fields), always_valid=always_valid)
+            return ArrayInput(fields=frozenset(fields), meta=meta)
 
         case {"input_type": "mapping", "fields": [*fields], **rest} if not rest:
-            raise ValueError("Array inputs not supported yet")
+            raise ValueError("Mapping inputs not supported yet")
 
     raise ValueError(f"Input specification did not match known input types: {input}")
 
 
 def encode_input(input: InputType) -> Dict[str, Any]:
+    meta_dict = input.meta.__dict__.copy()
     match input:
-        case BasicInput(always_valid=valid):
-            return {"input_type": "single", "always_valid": valid}
+        case BasicInput():
+            input_type = "single"
+        case ArrayInput(fields=fields):
+            input_type = "array"
+            meta_dict["fields"] = fields
         case _:
             raise ValueError("Wrong input type passed")
+
+    meta_dict["input_type"] = input_type
+    return meta_dict
 
 
 T = TypeVar("T")
@@ -98,6 +141,38 @@ def decode_metadata(metas: List[Any]) -> frozenset[Metadata]:
     return frozenset(meta_set)
 
 
+def decode_call_list(inputs: Any) -> None | str | FrozenList[str]:
+    match inputs:
+        case None:
+            return None
+        case str():
+            return inputs
+        case [*_]:
+            raise ValueError(
+                "Multiple calls per callset currently disabled at definition layer, "
+                "but supported in rest of code"
+                )
+        case _:
+            raise ValueError(f"Could not parse callback list {inputs}")
+
+
+def frozen() -> FrozenList[T]:
+    l: FrozenList = FrozenList()
+    l.freeze()
+    return l
+
+
+def decode_list_with(
+    decoder: Callable[[Any], T]
+) -> Callable[[List[Any]], FrozenList[T]]:
+    def do_decode(vals: List[Any]) -> FrozenList[Any]:
+        l = FrozenList([decoder(val) for val in vals])
+        l.freeze()
+        return l
+
+    return do_decode
+
+
 @dataclass(eq=True, frozen=True)
 class InputBatch:
     names: frozenset[str] = frozenset()
@@ -124,11 +199,22 @@ class CallSpec(DataClassJsonMixin):
         outputs: The set of outputs that are written to / triggered by the component
 
         cleanup: The function to call when cleaning up after the callset
+
+        input_struct_path: Prexisting struct in the class to use for inputs
+
+        output_struct_path: Prexisting struct in the class to use for outputs
+
+        name: An optional name for the callset for use in ordering and disambiguation
     """
 
     written_set: frozenset[str]
 
-    callback: Optional[str]
+    callback: str | List[str] | None = field(
+        default=None, metadata=config(decoder=decode_call_list)
+    )
+    cleanup: str | List[str] | None = field(
+        default=None, metadata=config(decoder=decode_call_list)
+    )
 
     observes: frozenset[str] = frozenset()
 
@@ -141,16 +227,32 @@ class CallSpec(DataClassJsonMixin):
     input_struct_path: Optional[str] = None
     output_struct_path: Optional[str] = None
 
-    cleanup: Optional[str] = None
+    name: Optional[str] = None
 
     @property
     def skippable(self):
         """Returns whether the callback can be skipped"""
-        return self.callback is None
+        return self.calls() is None
 
     def inputs(self) -> Set[str]:
         "Convenience function to get the whole list of inputs"
         return set(self.written_set | self.observes)
+
+    def as_cleanup(self) -> "CallSpec":
+        if self.cleanup is None:
+            raise ValueError("as_cleanup called on callspec with no cleanup")
+        else:
+            return dataclasses.replace(self, callback=self.cleanup)
+
+    def calls(self) -> Optional[List[str]]:
+        match self.callback:
+            case None:
+                return None
+            case str():
+                return [self.callback]
+            case FrozenList():
+                return self.callback
+        raise TypeError("Bad callbacks")
 
 
 @dataclass(eq=True, frozen=True)
@@ -215,6 +317,16 @@ class InitSpec(DataClassJsonMixin):
         default_factory=frozenset, metadata=config(decoder=decode_metadata)
     )
     takes_params: bool = False
+
+
+@dataclass(eq=True, frozen=True)
+class CallsetGroup(DataClassJsonMixin):
+    callsets: FrozenList[str] = field(
+        default_factory=frozen, metadata=config(decoder=decode_list_with(str))
+    )
+
+    def names(self) -> frozenset[str]:
+        return frozenset(set(self.callsets))
 
 
 @dataclass(eq=True, frozen=True)
@@ -294,6 +406,8 @@ class Definition(DataClassJsonMixin):
 
     class_generics: frozendict[str, int] = field(default_factory=frozendict)
 
+    callset_groups: frozenset[CallsetGroup] = frozenset()
+
     def validate_generics(self):
         for key in self.generics_order:
             assert key in self.all_inputs(), "Generic input is not real input"
@@ -370,10 +484,24 @@ class Definition(DataClassJsonMixin):
 
         all_my_inputs = set(self.inputs.keys())
 
+        seen_names = set()
+
+        for callset in self.callsets:
+            if callset.name is None:
+                continue
+            if callset.name in seen_names:
+                raise ValueError(
+                    f"Definition {self.class_name} repeats callset name {callset.name}"
+                )
+            seen_names.add(callset.name)
+
         # We know that every used input is in all_inputs from the validation
         # So we can just check for equality to ensure nothing is lost
         unused_inputs = all_my_inputs.difference(all_used_inputs)
         if unused_inputs:
+            import pprint
+
+            pprint.pprint(self.to_dict())
             raise ValueError(
                 f"Definition {self.class_name} has unused inputs " f"{unused_inputs}"
             )
@@ -381,9 +509,27 @@ class Definition(DataClassJsonMixin):
         if self.generic_callset is not None:
             if self.generic_callset.observes:
                 raise ValueError(
-                    f"Signal {self.class_name} has a generic callset with a nonempty observes"
+                    f"Signal {self.class_name} has a generic callset with a nonempty observes "
                     "- all inputs must be assumed written"
                 )
+
+    def validate_callset_groups(self):
+        seen_name_sets = set()
+        for group in self.callset_groups:
+            names = group.names()
+            for name in names:
+                if name not in self.callset_names():
+                    raise ValueError(
+                        f"Definitions {self.class_name} has callset name {name} "
+                        "in a group that does not correspond to a callset"
+                    )
+
+            if names in seen_name_sets:
+                raise ValueError(
+                    f"Definitions {self.class_name} has callset groups "
+                    f"with a duplicate set of callsets {names}"
+                )
+            seen_name_sets.add(names)
 
     def validate_timer(self):
         if self.timer_callset is not None:
@@ -402,32 +548,40 @@ class Definition(DataClassJsonMixin):
         for (output, output_spec) in self.d_output_specs.items():
             if output_spec.always_valid and output_spec.assume_invalid:
                 raise ValueError(
-                    f"Output {output} of {self.class_name} is both always_valid and assumed to be invalid"
+                    f"Output {output} of {self.class_name} "
+                    "is both always_valid and assumed to be invalid"
                 )
 
-            if output_spec.assume_default and not output_spec.always_valid:
+            if output_spec.assume_default and not (
+                output_spec.always_valid or output_spec.assume_invalid
+            ):
                 raise ValueError(
-                    f"Output {output} of {self.class_name} is both assumed to be default and is not always valid"
+                    f"Output {output} of {self.class_name} "
+                    "is both assumed to be default and is not always valid / assumed invalid"
                 )
 
             if output_spec.assume_default and not output_spec.ephemeral:
                 raise ValueError(
-                    f"Output {output} of {self.class_name} is both assumed to be default and is not ephemeral"
+                    f"Output {output} of {self.class_name} "
+                    "is both assumed to be default and is not ephemeral"
                 )
 
             if output_spec.default_constructor and not output_spec.assume_default:
                 raise ValueError(
-                    f"Output {output} of {self.class_name} has a default constructor but is not assumed to be default"
+                    f"Output {output} of {self.class_name} has a "
+                    "default constructor but is not assumed to be default"
                 )
 
         if self.default_output and self.default_output not in self.output_specs:
             raise ValueError(
-                f"Definition for {self.class_name} has default output {self.default_output} that is not in outputs"
+                f"Definition for {self.class_name} has default output "
+                f"{self.default_output} that is not in outputs"
             )
 
     def validate(self):
         self.validate_generics()
         self.validate_callsets()
+        self.validate_callset_groups()
         self.validate_outputs()
         self.validate_timer()
 
@@ -444,9 +598,17 @@ class Definition(DataClassJsonMixin):
             triggering |= set(callset.written_set)
 
         if self.generic_callset is not None:
-            triggering |= self.generic_callset.written_set
+            triggering |= set(self.generic_callset.written_set)
+
+        if self.timer_callset is not None:
+            triggering |= set(self.timer_callset.written_set)
 
         return triggering
+
+    def callset_names(self) -> set[str]:
+        return set(
+            callset.name for callset in self.callsets if callset.name is not None
+        )
 
     def all_callsets(self) -> Set[CallSpec]:
         return {

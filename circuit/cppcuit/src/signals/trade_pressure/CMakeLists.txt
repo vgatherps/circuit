@@ -1,1 +1,1 @@
-target_sources(cppcuit_lib PRIVATE decaying_sum.cc tick_aggregator.cc tick_detector.cc)
+target_sources(cppcuit_lib PRIVATE tick_aggregator.cc tick_detector.cc)

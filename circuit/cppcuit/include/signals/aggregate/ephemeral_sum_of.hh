@@ -4,7 +4,7 @@
 #include "cppcuit/side.hh"
 #include "cppcuit/signal_requirements.hh"
 
-template <class T> class SumOf {
+template <class T> class EphemeralSumOf {
 public:
   using Output = T;
   using ValidTracker = bool;

@@ -4,6 +4,7 @@
 #include <typeinfo>
 #include <variant>
 
+#include "array_input.hh"
 #include "optional_reference.hh"
 #include "output_handle.hh"
 #include "overload.hh"

@@ -118,16 +118,6 @@ public:
     return outputs_valid;
   }
 
-  template <class I, class O>
-    requires(HAS_OPT_REF(I, ConstTradeUpdate, trade) &&
-             HAS_OPT_REF(I, double, fair) && HAS_OPT_REF(I, Tick, tick) &&
-             HasTickRunning<O>)
-  OnTradeOutput on_ticked_trade(I inputs, O outputs) {
-    OnTradeOutput tick_validity = on_tick(inputs, outputs);
-    on_trade(inputs, outputs);
-    return tick_validity;
-  }
-
   template <class O>
     requires(HasTickRunning<O>)
   OnTradeOutput init(O outputs, const nlohmann::json &) {

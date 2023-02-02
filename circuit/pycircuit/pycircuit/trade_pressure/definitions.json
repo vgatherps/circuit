@@ -37,7 +37,8 @@
                     "callback": "on_trade",
                     "outputs": [
                         "running"
-                    ]
+                    ],
+                    "name": "trade"
                 },
                 {
                     "written_set": [
@@ -48,20 +49,15 @@
                     "outputs": [
                         "running",
                         "tick"
-                    ]
-                },
+                    ],
+                    "name": "tick"
+                }
+            ],
+            "callset_groups": [
                 {
-                    "written_set": [
-                        "trade",
-                        "tick"
-                    ],
-                    "observes": [
-                        "fair"
-                    ],
-                    "callback": "on_ticked_trade",
-                    "outputs": [
-                        "running",
-                        "tick"
+                    "callsets": [
+                        "tick",
+                        "trade"
                     ]
                 }
             ]
@@ -111,27 +107,23 @@
                 ]
             }
         },
-        "decaying_sum": {
+        "running_sum": {
             "inputs": {
                 "tick": {},
                 "decay": {
-                    "always_valid": true
+                    "optional": true,
+                    "input_type": "array"
                 }
             },
             "output_specs": {
                 "running_sum": {
-                    "ephemeral": false,
-                    "type_path": "RunningTickScore",
+                    "type_path": "RunningSumOut",
                     "always_valid": true
                 }
             },
-            "class_name": "DecayingSum",
-            "static_call": false,
-            "init_spec": {
-                "init_call": "init",
-                "takes_params": true
-            },
-            "header": "signals/trade_pressure/decaying_sum.hh",
+            "class_name": "RunningSum",
+            "static_call": true,
+            "header": "signals/decay/running_sum.hh",
             "callsets": [
                 {
                     "written_set": [
@@ -140,7 +132,8 @@
                     "callback": "on_tick",
                     "outputs": [
                         "running_sum"
-                    ]
+                    ],
+                    "name": "tick"
                 },
                 {
                     "written_set": [
@@ -149,6 +142,15 @@
                     "callback": "decay",
                     "outputs": [
                         "running_sum"
+                    ],
+                    "name": "decay"
+                }
+            ],
+            "callset_groups": [
+                {
+                    "callsets": [
+                        "decay",
+                        "tick"
                     ]
                 }
             ]
@@ -232,7 +234,7 @@
                 ]
             }
         },
-        "decay_source": {
+        "exp_decay_source": {
             "output_specs": {
                 "decay": {
                     "type_path": "Decay",
@@ -242,7 +244,7 @@
                     "default_constructor": "{1.0}"
                 }
             },
-            "class_name": "DecaySource",
+            "class_name": "ExpDecaySource",
             "static_call": false,
             "init_spec": {
                 "init_call": "init",
@@ -251,7 +253,7 @@
                     "timer"
                 ]
             },
-            "header": "signals/decay/decay_source.hh",
+            "header": "signals/decay/exp_decay_source.hh",
             "timer_callset": {
                 "written_set": [],
                 "observes": [],
@@ -269,7 +271,6 @@
             "inputs": {
                 "value": {
                     "input_type": "array",
-                    "fields": [],
                     "always_valid": true
                 }
             },
@@ -281,9 +282,9 @@
                     "assume_default": true
                 }
             },
-            "class_name": "SumOf",
+            "class_name": "EphemeralSumOf",
             "static_call": true,
-            "header": "signals/sum_of.hh",
+            "header": "signals/aggregate/ephemeral_sum_of.hh",
             "callsets": [
                 {
                     "written_set": [

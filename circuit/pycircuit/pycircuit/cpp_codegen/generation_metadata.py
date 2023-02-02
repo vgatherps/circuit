@@ -50,7 +50,7 @@ auto & __restrict outputs_is_valid = _outputs.is_valid;
 Objects  &  __restrict _objects = __myself->objects;
 """
 
-LOCAL_TIME_LOAD__PREFIX = f"""
+LOCAL_TIME_LOAD_PREFIX = f"""
 __myself->update_time({TIME_VAR});
 """
 

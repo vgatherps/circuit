@@ -21,7 +21,16 @@ from pycircuit.circuit_builder.component import (
 )
 from pycircuit.circuit_builder.component import ComponentOutput
 
-from .signals.constant import generate_constant_definition
+from .signals.constant import (
+    generate_constant_definition,
+    generate_triggerable_constant_definition,
+)
+
+
+def clean_float_name(f_name: str) -> str:
+    return (
+        f_name.replace(".", "_").replace("-", "_").replace("{", "l").replace("}", "r")
+    )
 
 
 @dataclass
@@ -306,9 +315,9 @@ class CircuitBuilder(CircuitData):
         comp = Component(
             inputs=converted,
             definition=definition,
-            output_options=output_options,
+            output_options=output_options.copy(),
             name=name,
-            class_generics=generics,
+            class_generics=generics.copy(),
         )
 
         comp.validate(self)
@@ -322,25 +331,56 @@ class CircuitBuilder(CircuitData):
             ctor_name = constructor
         else:
             ctor_name = "{}"
+
         def_name = f"constant_{type}_{ctor_name}"
 
         self.add_definititon(def_name, definition)
 
+        cname = clean_float_name(def_name)
+
         comp = Component(
-            name=def_name,
+            name=cname,
             definition=definition,
             inputs={},
             output_options={},
             class_generics={},
         )
         if def_name in self.components:
-            if self.components[def_name].definition == definition:
-                return self.components[def_name]
+            if self.components[cname].definition == definition:
+                return self.components[cname]
             raise ValueError(
-                f"Already have constant {def_name} but with different definition - likely a bug"
+                f"Already have constant {cname} but with different definition - likely a bug"
             )
 
-        self.components[def_name] = comp
+        self.components[cname] = comp
+
+        return comp
+
+    def make_triggerable_constant(
+        self, type: str, on: HasOutput, constructor: Optional[str]
+    ) -> "Component":
+        from .signals.running_name import get_novel_name
+
+        definition = generate_triggerable_constant_definition(type, constructor)
+        if constructor is not None:
+            ctor_name = constructor
+        else:
+            ctor_name = "{}"
+        def_name = f"triggerable_constant_{type}_{ctor_name}"
+
+        self.add_definititon(def_name, definition)
+
+        base_cname = clean_float_name(def_name)
+        cname = get_novel_name(base_cname + "__")
+        comp = Component(
+            name=cname,
+            definition=definition,
+            inputs={"tick": SingleComponentInput(input=on.output(), input_name="tick")},
+            output_options={},
+            class_generics={},
+        )
+
+        self.components[cname] = comp
 
         return comp
 

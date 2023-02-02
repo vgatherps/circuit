@@ -1,12 +1,17 @@
 from typing import Optional
 from frozendict import frozendict
 from pycircuit.circuit_builder.definition import CallSpec, Definition, OutputSpec
+from pycircuit.circuit_builder.definition import BasicInput
+
+
+def clean_float_name(f_name: str) -> str:
+    return f_name.replace(".", "_").replace("-", "_")
 
 
 def generate_constant_definition(
     constant_type: str, constructor: Optional[str]
 ) -> Definition:
-    return Definition(
+    defin = Definition(
         class_name=f"CtorConstant<{constant_type}>",
         output_specs=frozendict(
             out=OutputSpec(
@@ -26,3 +31,34 @@ def generate_constant_definition(
             callback=None,
         ),
     )
+    defin.validate()
+    return defin
+
+
+def generate_triggerable_constant_definition(
+    constant_type: str, constructor: Optional[str]
+) -> Definition:
+    defin = Definition(
+        class_name=f"TriggerableConstant<{constant_type}>",
+        output_specs=frozendict(
+            out=OutputSpec(
+                ephemeral=True,
+                type_path="Output",
+                assume_invalid=True,
+                assume_default=True,
+                default_constructor=f" = {constructor}",
+            )
+        ),
+        inputs=frozendict({"tick": BasicInput()}),
+        static_call=True,
+        header="signals/constant.hh",
+        generic_callset=CallSpec(
+            written_set=frozenset(["tick"]),
+            observes=frozenset(),
+            outputs=frozenset(["out"]),
+            callback="tick",
+        ),
+    )
+
+    defin.validate()
+    return defin

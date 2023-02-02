@@ -73,8 +73,8 @@ def find_all_children_of_from_outputs(
     called = []
     seen_outputs = set(used_outputs)
     for component in sorted:
-
         # Skip calling components where *nothing* is triggered
+        # TODO is this correct?
         if not any(
             i_output in seen_outputs
             for input in component.triggering_inputs()
@@ -82,19 +82,21 @@ def find_all_children_of_from_outputs(
         ):
             continue
 
-        callset = find_callset_for(component, seen_outputs)
-        if callset.skippable:
-            continue
+        callsets = find_callset_for(component, seen_outputs)
 
-        writes = callset.outputs
-        new_outs = {
-            ComponentOutput(parent=component.name, output_name=field)
-            for field in writes
-        }
+        for callset in callsets:
+            if callset.skippable:
+                continue
 
-        seen_outputs |= new_outs
+            writes = callset.outputs
+            new_outs = {
+                ComponentOutput(parent=component.name, output_name=field)
+                for field in writes
+            }
 
-        called.append(CalledComponent(callset=callset, component=component))
+            seen_outputs |= new_outs
+
+            called.append(CalledComponent(callset=callset, component=component))
 
     return called
 

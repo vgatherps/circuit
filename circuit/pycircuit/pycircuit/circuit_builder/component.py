@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
+import dataclasses
 from typing import Any, Dict, List, Mapping, Optional, Set, Union
 
 from dataclasses_json import DataClassJsonMixin
 from frozendict import frozendict
 from frozenlist import FrozenList
 from pycircuit.circuit_builder.definition import Definition, BasicInput, ArrayInput
-from pycircuit.circuit_builder.definition import InputType
+from pycircuit.circuit_builder.definition import InputType, InputMetadata
 
 TIME_TYPE = "std::uint64_t"
 
@@ -243,12 +244,21 @@ class Component(HasOutput):
                                 "that requires triggering, and is not triggered"
                             )
 
-        for input_name in self.definition.inputs:
-            if input_name not in self.inputs:
+        for (input_name, input) in self.definition.inputs.items():
+            if input_name not in self.inputs and not input.optional:
                 raise ValueError(f"Component {self.name} is missing input {input_name}")
 
     def triggering_inputs(self) -> List[ComponentInput]:
         return [self.inputs[inp] for inp in self.definition.triggering_inputs()]
+
+    def force_stored(self, output: str | None = None):
+        real_output = self.output(output)
+        if real_output.output_name not in self.output_options:
+            self.output_options[real_output.output_name] = OutputOptions(True)
+        else:
+            self.output_options[real_output.output_name] = dataclasses.replace(
+                self.output_options[real_output.output_name], force_stored=True
+            )
 
 
 def validate_component_input(
@@ -272,13 +282,15 @@ def validate_component_input(
             )
         seen_outputs.add(output)
 
+    always_valid = def_input.always_valid
+
     match (comp_input, def_input):
-        case (SingleComponentInput(), BasicInput(always_valid=always_valid)):
+        case (SingleComponentInput(), BasicInput()):
             pass
 
         case (
             ArrayComponentInput(inputs=arr_inputs),
-            ArrayInput(always_valid=always_valid) as def_input,
+            ArrayInput() as def_input,
         ):
             arr_fields = def_input.get_fields_or(input_name)
             for (arr_idx, arr_input) in enumerate(arr_inputs):

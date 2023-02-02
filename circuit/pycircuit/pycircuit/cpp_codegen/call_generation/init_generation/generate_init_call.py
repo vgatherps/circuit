@@ -6,23 +6,32 @@ from pycircuit.cpp_codegen.generation_metadata import (
     LOCAL_DATA_LOAD_PREFIX,
     GenerationMetadata,
 )
+from pycircuit.cpp_codegen.call_generation.call_context.call_context import CallContext
+from pycircuit.cpp_codegen.call_generation.call_context.call_context import RecordInfo
 
 # TODO support init calls on static elements - constants are a key example
 
 
 def generate_init_call(struct_name: str, gen_data: GenerationMetadata) -> str:
 
-    individual_init_calls = "\n".join(
-        generate_single_init_for(annotated, gen_data)
-        for annotated in gen_data.annotated_components.values()
-        if annotated.component.definition.init_spec is not None
+    context = CallContext(metadata=gen_data)
+
+    context.append_lines(
+        RecordInfo(lines=[LOCAL_DATA_LOAD_PREFIX], description="local data preload")
     )
 
-    return f"""
+    for annotated in gen_data.annotated_components.values():
+        if annotated.component.definition.init_spec is not None:
+            call_gen = generate_single_init_for(annotated, gen_data)
+            context.add_a_call(call_gen)
+
+    call_body = context.generate()
+
+    return f"""\
 {struct_name}::{struct_name}(nlohmann::json {INPUT_JSON_NAME})
  : externals(), outputs(), objects() {{
 
 void *__raw_object__ = static_cast<void *>(this);
-{LOCAL_DATA_LOAD_PREFIX}
-{individual_init_calls}
+
+{call_body}
 }}"""
