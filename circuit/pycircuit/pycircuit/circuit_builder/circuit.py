@@ -20,6 +20,7 @@ from pycircuit.circuit_builder.component import (
     SingleComponentInput,
 )
 from pycircuit.circuit_builder.component import ComponentOutput
+from pycircuit.circuit_builder.component import ComponentIndex
 
 from .signals.constant import (
     generate_constant_definition,
@@ -216,6 +217,47 @@ class CircuitBuilder(CircuitData):
             call_structs={},
         )
         self.running_external = 0
+        self.registry: Dict[ComponentIndex, Component] = {}
+
+    def _insert_component(self, component: Component, force: bool) -> Component:
+        if component.name in self.components:
+            if self.components[component.name] == component:
+                return self.components[component.name]
+
+            # TODO compute diff
+            raise ValueError(
+                f"Inserting second component named {component.name} "
+                "but with a distinct definition"
+            )
+
+        index = component.index()
+
+        # We might want to revisit this options merging in the future
+        # right now, it only includes tored or not which is quite mundane
+        # and has no semantic impact (TODO test this in the presence of default ctors)
+
+        # So, as a result, it's mundane to merge. Future options might not be
+        if index in self.registry and not force:
+
+            existing = self.registry[index]
+
+            new_options = component.output_options.copy()
+            for (option_name, options) in existing.output_options.items():
+                if option_name in new_options:
+                    new_options[option_name] = new_options[option_name].strongest_of(
+                        options
+                    )
+                else:
+                    new_options[option_name] = options
+
+            existing.output_options = new_options
+
+            return existing
+
+        self.registry[index] = component
+        self.components[component.name] = component
+
+        return component
 
     def get_external(
         self, name: str, type: str, must_trigger: bool = False
@@ -227,7 +269,8 @@ class CircuitBuilder(CircuitData):
             )
             if candidate_external != ext:
                 raise ValueError(
-                    f"External {name} requested at {candidate_external} but already exists as {ext}"
+                    f"External {name} requested at {candidate_external}"
+                    f"but already exists as {ext}"
                 )
             return ext
         ext = ExternalInput(
@@ -262,7 +305,7 @@ class CircuitBuilder(CircuitData):
 
         self.call_groups[name] = group
 
-    def add_definititon(self, name: str, definition: Definition):
+    def add_definition(self, name: str, definition: Definition):
         if name in self.definitions:
             if definition != self.definitions[name]:
                 raise ValueError(
@@ -279,8 +322,8 @@ class CircuitBuilder(CircuitData):
         inputs: Mapping[str, InputForComponent],
         output_options: Dict[str, OutputOptions] = {},
         generics: Dict[str, str] = {},
+        force_insert=False,
     ) -> "Component":
-        assert name not in self.components
 
         definition = self.definitions[definition_name]
         converted: Dict[str, ComponentInput] = {}
@@ -322,19 +365,19 @@ class CircuitBuilder(CircuitData):
 
         comp.validate(self)
 
-        self.components[name] = comp
-        return comp
+        return self._insert_component(comp, force=force_insert)
 
     def make_constant(self, type: str, constructor: Optional[str]) -> "Component":
-        definition = generate_constant_definition(type, constructor)
         if constructor is not None:
             ctor_name = constructor
         else:
             ctor_name = "{}"
+        definition = generate_constant_definition(type, ctor_name)
+
 
         def_name = f"constant_{type}_{ctor_name}"
 
-        self.add_definititon(def_name, definition)
+        self.add_definition(def_name, definition)
 
         cname = clean_float_name(def_name)
 
@@ -345,30 +388,24 @@ class CircuitBuilder(CircuitData):
             output_options={},
             class_generics={},
         )
-        if def_name in self.components:
-            if self.components[cname].definition == definition:
-                return self.components[cname]
-            raise ValueError(
-                f"Already have constant {cname} but with different definition - likely a bug"
-            )
 
-        self.components[cname] = comp
-
-        return comp
+        return self._insert_component(comp, force=False)
 
     def make_triggerable_constant(
         self, type: str, on: HasOutput, constructor: Optional[str]
     ) -> "Component":
         from .signals.running_name import get_novel_name
 
-        definition = generate_triggerable_constant_definition(type, constructor)
         if constructor is not None:
             ctor_name = constructor
         else:
             ctor_name = "{}"
+
+        definition = generate_triggerable_constant_definition(type, ctor_name)
+
         def_name = f"triggerable_constant_{type}_{ctor_name}"
 
-        self.add_definititon(def_name, definition)
+        self.add_definition(def_name, definition)
 
         base_cname = clean_float_name(def_name)
         cname = get_novel_name(base_cname + "__")
@@ -380,9 +417,7 @@ class CircuitBuilder(CircuitData):
             class_generics={},
         )
 
-        self.components[cname] = comp
-
-        return comp
+        return self._insert_component(comp, force=False)
 
     # TODO introduce weak renaming - only rename if someone hasn't already
     # Much more useful when we start deduplicating
@@ -391,14 +426,14 @@ class CircuitBuilder(CircuitData):
             return
         if component.name not in self.components:
             raise ValueError(
-                f"Trying to rename component {component.name} to {new_name} that is not part of the circuit"
+                f"Trying to rename component {component.name} to {new_name} "
+                "that is not part of the circuit"
             )
 
         # TODO add reverse mapping table to speed up this step
         for other_component in self.components.values():
             if other_component is component:
                 continue
-            # TODO only do for triggering inputs?
             for input in other_component.inputs.values():
                 for parent in input.parents():
                     if parent == component.name:

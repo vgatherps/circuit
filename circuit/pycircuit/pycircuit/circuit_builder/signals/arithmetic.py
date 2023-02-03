@@ -18,4 +18,4 @@ def generate_binary_definition(operator_name: str) -> Definition:
             input_struct_path="Input",
         ),
         generics_order=frozendict(a=0, b=1),
-    )
+    ).validate()

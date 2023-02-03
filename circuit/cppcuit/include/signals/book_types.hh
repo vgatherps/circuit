@@ -17,6 +17,10 @@ struct BBO {
   BookLevel bid, ask;
 
   double mid() const { return 0.5 * (bid.price + ask.price); }
+  double wmid() const {
+    return (bid.price * ask.size + ask.price * bid.size) /
+           (bid.size + ask.size);
+  }
 };
 
 struct UpdatedLevels {

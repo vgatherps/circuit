@@ -32,7 +32,7 @@ class HasOutput(ABC):
 
         definition = generate_binary_definition(class_name)
 
-        context.add_definititon(def_name, definition)
+        context.add_definition(def_name, definition)
 
         return context.make_component(
             definition_name=def_name,
@@ -136,6 +136,16 @@ ComponentInput = Union[SingleComponentInput, ArrayComponentInput]
 @dataclass
 class OutputOptions(DataClassJsonMixin):
     force_stored: bool
+
+    def strongest_of(self, other: "OutputOptions") -> "OutputOptions":
+        return OutputOptions(force_stored=self.force_stored or other.force_stored)
+
+
+@dataclass(eq=True, frozen=True)
+class ComponentIndex:
+    inputs: frozendict[str, ComponentInput]
+    definition: Definition
+    class_generics: frozendict[str, str]
 
 
 @dataclass
@@ -259,6 +269,13 @@ class Component(HasOutput):
             self.output_options[real_output.output_name] = dataclasses.replace(
                 self.output_options[real_output.output_name], force_stored=True
             )
+
+    def index(self) -> ComponentIndex:
+        return ComponentIndex(
+            inputs=frozendict(self.inputs),
+            definition=self.definition,
+            class_generics=frozendict(self.class_generics),
+        )
 
 
 def validate_component_input(

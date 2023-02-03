@@ -36,6 +36,14 @@ from pycircuit.loader.write_circuit_dot import generate_full_circuit_dot
 
 from .call_clang_format import call_clang_format
 from pycircuit.circuit_builder.signals.tree_sum import tree_sum
+from pycircuit.circuit_builder.signals.bbo import bbo_wmid
+from pycircuit.circuit_builder.signals.returns.sided_bbo_returns import (
+    sided_bbo_returns,
+)
+from pycircuit.circuit_builder.signals.returns.ewma_of import returns_against_ewma
+from pycircuit.circuit_builder.signals.symmetric.multi_symmetric_move import (
+    multi_symmetric_move,
+)
 
 HEADER = "pressure"
 STRUCT = "TradePressure"
@@ -50,9 +58,9 @@ def generate_trades_circuit_for_market_venue(
     circuit: CircuitBuilder,
     market: str,
     venue: str,
-    fair: ComponentOutput,
+    fair: HasOutput,
     decay_source: HasOutput,
-) -> Tuple[ComponentOutput, ComponentOutput]:
+) -> Tuple[HasOutput, HasOutput]:
     trades_name = f"{market}_{venue}_trades"
 
     tick_detector = circuit.make_component(
@@ -93,14 +101,16 @@ def generate_trades_circuit_for_market_venue(
         },
     )
 
-    return per_market_venue_decaying_ticks_sum.output(), raw_venue_pressure.output(
-        "running"
-    )
+    return per_market_venue_decaying_ticks_sum, raw_venue_pressure.output("running")
 
 
 def generate_depth_circuit_for_market_venue(
-    circuit: CircuitBuilder, market: str, venue: str, config: TradePressureVenueConfig
-) -> ComponentOutput:
+    circuit: CircuitBuilder,
+    market: str,
+    venue: str,
+    config: TradePressureVenueConfig,
+    decay_source: HasOutput,
+) -> HasOutput:
     depth_name = f"{market}_{venue}_depth"
     book = circuit.make_component(
         definition_name="book_updater",
@@ -109,6 +119,8 @@ def generate_depth_circuit_for_market_venue(
             "depth": circuit.get_external(depth_name, "const DepthUpdate *").output(),
         },
     )
+
+    wmid = bbo_wmid(book.output("bbo"))
 
     fair = circuit.make_component(
         definition_name="book_impulse_tracker",
@@ -124,7 +136,15 @@ def generate_depth_circuit_for_market_venue(
         CallGroup(struct="DepthUpdate", external_field_mapping={"depth": depth_name}),
     )
 
-    return fair.output()
+    wmid_returns = returns_against_ewma(wmid, decay_source)
+    fair_returns = returns_against_ewma(fair, decay_source)
+    bbo_returns = sided_bbo_returns(book.output("bbo"), decay_source)
+
+    one = circuit.make_constant("double", "1")
+
+    return multi_symmetric_move(
+        [wmid_returns, fair_returns, bbo_returns], [[one, one, one]] * 3
+    )
 
 
 def generate_circuit_for_market(
@@ -134,10 +154,10 @@ def generate_circuit_for_market(
     decay_source: ComponentOutput,
 ):
     all_running = []
-    all_ticks: List[ComponentOutput] = []
+    all_ticks = []
     for (venue, venue_config) in config.venues.items():
         fair = generate_depth_circuit_for_market_venue(
-            circuit, market, venue, venue_config
+            circuit, market, venue, venue_config, decay_source
         )
         tick, running = generate_trades_circuit_for_market_venue(
             circuit, market, venue, fair, decay_source

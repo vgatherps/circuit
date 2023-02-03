@@ -155,6 +155,35 @@
                 }
             ]
         },
+        "ewma": {
+            "inputs": {
+                "signal": {},
+                "decay": {
+                    "input_type": "array"
+                }
+            },
+            "output_specs": {
+                "ewma": {
+                    "type_path": "EwmaOut"
+                }
+            },
+            "class_name": "Ewma",
+            "header": "signals/decay/ewma.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "decay"
+                    ],
+                    "observes": [
+                        "signal"
+                    ],
+                    "callback": "decay",
+                    "outputs": [
+                        "ewma"
+                    ]
+                }
+            ]
+        },
         "book_updater": {
             "inputs": {
                 "depth": {}
@@ -298,6 +327,37 @@
             ],
             "class_generics": {
                 "T": 0
+            }
+        },
+        "select": {
+            "inputs": {
+                "a": {},
+                "b": {},
+                "select_a": {}
+            },
+            "output_specs": {
+                "out": {
+                    "ephemeral": true,
+                    "type_path": "Output"
+                }
+            },
+            "generics_order": {
+                "a": 0
+            },
+            "static_call": true,
+            "class_name": "Selector",
+            "header": "signals/select.hh",
+            "generic_callset": {
+                "written_set": [
+                    "a",
+                    "b",
+                    "select_a"
+                ],
+                "callback": "call",
+                "outputs": [
+                    "out"
+                ],
+                "input_struct_path": "Input"
             }
         }
     }

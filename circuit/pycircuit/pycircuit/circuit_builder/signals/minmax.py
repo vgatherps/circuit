@@ -11,7 +11,7 @@ def _do_minmax_of(
 
     definition = generate_binary_definition(class_name)
 
-    context.add_definititon(def_name, definition)
+    context.add_definition(def_name, definition)
 
     return context.make_component(
         definition_name=def_name,

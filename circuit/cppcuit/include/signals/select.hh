@@ -12,27 +12,27 @@ public:
   struct Input {
     optional_reference<const A> a;
     optional_reference<const A> b;
-    optional_reference<const bool> which_one;
+    optional_reference<const bool> select_a;
   };
 
   using Output = A;
 
   template <class O>
-  requires HAS_REF_FIELD(O, Output, out)
-  static bool call(Input inputs, O &o) {
-    if (inputs.which_one.valid()) [[likely]] {
-      if (*inputs.which_one) {
-        if (inputs.a.is_valid()) [[likely]] {
+    requires HAS_REF_FIELD(O, Output, out)
+  static bool call(Input inputs, O &out) {
+    if (inputs.select_a.valid()) [[likely]] {
+      if (*inputs.select_a) {
+        if (inputs.a.valid()) [[likely]] {
           out.out = *inputs.a;
-          return true
+          return true;
         }
       } else {
-        if (inputs.b.is_valid()) [[likely]] {
+        if (inputs.b.valid()) [[likely]] {
           out.out = *inputs.b;
-          return true
+          return true;
         }
       }
     }
+    return false;
   }
-  return false;
 };

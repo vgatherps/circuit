@@ -23,9 +23,7 @@ from pycircuit.circuit_builder.component import Component
 # TODO just dump these functions?
 
 
-def get_used_outputs(
-    component: Component, callset: CallSpec
-) -> Set[ComponentOutput]:
+def get_used_outputs(component: Component, callset: CallSpec) -> Set[ComponentOutput]:
     used_outputs = []
     for input in callset.inputs():
         for output in component.inputs[input].outputs():

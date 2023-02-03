@@ -35,7 +35,6 @@ def generate_array_call(
     if calls is None:
         raise ValueError("Call generation called for a callset with no callback")
 
-
     inputs = callset.inputs()
     assert inputs
 

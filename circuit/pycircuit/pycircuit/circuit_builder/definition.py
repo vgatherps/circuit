@@ -151,7 +151,7 @@ def decode_call_list(inputs: Any) -> None | str | FrozenList[str]:
             raise ValueError(
                 "Multiple calls per callset currently disabled at definition layer, "
                 "but supported in rest of code"
-                )
+            )
         case _:
             raise ValueError(f"Could not parse callback list {inputs}")
 
@@ -578,12 +578,13 @@ class Definition(DataClassJsonMixin):
                 f"{self.default_output} that is not in outputs"
             )
 
-    def validate(self):
+    def validate(self) -> "Definition":
         self.validate_generics()
         self.validate_callsets()
         self.validate_callset_groups()
         self.validate_outputs()
         self.validate_timer()
+        return self
 
     def outputs(self) -> List[str]:
         return list(self.output_specs.keys())

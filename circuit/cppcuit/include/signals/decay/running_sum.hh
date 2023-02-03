@@ -16,7 +16,7 @@ public:
     requires(HAS_OPT_REF(A, double, tick) &&
              HAS_REF_FIELD(O, double, running_sum))
   static void on_tick(A input, O output) {
-    if (!input.tick.valid()) {
+    if (!input.tick.valid()) [[likely]] {
       return;
     }
     output.running_sum += *input.tick;
@@ -26,7 +26,7 @@ public:
     requires(HAS_ARR_OPT(A, double, decay) &&
              HAS_REF_FIELD(O, double, running_sum))
   static void decay(A input, O output) {
-    if (input.decay.valid()) {
+    if (input.decay.valid()) [[likely]] {
       output.running_sum *= input.decay;
     }
   }

@@ -9,7 +9,7 @@ def clean_float_name(f_name: str) -> str:
 
 
 def generate_constant_definition(
-    constant_type: str, constructor: Optional[str]
+    constant_type: str, constructor: str
 ) -> Definition:
     defin = Definition(
         class_name=f"CtorConstant<{constant_type}>",
@@ -36,7 +36,7 @@ def generate_constant_definition(
 
 
 def generate_triggerable_constant_definition(
-    constant_type: str, constructor: Optional[str]
+    constant_type: str, constructor: str
 ) -> Definition:
     defin = Definition(
         class_name=f"TriggerableConstant<{constant_type}>",
