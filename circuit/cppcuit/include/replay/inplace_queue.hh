@@ -7,13 +7,22 @@
 #include <memory>
 #include <optional>
 
+#include "alloc/vec_list_alloc.hh"
+
 template <class T, class C>
 concept comparable_with = std::predicate<C, const T &, const T &>;
 
 template <class T, class C = std::less<T>>
   requires comparable_with<T, C> && std::is_default_constructible_v<C>
 class in_place_queue {
-  std::vector<T> data;
+
+public:
+  using RawIndex = std::uint32_t;
+  using RawHandle = AllocHandle<RawIndex, T>;
+
+private:
+  VecListAlloc<T, RawIndex> alloc;
+  std::vector<RawHandle> data;
 
   static std::size_t parent(std::size_t index) {
     assert(index > 0);
@@ -27,7 +36,10 @@ class in_place_queue {
     std::size_t child_b = 1 + child_a;
 
     if (child_a < data.size()) {
-      C c;
+      C comp;
+      auto c = [this, &comp](RawHandle a, RawHandle b) {
+        return comp(this->alloc[a], this->alloc[b]);
+      };
       std::optional<std::size_t> swap_index;
 
       // if less(data[index], data[child_a (or child_b)])
@@ -50,7 +62,10 @@ class in_place_queue {
       return bubble_down_from(0);
     }
 
-    C c;
+    C comp;
+    auto c = [this, &comp](RawHandle a, RawHandle b) {
+      return comp(this->alloc[a], this->alloc[b]);
+    };
 
     std::size_t parent_index = parent(index);
 
@@ -66,15 +81,19 @@ class in_place_queue {
   }
 
 public:
+  T &operator[](RawHandle handle) { return alloc[handle]; }
+  const T &operator[](RawHandle handle) const { return alloc[handle]; }
+
   template <class F>
     requires std::predicate<F, T &>
   void operate_on_top(const F &f) {
     if (data.size() > 0) [[likely]] {
       // TODO add return type that says no modification as well?
-      bool retain = f(data.front());
+      bool retain = f(alloc[data.front()]);
 
       if (!retain) [[likely]] {
         std::swap(data.front(), data.back());
+        alloc.deallocate(data.back());
         data.pop_back();
       }
 
@@ -83,7 +102,8 @@ public:
   }
 
   void push(T value) {
-    data.emplace_back(std::move(value));
+    RawHandle handle = alloc.allocate(std::move(value));
+    data.emplace_back(handle);
     bubble_up_from(data.size() - 1);
   }
 
@@ -93,7 +113,7 @@ public:
 
   std::size_t size() const { return data.size(); }
 
-  const T &top() const { return data[0]; }
+  const T &top() const { return alloc[data[0]]; }
 
-  T &top_mut() { return data[0]; }
+  T &top_mut() { return alloc[data[0]]; }
 };

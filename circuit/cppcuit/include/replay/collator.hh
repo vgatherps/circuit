@@ -94,17 +94,15 @@ public:
     if (recompute_top) [[likely]] {
       assert(pending_queue.size() > 0);
 
-      pending_queue.operate_on_top(
-        [](PendingElement &pending) {
-          std::optional<T> maybe_next = pending.source->next_element();
-          if (maybe_next.has_value()) [[likely]] {
-            pending.data = std::move(*maybe_next);
-            return true;
-          } else {
-            return false;
-          }
+      pending_queue.operate_on_top([](PendingElement &pending) {
+        std::optional<T> maybe_next = pending.source->next_element();
+        if (maybe_next.has_value()) [[likely]] {
+          pending.data = std::move(*maybe_next);
+          return true;
+        } else {
+          return false;
         }
-      );
+      });
     }
 
     if (pending_queue.size() == 0) [[unlikely]] {
@@ -115,7 +113,8 @@ public:
     return std::move(pending_queue.top_mut().data);
   }
 
-  Collator(std::vector<std::unique_ptr<CollatorSource<T>>> sources) : recompute_top(false) {
+  Collator(std::vector<std::unique_ptr<CollatorSource<T>>> sources)
+      : recompute_top(false) {
     for (auto &source : sources) {
       add_from_source(std::move(source));
     }

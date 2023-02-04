@@ -15,7 +15,7 @@ void RawTimerQueue::adjust_early_timestamps(std::uint64_t now) {
     this->timer_events.pop();
   }
 
-  this->timer_events = std::move(adjusted_queue);
+  std::swap(this->timer_events, adjusted_queue);
 }
 
 void RawTimerQueue::add_event(RawTimerCall call) {

@@ -6,6 +6,8 @@
 #include <queue>
 #include <vector>
 
+#include "replay/inplace_queue.hh"
+
 using CircuitTime = std::uint64_t;
 
 struct RawTimerCall {
@@ -31,10 +33,8 @@ struct RawTimerCall {
 // I'm just too lazy now to implement myself
 // iirc stl heaps tend to be super slow also
 class RawTimerQueue {
-  std::priority_queue<RawTimerCall, std::vector<RawTimerCall>,
-                      std::greater<RawTimerCall>>
-      timer_events;
 
+  in_place_queue<RawTimerCall, std::greater<RawTimerCall>> timer_events;
   bool has_first_time = false;
 
   // Put the nontrivial pieces of work into their own cc file
