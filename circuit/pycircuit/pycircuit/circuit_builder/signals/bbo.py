@@ -19,7 +19,7 @@ def generate_bbo_definition(name: str) -> Definition:
             written_set=frozenset(["bbo"]),
             callback="on_bbo",
             outputs=frozenset(["out"]),
-        )
+        ),
     ).validate()
 
 

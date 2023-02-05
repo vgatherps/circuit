@@ -30,7 +30,7 @@ class HasOutput(ABC):
 
         context = CircuitContextManager.active_circuit()
 
-        definition = generate_binary_definition(class_name)
+        definition = generate_binary_definition(def_name, class_name)
 
         context.add_definition(def_name, definition)
 
@@ -111,6 +111,10 @@ class SingleComponentInput(DataClassJsonMixin):
 class InputBatch:
     inputs: frozendict[str, ComponentOutput]
 
+    @property
+    def d_inputs(self) -> Dict[str, ComponentOutput]:
+        return self.inputs
+
 
 @dataclass(eq=True, frozen=True)
 class ArrayComponentInput(DataClassJsonMixin):
@@ -130,7 +134,7 @@ class ArrayComponentInput(DataClassJsonMixin):
         )
 
 
-ComponentInput = Union[SingleComponentInput, ArrayComponentInput]
+ComponentInput = SingleComponentInput | ArrayComponentInput
 
 
 @dataclass

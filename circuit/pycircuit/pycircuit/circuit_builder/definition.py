@@ -364,6 +364,10 @@ class Definition(DataClassJsonMixin):
                    This is distinct from static call - a component that simply writes a constant
                    into a circuit output would get called at init, but never get
                    called by the circuit and shouldn't ever use up any storage
+
+        differentiable_operator_name: If the component can be replicated offline by a
+                                      pytorch/tensorflow operation, this is the name of said
+                                      operation.
     """
 
     class_name: str
@@ -407,6 +411,10 @@ class Definition(DataClassJsonMixin):
     class_generics: frozendict[str, int] = field(default_factory=frozendict)
 
     callset_groups: frozenset[CallsetGroup] = frozenset()
+
+    differentiable_operator_name: Optional[str] = None
+
+    metadata: frozendict[str, Any] = field(default_factory=frozendict)
 
     def validate_generics(self):
         for key in self.generics_order:
@@ -622,6 +630,10 @@ class Definition(DataClassJsonMixin):
     @property
     def d_output_specs(self) -> Dict[str, OutputSpec]:
         return self.output_specs
+
+    @property
+    def differentiable(self) -> bool:
+        return self.differentiable_operator_name is not None
 
 
 @dataclass

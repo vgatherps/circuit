@@ -24,6 +24,7 @@ from pycircuit.circuit_builder.component import ComponentIndex
 
 from .signals.constant import (
     generate_constant_definition,
+    generate_parameter_definition,
     generate_triggerable_constant_definition,
 )
 
@@ -221,13 +222,13 @@ class CircuitBuilder(CircuitData):
 
     def _insert_component(self, component: Component, force: bool) -> Component:
         if component.name in self.components:
-            if self.components[component.name] == component:
+            if self.components[component.name] == component and not force:
                 return self.components[component.name]
 
             # TODO compute diff
             raise ValueError(
                 f"Inserting second component named {component.name} "
-                "but with a distinct definition"
+                "but with a distinct definition or forced insert"
             )
 
         index = component.index()
@@ -367,13 +368,27 @@ class CircuitBuilder(CircuitData):
 
         return self._insert_component(comp, force=force_insert)
 
+    def make_parameter(self, name: str) -> "Component":
+        definition = generate_parameter_definition()
+
+        self.add_definition("parameter", definition)
+
+        comp = Component(
+            name=name,
+            definition=definition,
+            inputs={},
+            output_options={},
+            class_generics={},
+        )
+
+        return self._insert_component(comp, force=True)
+
     def make_constant(self, type: str, constructor: Optional[str]) -> "Component":
         if constructor is not None:
             ctor_name = constructor
         else:
             ctor_name = "{}"
         definition = generate_constant_definition(type, ctor_name)
-
 
         def_name = f"constant_{type}_{ctor_name}"
 
