@@ -33,7 +33,7 @@ it's quite good though
 
 from typing import List, Optional, Tuple
 from pycircuit.circuit_builder.circuit import HasOutput
-from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum
+from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum, soft_bounded_sum
 from pycircuit.circuit_builder.signals.discount_by import discount_by
 
 
@@ -42,7 +42,9 @@ from pycircuit.circuit_builder.signals.discount_by import discount_by
 
 def multi_symmetric_move(
     vals: List[HasOutput],
-    coefficients: List[Optional[List[Optional[HasOutput]]]],
+    coefficients: List[List[HasOutput]],
+    post_coeffs: Optional[List[List[HasOutput]]] = None,
+    scale: float = 1.0,
 ):
     """This computes the following operations on inputs 0..i, S_i with coeffs[0..i, 0..i]:
 
@@ -66,12 +68,9 @@ def multi_symmetric_move(
     if len(vals) < 2:
         raise ValueError("Must pass at least 2 signals to multi_symmetric_move")
 
-    def d_i_for(idx: int) -> Optional[Tuple[HasOutput, HasOutput]]:
+    def d_i_for(idx: int) -> HasOutput:
         "If the row has a coefficient returns D_i, coefficient)"
         clist = coefficients[idx]
-
-        if clist is None:
-            return None
 
         if len(clist) != len(vals):
             raise ValueError(
@@ -83,39 +82,24 @@ def multi_symmetric_move(
         b_coeffs = clist.copy()
 
         b_list.pop(idx)
-        D_coeff = b_coeffs.pop(idx)
+        b_coeffs.pop(idx)
 
-        if D_coeff is None:
-            raise ValueError(
-                f"Cannot pass None coefficient for diagonal {idx}, "
-                "should set whole row to None"
-            )
+        if post_coeffs is not None:
+            plist = post_coeffs[idx].copy()
+            plist.pop(idx)
+            B_i = soft_bounded_sum(b_list, b_coeffs, scale=scale, post_coeffs=plist)
+        else:
+            B_i = soft_bounded_sum(b_list, b_coeffs, scale=scale)
+        D_i = discount_by(vals[idx], B_i)
 
-        blbc = [(l, c) for (l, c) in zip(b_list, b_coeffs) if c is not None]
-
-        clean_b_list, clean_c_list = list(zip(*blbc))
-
-        assert len(clean_b_list) == len(clean_c_list)
-
-        match list(clean_b_list):
-            case []:
-                # The bounded sum is empty, so returns 0 for discount
-                D_i = vals[idx]
-            case [one_input]:
-                D_i = discount_by(vals[idx], one_input)
-            case [*_]:
-                B_i = bounded_sum(list(clean_b_list), list(clean_c_list))
-                D_i = discount_by(vals[idx], B_i)
-
-        return D_i, D_coeff
+        return D_i
 
     D_vec = [d_i_for(idx) for idx in range(len(vals))]
 
-    D_vec_clean = [d for d in D_vec if d is not None]
+    coeffs = [coefficients[i][i] for i in range(0, len(vals))]
 
-    if not D_vec_clean:
-        raise ValueError("No input rows actually had coefficients")
-
-    D_v, D_c = list(zip(*D_vec_clean))
-
-    return bounded_sum(list(D_v), list(D_c))
+    if post_coeffs is not None:
+        p_coeffs = [post_coeffs[i][i] for i in range(0, len(vals))]
+        return soft_bounded_sum(D_vec, coeffs, scale=scale, post_coeffs=p_coeffs)
+    else:
+        return soft_bounded_sum(D_vec, coeffs, scale=scale)

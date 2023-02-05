@@ -7,6 +7,8 @@
 #include "cppcuit/signal_requirements.hh"
 
 // A constant which is always constructed as part of inline default constructor
+// TODO this can get merged with the triggerable constant
+// now that we have optional inputs
 template <class T> class CtorConstant {
 public:
   using Output = T;

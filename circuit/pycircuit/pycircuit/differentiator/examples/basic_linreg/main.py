@@ -13,18 +13,21 @@ import numpy as np
 REAL_X_MUL = 2
 REAL_Y_MUL = -0.4
 
+
 def main():
     gen = create_linreg_circuit()
 
     graph = Graph.discover_from_circuit(gen.circuit, gen.regress)
 
     pprint(graph.pretty())
-    model = Model(graph, )
+    model = Model(
+        graph,
+    )
 
     print(model.edges())
 
-    y_output = ComponentOutput(parent='external', output_name='y')
-    x_output = ComponentOutput(parent='external', output_name='x')
+    y_output = ComponentOutput(parent="external", output_name="y")
+    x_output = ComponentOutput(parent="external", output_name="x")
 
     real_x = np.array([1, 2, 3, 4, 5])
     real_y = np.array([-4, -2, -1, 4, -5])
@@ -38,8 +41,8 @@ def main():
 
     optim = SGD(model.parameters_list(), lr=0.01)
 
-    x_param = model.parameters()['x_factor']
-    y_param = model.parameters()['y_factor']
+    x_param = model.parameters()["x_factor"]
+    y_param = model.parameters()["y_factor"]
 
     loss = torch.nn.MSELoss()
 
@@ -73,6 +76,7 @@ def main():
 
     print("Real results: ", real_results)
     print("Projected results: ", projected.detach().numpy())
+
 
 if __name__ == "__main__":
     main()

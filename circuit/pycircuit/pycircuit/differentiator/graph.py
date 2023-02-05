@@ -1,8 +1,8 @@
 import torch
 import torch.nn
 
-from dataclasses import dataclass
-from dataclasses_json import DataClassJsonMixin
+from dataclasses import dataclass, field
+from dataclasses_json import DataClassJsonMixin, config
 from typing import Any, Dict, List, Sequence, Set
 from pycircuit.circuit_builder.circuit import CircuitData
 from pycircuit.circuit_builder.component import (
@@ -17,7 +17,28 @@ from pycircuit.differentiator.tensor import CircuitTensor
 from frozendict import frozendict
 from frozenlist import FrozenList
 
-from pycircuit.differentiator.tensor import CircuitParameter, make_parameter, make_constant
+from pycircuit.differentiator.tensor import (
+    CircuitParameter,
+    make_parameter,
+    make_constant,
+)
+
+
+def _node_from(input: Dict) -> "Node":
+    match input:
+        case {"name": _, **kwargs} if not kwargs:
+            return ParamNode.from_dict(input)
+        case {"val": _, **kwargs} if not kwargs:
+            return ConstantNode.from_dict(input)
+        case {"output": _, **kwargs} if not kwargs:
+            return EdgeNode.from_dict(input)
+        case {"output": _, "operator_name": _}:
+            return OperatorNode.from_dict(input)
+    raise ValueError(f"Cannot understand node {input}")
+
+
+def _node_from_dict(input: Dict[str, Any]) -> Dict[str, "Node"]:
+    return {name: _node_from(d) for (name, d) in input.items()}
 
 
 def output_to_name(output: ComponentOutput) -> str:
@@ -42,8 +63,8 @@ class ConstantNode(DataClassJsonMixin):
 
 
 @dataclass
-class NodeBatch:
-    nodes: frozendict[str, "Node"]
+class NodeBatch(DataClassJsonMixin):
+    nodes: frozendict[str, "Node"] = field(metadata=config(decoder=_node_from_dict))
 
     @property
     def d_nodes(self) -> Dict[str, "Node"]:
@@ -54,8 +75,12 @@ class NodeBatch:
 class OperatorNode(DataClassJsonMixin):
     output: ComponentOutput
     operator_name: str
-    single_inputs: frozendict[str, "Node"]
+    single_inputs: frozendict[str, "Node"] = field(
+        metadata=config(decoder=_node_from_dict)
+    )
     array_inputs: frozendict[str, FrozenList[NodeBatch]]
+
+    param_names: bool = True
 
     @property
     def d_single_inputs(self) -> Dict[str, "Node"]:
@@ -94,6 +119,8 @@ def _find_edges_from(node: Node) -> Set[ComponentOutput]:
                 all_edges |= _find_edges_from(parent_node)
 
             return all_edges
+
+    raise ValueError("Bad type")
 
 
 def _load_parameter_names(node: Node) -> Set[str]:
@@ -172,6 +199,9 @@ def _traverse_circuit_from(circuit: CircuitData, root: HasOutput) -> Node:
                 operator_name=name,
                 single_inputs=frozendict(single_inputs),
                 array_inputs=frozendict(array_inputs),
+                param_names=component.definition.metadata.get(
+                    "include_param_names", True
+                ),
             )
         case name:
             raise ValueError(f"Operator name {name} not in known tensor operators")
@@ -180,6 +210,8 @@ def _traverse_circuit_from(circuit: CircuitData, root: HasOutput) -> Node:
     raise TypeError("unreachable")
 
 
+# TODO attach metadata to more simply pretty-print
+# arithmetic operators
 def _traverse_pretty(node: Node) -> Any:
     match node:
         case ConstantNode(val=val):
@@ -189,7 +221,10 @@ def _traverse_pretty(node: Node) -> Any:
         case EdgeNode(output=out):
             return output_to_name(out)
         case OperatorNode(
-            operator_name=opname, single_inputs=single, array_inputs=array
+            operator_name=opname,
+            single_inputs=single,
+            array_inputs=array,
+            param_names=True,
         ):
             single_ops = {
                 s_name: _traverse_pretty(s_node) for (s_name, s_node) in single.items()
@@ -199,7 +234,7 @@ def _traverse_pretty(node: Node) -> Any:
                 a_name: [
                     {
                         b_name: _traverse_pretty(b_node)
-                        for (b_name, b_node) in batch.nodes
+                        for (b_name, b_node) in batch.nodes.items()
                     }
                     for batch in a_batches
                 ]
@@ -209,12 +244,30 @@ def _traverse_pretty(node: Node) -> Any:
             if array_ops:
                 return {opname: [single_ops, array_ops]}
             else:
-                return {opname: [single_ops]}
+                return {opname: single_ops}
+        case OperatorNode(
+            operator_name=opname,
+            single_inputs=single,
+            array_inputs=array,
+            param_names=False,
+        ):
+            single_ops_l = [_traverse_pretty(s_node) for s_node in single.values()]
+
+            array_ops_l = [
+                [
+                    [_traverse_pretty(b_node) for b_node in batch.nodes.values()]
+                    for batch in a_batches
+                ]
+                for a_batches in array.values()
+            ]
+
+            return {opname: single_ops_l + array_ops_l}
 
 
-def _traverse_model(node: Node,
-        data: Dict[ComponentOutput, CircuitTensor],
-        parameters: Dict[str, CircuitParameter],
+def _traverse_model(
+    node: Node,
+    data: Dict[ComponentOutput, CircuitTensor],
+    parameters: Dict[str, CircuitParameter],
 ) -> CircuitTensor:
     match node:
         case ConstantNode(val=val):
@@ -238,7 +291,8 @@ def _traverse_model(node: Node,
         ):
             operator = ALL_OPERATORS[opname]
             singles = {
-                s_name: _traverse_model(s_node, data, parameters) for (s_name, s_node) in node.d_single_inputs.items()
+                s_name: _traverse_model(s_node, data, parameters)
+                for (s_name, s_node) in node.d_single_inputs.items()
             }
             arrays = {
                 b_name: [
@@ -251,12 +305,18 @@ def _traverse_model(node: Node,
                 for (b_name, array) in node.d_array_inputs.items()
             }
 
-            return operator.operate(singles, arrays)
+            return operator.compute(singles, arrays)
+
+
+# TODO - should consider how to create minimal trees
+# Much of the 'differentiable' computation is not attached to parameters
+# and just condenses already-sampled data down.
+# We should instead try and discover the minimum-sampling graph
 
 
 @dataclass
 class Graph(DataClassJsonMixin):
-    root: Node
+    root: Node = field(metadata=config(decoder=_node_from))
 
     @staticmethod
     def discover_from_circuit(circuit: CircuitData, root: HasOutput) -> "Graph":
@@ -264,11 +324,11 @@ class Graph(DataClassJsonMixin):
         node = _traverse_circuit_from(circuit, root)
         return Graph(root=node)
 
-    def find_edges(self) -> Set[ComponentOutput]:
-        return _find_edges_from(self.root)
+    def find_edges(self) -> List[ComponentOutput]:
+        return sorted(_find_edges_from(self.root), key=output_to_name)
 
-    def find_parameter_names(self) -> Set[str]:
-        return _load_parameter_names(self.root)
+    def find_parameter_names(self) -> List[str]:
+        return sorted(_load_parameter_names(self.root))
 
     def pretty(self) -> Any:
         return _traverse_pretty(self.root)
@@ -281,6 +341,14 @@ class Graph(DataClassJsonMixin):
         parameters: Dict[str, CircuitParameter],
     ) -> CircuitTensor:
         return _traverse_model(self.root, data, parameters)
+
+    def mark_stored(self, circuit: CircuitData):
+        for edge in self.find_edges():
+            circuit.components[edge.parent].force_stored(edge.output_name)
+
+    @staticmethod
+    def parse_from_dict(json: Dict[str, Any]) -> "Graph":
+        return Graph(root=_node_from(json["root"]))
 
 
 class Model:
@@ -301,5 +369,5 @@ class Model:
     def parameters_list(self) -> List[CircuitParameter]:
         return list(self.parameters().values())
 
-    def edges(self) -> Set[ComponentOutput]:
+    def edges(self) -> List[ComponentOutput]:
         return self._graph.find_edges()

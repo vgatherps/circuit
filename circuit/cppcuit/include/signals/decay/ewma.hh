@@ -29,6 +29,9 @@ public:
     if (has_value) [[likely]] {
       if (arr_input.decay.valid()) [[likely]] {
         double decay_by = *arr_input.decay;
+        if (decay_by > 1.0 || decay_by < 0.0 || !std::isfinite(decay_by)) {
+          cold_runtime_error("Invalid decay by");
+        }
         assert(decay_by <= 1.0);
         assert(decay_by >= 0.0);
 
@@ -36,10 +39,11 @@ public:
         // equal to new_value - decay_by * new_value
         // which directly translates to fnmadd
         double update_with = new_value - decay_by * new_value;
-        output.ewma *= (decay_by + update_with);
+        output.ewma = (output.ewma * decay_by) + update_with;
       }
     } else {
       output.ewma = new_value;
+      has_value = true;
     }
     return true;
   }

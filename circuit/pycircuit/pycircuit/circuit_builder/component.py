@@ -37,7 +37,7 @@ class HasOutput(ABC):
         return context.make_component(
             definition_name=def_name,
             name=get_novel_name(def_name),
-            inputs={"a": self.output(), "b": other.output()},
+            inputs={"a": self, "b": other},
         )
 
     def __add__(self, other: "HasOutput") -> "Component":

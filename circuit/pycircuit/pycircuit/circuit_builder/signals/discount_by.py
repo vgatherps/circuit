@@ -25,7 +25,7 @@ def discount_by(a: HasOutput, b: HasOutput, zero_type="double"):
 
     context = CircuitContextManager.active_circuit()
 
-    zero = context.make_constant(zero_type, constructor=None)
+    zero = context.make_constant(zero_type, constructor="0")
 
     a_leq_zero_case = max_of(a, min_of(b, zero))
     a_geq_zero_case = min_of(a, max_of(b, zero))

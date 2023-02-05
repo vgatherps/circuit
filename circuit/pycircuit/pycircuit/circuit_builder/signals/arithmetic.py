@@ -19,4 +19,5 @@ def generate_binary_definition(diff_name: str, operator_name: str) -> Definition
         ),
         generics_order=frozendict(a=0, b=1),
         differentiable_operator_name=diff_name,
+        metadata=frozendict({"include_param_names": False}),
     ).validate()

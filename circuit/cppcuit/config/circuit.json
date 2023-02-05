@@ -1,6 +1,6 @@
 {
     "global_decay_source": {
-        "half_life_ns": 1000000
+        "half_life_ns": 1000000000
     },
     "ethusdt_decaying_tick_sum": {
         "tick_decay": 0.99

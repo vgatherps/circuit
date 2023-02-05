@@ -67,4 +67,4 @@ def top_level_real_loader(prefix: str = "") -> str:
 RawDiscoveredCallback {prefix}do_real_call_lookup(
     const std::string &{INPUT_STR_NAME},
     const std::type_info &{INPUT_TYPEID_NAME}
-)"""
+) const"""

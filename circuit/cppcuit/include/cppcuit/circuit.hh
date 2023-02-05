@@ -25,11 +25,11 @@ using RawDiscoveredCallback =
 
 class Circuit {
 protected:
-  virtual RawOutputHandle do_real_component_lookup(const std::string &,
-                                                   const std::string &,
-                                                   const std::type_info &) = 0;
-  virtual RawDiscoveredCallback do_real_call_lookup(const std::string &,
-                                                    const std::type_info &) = 0;
+  virtual RawOutputHandle
+  do_real_component_lookup(const std::string &, const std::string &,
+                           const std::type_info &) const = 0;
+  virtual RawDiscoveredCallback
+  do_real_call_lookup(const std::string &, const std::type_info &) const = 0;
 
 protected:
   CircuitTime last_called_time = 0;
@@ -80,12 +80,12 @@ public:
 
   template <class T>
   OutputHandle<T> load_component_output(const std::string &component,
-                                        const std::string &output) {
+                                        const std::string &output) const {
     return do_real_component_lookup(component, output, typeid(T));
   }
 
   template <class T>
-  DiscoveredCallback<T> load_callback(const std::string &name) {
+  DiscoveredCallback<T> load_callback(const std::string &name) const {
     RawDiscoveredCallback raw_address = do_real_call_lookup(name, typeid(T));
 
     return std::visit(

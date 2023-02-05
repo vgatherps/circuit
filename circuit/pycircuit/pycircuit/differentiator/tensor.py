@@ -22,4 +22,6 @@ def make_parameter(initial_value: Optional[CircuitTensor] = None):
 
 
 def make_constant(value: float | List[float]) -> CircuitTensor:
+    if isinstance(value, float):
+        value = [value]
     return CircuitTensor(value)

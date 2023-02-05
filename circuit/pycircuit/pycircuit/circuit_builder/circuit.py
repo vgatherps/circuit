@@ -460,3 +460,6 @@ class CircuitBuilder(CircuitData):
         del self.components[component.name]
         component.name = new_name
         self.components[new_name] = component
+
+    def lookup(self, name: str) -> Component:
+        return self.components[name]

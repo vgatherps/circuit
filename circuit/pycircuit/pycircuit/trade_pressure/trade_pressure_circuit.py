@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
@@ -19,6 +19,7 @@ from pycircuit.loader.write_circuit_call import CallStructOptions, generate_circ
 from pycircuit.loader.write_circuit_call_dot import generate_circuit_call_dot
 from pycircuit.loader.write_circuit_init import InitStructOptions, generate_circuit_init
 from pycircuit.loader.write_circuit_struct import generate_circuit_struct_file
+from pycircuit.differentiator.trainer.data_writer_config import WriterConfig
 from pycircuit.loader.write_timer_call import (
     TimerCallStructOptions,
     generate_timer_call,
@@ -26,6 +27,7 @@ from pycircuit.loader.write_timer_call import (
 from pycircuit.circuit_builder.circuit import ExternalStruct
 from pycircuit.circuit_builder.circuit import OutputArray
 from pycircuit.circuit_builder.component import HasOutput
+from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum, soft_bounded_sum
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     TradePressureConfig,
@@ -36,7 +38,7 @@ from pycircuit.loader.write_circuit_dot import generate_full_circuit_dot
 
 from .call_clang_format import call_clang_format
 from pycircuit.circuit_builder.signals.tree_sum import tree_sum
-from pycircuit.circuit_builder.signals.bbo import bbo_wmid
+from pycircuit.circuit_builder.signals.bbo import bbo_wmid, bbo_mid
 from pycircuit.circuit_builder.signals.returns.sided_bbo_returns import (
     sided_bbo_returns,
 )
@@ -44,9 +46,13 @@ from pycircuit.circuit_builder.signals.returns.ewma_of import returns_against_ew
 from pycircuit.circuit_builder.signals.symmetric.multi_symmetric_move import (
     multi_symmetric_move,
 )
+from pycircuit.differentiator.graph import Graph
 
 HEADER = "pressure"
 STRUCT = "TradePressure"
+
+USE_SYMMETRIC = True
+USE_SOFT_LINREG = True
 
 
 @dataclass
@@ -67,7 +73,7 @@ def generate_trades_circuit_for_market_venue(
         definition_name="tick_detector",
         name=f"{market}_{venue}_tick_detector",
         inputs={
-            "trade": circuit.get_external(trades_name, "const Trade *").output(),
+            "trade": circuit.get_external(trades_name, "const Trade *"),
         },
     )
 
@@ -75,7 +81,7 @@ def generate_trades_circuit_for_market_venue(
         definition_name="tick_aggregator",
         name=f"{market}_{venue}_tick_aggregator",
         inputs={
-            "trade": circuit.get_external(trades_name, "const Trade *").output(),
+            "trade": circuit.get_external(trades_name, "const Trade *"),
             "fair": fair,
             "tick": tick_detector.output(),
         },
@@ -101,6 +107,14 @@ def generate_trades_circuit_for_market_venue(
         },
     )
 
+    circuit.make_component(
+        "bucket_sampler",
+        name=f"{market}_{venue}_bucket_sampler",
+        inputs={
+            "trade": circuit.get_external(trades_name, "const Trade *"),
+        },
+    )
+
     return per_market_venue_decaying_ticks_sum, raw_venue_pressure.output("running")
 
 
@@ -116,11 +130,14 @@ def generate_depth_circuit_for_market_venue(
         definition_name="book_updater",
         name=f"{market}_{venue}_book_updater",
         inputs={
-            "depth": circuit.get_external(depth_name, "const DepthUpdate *").output(),
+            "depth": circuit.get_external(depth_name, "const DepthUpdate *"),
         },
     )
 
     wmid = bbo_wmid(book.output("bbo"))
+
+    mid = bbo_mid(book.output("bbo"))
+    circuit.rename_component(mid, f"{market}_{venue}_mid")
 
     fair = circuit.make_component(
         definition_name="book_impulse_tracker",
@@ -140,11 +157,56 @@ def generate_depth_circuit_for_market_venue(
     fair_returns = returns_against_ewma(fair, decay_source)
     bbo_returns = sided_bbo_returns(book.output("bbo"), decay_source)
 
-    one = circuit.make_constant("double", "1")
+    inputs: List[HasOutput] = [wmid_returns, fair_returns, bbo_returns]
 
-    return multi_symmetric_move(
-        [wmid_returns, fair_returns, bbo_returns], [[one, one, one]] * 3
-    )
+    if USE_SYMMETRIC:
+
+        sym_move_params: List[List[HasOutput]] = []
+        sym_move_reg_params: List[List[HasOutput]] = []
+
+        for i in range(0, len(inputs)):
+            row: List[HasOutput] = []
+            row_reg: List[HasOutput] = []
+            for j in range(0, len(inputs)):
+                name = f"{market}_{venue}_symmetric_soft_{i}_{j}"
+                row.append(circuit.make_parameter(name))
+                name = f"{market}_{venue}_symmetric_reg_{i}_{j}"
+                row_reg.append(circuit.make_parameter(name))
+            sym_move_params.append(row)
+            sym_move_reg_params.append(row_reg)
+
+        move = multi_symmetric_move(
+            inputs, sym_move_params, scale=10000, post_coeffs=sym_move_reg_params
+        )
+    else:
+        move = circuit.make_constant("double", "0")
+
+    if USE_SOFT_LINREG:
+        soft_parameters: List[HasOutput] = [
+            circuit.make_parameter(f"{market}_{venue}_soft_{i}")
+            for i in range(0, len(inputs))
+        ]
+        soft_linreg_parameters: List[HasOutput] = [
+            circuit.make_parameter(f"{market}_{venue}_softreg_{i}")
+            for i in range(0, len(inputs))
+        ]
+        softreg = soft_bounded_sum(
+            inputs, soft_parameters, scale=10000, post_coeffs=soft_linreg_parameters
+        )
+    else:
+        softreg = circuit.make_constant("double", "0")
+
+    linreg_params: List[HasOutput] = [
+        circuit.make_parameter(f"{market}_{venue}_linreg_{i}")
+        for i in range(0, len(inputs))
+    ]
+
+    linreg = tree_sum([inputs[i] * linreg_params[i] for i in range(0, len(inputs))])
+
+    combined = softreg + move + linreg
+
+    circuit.rename_component(combined, f"{market}_{venue}_depth_move")
+    return combined
 
 
 def generate_circuit_for_market(
@@ -250,6 +312,35 @@ def main():
     with CircuitContextManager(circuit):
         generate_trade_pressure_circuit(circuit, trade_pressure, decay_source)
 
+    for (market, market_config) in trade_pressure.markets.items():
+        for venue in market_config.venues.keys():
+            market_venue_graph = Graph.discover_from_circuit(
+                circuit, circuit.components[f"{market}_{venue}_depth_move"]
+            )
+
+            market_venue_graph.mark_stored(circuit)
+
+            with open(f"{out_dir}/{market}_{venue}_depth_graph.json", "w") as write_to:
+                write_to.write(market_venue_graph.to_json())
+
+            target = circuit.components[f"{market}_{venue}_mid"]
+            sampler = circuit.components[f"{market}_{venue}_bucket_sampler"]
+
+            target.force_stored()
+            sampler.force_stored()
+
+            sample_config = WriterConfig(
+                outputs=market_venue_graph.find_edges(),
+                target_output=target.output(),
+                sample_on=sampler.output(),
+                ms_future=1000 * 2,
+            )
+
+            with open(
+                f"{out_dir}/{market}_{venue}_writer_config.json", "w"
+            ) as write_to:
+                write_to.write(sample_config.to_json())
+
     # This could be much better abstracted...
     cc_names = []
     for (market, market_config) in trade_pressure.markets.items():
@@ -307,9 +398,6 @@ def main():
                 circuit=circuit,
             )
 
-            with open(f"{out_dir}/{market}_{venue}_depth.dot", "w") as write_to:
-                write_to.write(dot_content)
-
     # Fill out some timer calls
     for component in circuit.components.values():
         timer = component.definition.timer_callset
@@ -351,7 +439,6 @@ def main():
     with open(f"{out_dir}/init.cc", "w") as init_file:
         init_file.write(call_clang_format(init_content))
 
-    # TODO smarter parameterization
     with open(f"{out_dir}/CMakeLists.txt", "w") as cmake_file:
         cmake_file.write(generate_cmake_file(cc_names))
 

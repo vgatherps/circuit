@@ -48,6 +48,12 @@ add_subdirectory(submodules/abseil-cpp)
 target_link_libraries(cppcuit_lib flatbuffers)
 target_link_libraries(cppcuit_lib nlohmann_json::nlohmann_json)
 
+find_package(Arrow REQUIRED)
+target_link_libraries(cppcuit_lib Arrow::arrow_shared)
+
+find_package(Parquet REQUIRED)
+target_link_libraries(cppcuit_lib Parquet::parquet_shared)
+
 include(CTest)
 
 include(CPack)

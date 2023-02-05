@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <limits>
 #include <new>
+#include <vector>
 
 template <std::integral I, class T> class AllocHandle {
   I index;

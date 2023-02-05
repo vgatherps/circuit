@@ -9,7 +9,7 @@ def _do_minmax_of(
 ) -> Component:
     context = CircuitContextManager.active_circuit()
 
-    definition = generate_binary_definition(class_name)
+    definition = generate_binary_definition(def_name, class_name)
 
     context.add_definition(def_name, definition)
 

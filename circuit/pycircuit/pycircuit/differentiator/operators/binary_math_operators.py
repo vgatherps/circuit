@@ -18,16 +18,16 @@ def create_binary(name: str, op: BinaryOp) -> Type[OperatorFn]:
             return {"a", "b"}
 
         @classmethod
-        def array_inputs(cls) -> Set[str]:
-            return set()
+        def array_inputs(cls) -> Dict[str, Set[str]]:
+            return {}
 
         @classmethod
         def operate(
             cls,
             single_inputs: Dict[str, CircuitTensor],
-            array_inputs: Dict[str, List[CircuitTensor]],
+            array_inputs: Dict[str, List[Dict[str, CircuitTensor]]],
         ) -> CircuitTensor:
-            assert len(array_inputs) == 0
+            assert not array_inputs
             return op(single_inputs["a"], single_inputs["b"])
 
     return ABinaryOp

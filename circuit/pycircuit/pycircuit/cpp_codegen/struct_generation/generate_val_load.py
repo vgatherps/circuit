@@ -21,7 +21,7 @@ RawOutputHandle {prefix}{REAL_COMPONENT_LOOKUP_NAME} (
     const std::string &{COMPONENT_STR_NAME},
     const std::string &{OUTPUT_STR_NAME},
     const std::type_info &{TYPE_ID_NAME}
-) {postfix}
+) const {postfix}
 """
 
 

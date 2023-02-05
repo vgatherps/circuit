@@ -93,8 +93,10 @@ template <class T> auto matcher(CircuitCall<T> &dest) {
                        [](WrongCallbackType w) { wrong_call<T>(w); });
 };
 
-MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit)
-    : symbology(syms), callbacks(syms.n_symbols()), circuit(circuit) {
+MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit,
+                         std::optional<Sampler> sampler)
+    : symbology(syms), callbacks(syms.n_symbols()), circuit(circuit),
+      sampler(std::move(sampler)) {
   for (const auto &[symbol_exchange, tid] : syms.symbols()) {
 
     const auto &[exchange, symbol] = symbol_exchange;
@@ -108,8 +110,18 @@ MdCallbacks::MdCallbacks(MdSymbology syms, Circuit *circuit)
   }
 }
 
-void MdCallbacks::handle_update(TidMdMessage msg) const {
+void MdCallbacks::handle_update(TidMdMessage msg) {
   const SymbolCallbacks &callbacks = this->callbacks[msg.key];
+
+  // TODO pass sampler into the callback?
+  auto take_sample = [this, ts = msg.local_timestamp_ns](const Circuit *c) {
+    this->sampler->consider_sample(ts, *c);
+  };
+
+  RawCall<const Circuit *> sample_call;
+  if (sampler.has_value()) {
+    sample_call = RawCall<const Circuit *>(&take_sample);
+  }
 
   auto caller = [&]<class I>(CircuitCall<I> call) {
     using T = typename I::InType;
@@ -117,7 +129,7 @@ void MdCallbacks::handle_update(TidMdMessage msg) const {
       if (call == nullptr) {
         cold_runtime_error("Streamer got message it had no callback for");
       }
-      call(this->circuit, msg.local_timestamp_ns, I(p), {});
+      call(this->circuit, msg.local_timestamp_ns, I(p), sample_call);
     };
   };
 
@@ -128,6 +140,9 @@ void MdCallbacks::handle_update(TidMdMessage msg) const {
 void MdCallbacks::replay_all(TidCollator &collator) {
   auto matcher = scelta::match(
       [this](TidMdMessage msg) {
+        if (sampler.has_value()) {
+          sampler->examine_waiting(msg.local_timestamp_ns, *circuit);
+        }
         while (
             this->circuit->examine_timer_queue<false>(msg.local_timestamp_ns)) {
         }

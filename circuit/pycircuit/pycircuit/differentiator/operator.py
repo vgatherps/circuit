@@ -3,6 +3,10 @@ from typing import Dict, List, Set
 
 from .tensor import CircuitTensor
 
+import numpy as np
+
+VERBOSE = False
+
 
 class OperatorFn(ABC):
     @classmethod
@@ -64,4 +68,14 @@ class OperatorFn(ABC):
                         f"but expected {batch}"
                     )
 
-        return cls.operate(single_inputs, array_inputs)
+        rval = cls.operate(single_inputs, array_inputs)
+
+        if VERBOSE:
+            print()
+            print("operator: ", cls.name())
+            for (iname, ival) in single_inputs.items():
+                print(f"{iname}: {ival.detach().numpy()}")
+            print("returns: ", rval.detach().numpy())
+            print()
+
+        return rval

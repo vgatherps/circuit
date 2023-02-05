@@ -10,6 +10,7 @@
 #include "md_inputs.hh"
 #include "md_source.hh"
 #include "md_types/trade_message_generated.h"
+#include "sampler.hh"
 
 enum class MdCategory { Trade, Depth };
 
@@ -51,11 +52,13 @@ class MdCallbacks {
   MdSymbology symbology;
   std::vector<SymbolCallbacks> callbacks;
   Circuit *circuit;
+  std::optional<Sampler> sampler;
 
 public:
-  MdCallbacks(MdSymbology symbology, Circuit *circuit);
+  MdCallbacks(MdSymbology symbology, Circuit *circuit,
+              std::optional<Sampler> = {});
 
-  void handle_update(TidMdMessage msg) const;
+  void handle_update(TidMdMessage msg);
 
   void replay_all(TidCollator &collator);
 };

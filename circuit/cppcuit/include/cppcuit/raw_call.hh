@@ -9,13 +9,15 @@ template <class... Args> class RawCall {
 
   template <class F>
     requires(std::invocable<F, Args...>)
-  void do_call(const void *data, Args... args) {
+  static void do_call(const void *data, Args... args) {
     const F &call = *(const F *)data;
     std::invoke(call, args...);
   }
 
 public:
   RawCall() = default;
+  RawCall(const RawCall &) = default;
+  RawCall &operator=(const RawCall &) = default;
 
   // Pass by pointer forces the user to construct in a dedicated scope
   template <class F>

@@ -358,7 +358,36 @@
                     "out"
                 ],
                 "input_struct_path": "Input"
-            }
+            },
+            "differentiable_operator_name": "select"
+        },
+        "bucket_sampler": {
+            "inputs": {
+                "trade": {}
+            },
+            "output_specs": {
+                "should_sample": {
+                    "type_path": "Sample"
+                }
+            },
+            "class_name": "TradeBucketSampler",
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true
+            },
+            "header": "signals/sampling/bucket_sampler.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "trade"
+                    ],
+                    "callback": "on_trade",
+                    "outputs": [
+                        "should_sample"
+                    ],
+                    "cleanup": "cleanup"
+                }
+            ]
         }
     }
 }

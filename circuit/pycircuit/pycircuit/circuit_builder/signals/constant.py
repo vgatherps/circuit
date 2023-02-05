@@ -35,28 +35,6 @@ def generate_constant_definition(constant_type: str, constructor: str) -> Defini
     return defin
 
 
-def generate_parameter_definition() -> Definition:
-    defin = Definition(
-        class_name=f"DoubleParameter",
-        output_specs=frozendict(
-            out=OutputSpec(
-                type_path="Output",
-                always_valid=True,
-            )
-        ),
-        inputs=frozendict(),
-        static_call=True,
-        header="signals/parameter.hh",
-        init_spec=InitSpec(
-            init_call="init",
-            takes_params=True,
-        ),
-        differentiable_operator_name="parameter",
-    )
-    defin.validate()
-    return defin
-
-
 def generate_triggerable_constant_definition(
     constant_type: str, constructor: str
 ) -> Definition:
@@ -84,5 +62,27 @@ def generate_triggerable_constant_definition(
         metadata=frozendict({"constant_value": constructor}),
     )
 
+    defin.validate()
+    return defin
+
+
+def generate_parameter_definition() -> Definition:
+    defin = Definition(
+        class_name=f"DoubleParameter",
+        output_specs=frozendict(
+            out=OutputSpec(
+                type_path="Output",
+                always_valid=True,
+            )
+        ),
+        inputs=frozendict(),
+        static_call=True,
+        header="signals/parameter.hh",
+        init_spec=InitSpec(
+            init_call="init",
+            takes_params=True,
+        ),
+        differentiable_operator_name="parameter",
+    )
     defin.validate()
     return defin
