@@ -20,6 +20,7 @@ class TrainerOptions:
     scale_by: float = 10000
     lr: float = 0.01
 
+
 def main():
     args = ArgumentParser(TrainerOptions).parse_args(sys.argv[1:])
 
@@ -52,7 +53,9 @@ def main():
     def report(projected, loss):
 
         print("Training loss: ", float(loss))
-        print("Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target)))
+        print(
+            "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
+        )
 
         for (p_name, param) in model.parameters().items():
             print(f"{p_name}: {float(param)}, {float(param.grad)}")
