@@ -20,9 +20,6 @@ class TrainerOptions:
     scale_by: float = 10000
     lr: float = 0.01
 
-def rsq_loss(a, b):
-    return -torchmetrics.functional.r2_score(a, b)
-
 def main():
     args = ArgumentParser(TrainerOptions).parse_args(sys.argv[1:])
 
@@ -54,8 +51,8 @@ def main():
 
     def report(projected, loss):
 
-        print("Computed r^2: ", -float(loss))
-        print("MSE loss: ", float(mse_loss(projected, target)))
+        print("Training loss: ", float(loss))
+        print("Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target)))
 
         for (p_name, param) in model.parameters().items():
             print(f"{p_name}: {float(param)}, {float(param.grad)}")
@@ -64,7 +61,7 @@ def main():
 
         projected = model.evaluate_on(inputs) * args.scale_by
 
-        computed_loss = rsq_loss(projected, target)
+        computed_loss = mse_loss(projected, target)
 
         optim.zero_grad()
         computed_loss.backward()
