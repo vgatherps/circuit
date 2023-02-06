@@ -1,6 +1,3 @@
-[submodule "simd_decimal/lib/googletest"]
-	path = simd_decimal/lib/googletest
-	url = https://github.com/google/googletest/
 [submodule "circuit/cppcuit/submodules/flatbuffers"]
 	path = circuit/cppcuit/submodules/flatbuffers
 	url = git@github.com:google/flatbuffers.git
