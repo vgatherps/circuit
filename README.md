@@ -34,7 +34,8 @@ The main selling point of circuit is to allow higher level construction of tacti
 3. Circuit allows a full type system of inputs and outputs, so it's easy to factor out any repeated computation
 4. Circuit generates C++ specialized C++ code for each given event, giving performance that rivals and can beat hand-written code
 5. Circuit allows programatic construction of tactics, moving towards a code-is-data model. This allows for example generating many different signal graphs for different signals, using whatever from the library gives the best predictive power instead of a one-size-fits-all model
-6. Circuit allows one to split out easiyl differentiable operators/parameters and train those directly, instead of relying on black-box search from simulations
+6. Circuit allows one to split out easily differentiable operators/parameters and train those directly, instead of relying on black-box search from simulations
+7. Circuit makes it possible to transform complex black-box signals into many differentiable operators
 
 ## Differentiation
 
