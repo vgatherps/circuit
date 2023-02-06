@@ -2,7 +2,6 @@
 
 Circuit is a dataflow tool meant for high performance event processing, with HFT signal calculation in mind.
 
-
 ## What is a circuit
 
 A circuit can be thought of a computation graph. A circuit consists of:
@@ -54,18 +53,17 @@ The commands (as run on my computer) are:
 * Generate circuit, run from the upper pycircuit directory:
   * python3 -m pycircuit.trade_pressure.trade_pressure_circuit --out-dir ../cppcuit/codegen/trade_pressure
 * Run a simulation, run from a build directory called build within cppcuit
-    * ./bin/trade_printer/local_trade_printer --circuit_config ../config/circuit.json --stream_config ../config/streams.json --data_dir ../../data_loader/data/ --sampler_config ../../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_writer_config.json --sampler_output ./dump.parquet
+  * ./bin/trade_printer/local_trade_printer --circuit_config ../config/circuit.json --stream_config ../config/streams.json --data_dir ../../data_loader/data/ --sampler_config ../../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_writer_config.json --sampler_output ./dump.parquet
 * Run the trainer, back from upper pycircuit:
   * python -m pycircuit.differentiator.trainer.train_graph_on --graph-file-path ../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_depth_graph.json --writer-config ../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_writer_config.json --parquet-path ../cppcuit/build/dump.parquet --lr=0.01
 
-
-  ## Auxilary commands:
+## Auxilary commands
 
 All of these assume that you've pulled submodules and installed systemwide arrow libraries.
-
-I haven't put together a proper requirements.txt for python since the environment is a wasteland, I'll fix that at some point
+There's a requirements.txt in pycircuit as well
 
 For building:
+
   1. Follow the pycircuit generation steps (otherwise cmake complains it can't find the circuit)
   2. python3 -m pycircuit.test_generator.generate_all_tests --out-dir ../cppcuit/generated_tests/codegen
   3. cd cppcuit
