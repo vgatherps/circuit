@@ -5,8 +5,8 @@ import sys
 
 import pandas as pd
 import torch
+import torchmetrics.functional
 from torch.optim import SGD
-import numpy as np
 
 from pycircuit.differentiator.trainer.data_writer_config import WriterConfig
 from pycircuit.differentiator.graph import Graph, output_to_name, Model
@@ -20,6 +20,8 @@ class TrainerOptions:
     scale_by: float = 10000
     lr: float = 0.01
 
+def rsq_loss(a, b):
+    return -torchmetrics.functional.r2_score(a, b)
 
 def main():
     args = ArgumentParser(TrainerOptions).parse_args(sys.argv[1:])
@@ -48,16 +50,12 @@ def main():
     target = torch.tensor(target_returns * args.scale_by)
 
     optim = SGD(model.parameters_list(), lr=args.lr)
-    loss = torch.nn.MSELoss()
+    mse_loss = torch.nn.MSELoss()
 
     def report(projected, loss):
 
-        print("Computed loss: ", float(loss))
-
-        corr_matrix = np.corrcoef(target_returns, projected.detach().numpy())
-        rsq = corr_matrix[0, 1] ** 2
-
-        print(f"R^2: {rsq}")
+        print("Computed r^2: ", -float(loss))
+        print("MSE loss: ", float(mse_loss(projected, target)))
 
         for (p_name, param) in model.parameters().items():
             print(f"{p_name}: {float(param)}, {float(param.grad)}")
@@ -66,7 +64,7 @@ def main():
 
         projected = model.evaluate_on(inputs) * args.scale_by
 
-        computed_loss = loss(projected, target)
+        computed_loss = rsq_loss(projected, target)
 
         optim.zero_grad()
         computed_loss.backward()

@@ -66,10 +66,12 @@ All of these assume that you've pulled submodules and installed systemwide arrow
 I haven't put together a proper requirements.txt for python since the environment is a wasteland, I'll fix that at some point
 
 For building:
-  1. cd cppcuit
-  2. mkdir build && cd build
-  3. cmake -DCMAKE_BUILD_TYPE=Release ../
-  4. make [add -j \<number_of_cores\> to parallelize]
+  1. Follow the pycircuit generation steps (otherwise cmake complains it can't find the circuit)
+  2. python3 -m pycircuit.test_generator.generate_all_tests --out-dir ../cppcuit/generated_tests/codegen
+  3. cd cppcuit
+  4. mkdir build && cd build
+  5. cmake -DCMAKE_BUILD_TYPE=Release ../
+  6. make [add -j \<number_of_cores\> to parallelize]
 
 For downloading data (only binance futures supported now)
 
