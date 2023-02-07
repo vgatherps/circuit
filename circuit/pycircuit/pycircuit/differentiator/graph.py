@@ -24,7 +24,7 @@ from pycircuit.differentiator.tensor import (
 )
 
 
-def _node_from(input: Dict) -> "Node":
+def _node_from(input: Dict, cache: Dict[ComponentOutput, "Node"]) -> "Node":
     match input:
         case {"name": _, **kwargs} if not kwargs:
             return ParamNode.from_dict(input)
@@ -32,13 +32,21 @@ def _node_from(input: Dict) -> "Node":
             return ConstantNode.from_dict(input)
         case {"output": _, **kwargs} if not kwargs:
             return EdgeNode.from_dict(input)
-        case {"output": _, "operator_name": _}:
-            return OperatorNode.from_dict(input)
+        case {"output": out, "operator_name": _}:
+            output = ComponentOutput.from_dict(out)
+            if output in cache:
+                return cache[output]
+            node = OperatorNode.cached_from_dict(input, cache)
+            cache[output] = node
+            return node
+
     raise ValueError(f"Cannot understand node {input}")
 
 
-def _node_from_dict(input: Dict[str, Any]) -> Dict[str, "Node"]:
-    return {name: _node_from(d) for (name, d) in input.items()}
+def _node_from_dict(
+    input: Dict[str, Any], cache: Dict[ComponentOutput, "Node"]
+) -> Dict[str, "Node"]:
+    return {name: _node_from(d, cache) for (name, d) in input.items()}
 
 
 def output_to_name(output: ComponentOutput) -> str:
@@ -72,12 +80,10 @@ class NodeBatch(DataClassJsonMixin):
 
 
 @dataclass(frozen=True, eq=True)
-class OperatorNode(DataClassJsonMixin):
+class OperatorNode:
     output: ComponentOutput
     operator_name: str
-    single_inputs: frozendict[str, "Node"] = field(
-        metadata=config(decoder=_node_from_dict)
-    )
+    single_inputs: frozendict[str, "Node"]
     array_inputs: frozendict[str, FrozenList[NodeBatch]]
 
     param_names: bool = True
@@ -90,19 +96,47 @@ class OperatorNode(DataClassJsonMixin):
     def d_array_inputs(self) -> Dict[str, FrozenList[NodeBatch]]:
         return self.array_inputs
 
+    @staticmethod
+    def cached_from_dict(input: Dict[str, Any], cache: Dict["ComponentOutput", "Node"]):
+        output = ComponentOutput.from_dict(input["output"])
+        operator_name = str(input["operator_name"])
+        single_inputs = _node_from_dict(input["single_inputs"], cache)
+
+        # TODO another big hack
+        if "array_inputs" in input and input["array_inputs"]:
+            raise ValueError(
+                f"Output {output} operator {operator_name} "
+                "trying to load array inputs from json before it's supported"
+            )
+
+        return OperatorNode(
+            output=output,
+            operator_name=operator_name,
+            single_inputs=single_inputs,
+            array_inputs=frozendict(),
+            param_names=bool(input.get("param_names", True)),
+        )
+
 
 Node = EdgeNode | OperatorNode | ParamNode | ConstantNode
 
 
 # TODO the raw iteration away
 # and cache already-seen nodes
-def _find_edges_from(node: Node) -> Set[ComponentOutput]:
+def _find_edges_from(node: Node, seen: Set[ComponentOutput]) -> Set[ComponentOutput]:
     match node:
         case EdgeNode(output=output):
             return set([output])
         case ParamNode() | ConstantNode():
             return set()
-        case OperatorNode(single_inputs=single):
+
+        case OperatorNode(output) if output in seen:
+            # We've already merged in the true set from some other node
+            # No need to cache intermediate seen sets everywhere
+            return set()
+
+        case OperatorNode(output, single_inputs=single):
+
             array = node.d_array_inputs
             array_nodes = [
                 n
@@ -114,22 +148,26 @@ def _find_edges_from(node: Node) -> Set[ComponentOutput]:
             all_edges = set()
 
             for parent_node in array_nodes:
-                all_edges |= _find_edges_from(parent_node)
+                all_edges |= _find_edges_from(parent_node, seen)
             for parent_node in single.values():
-                all_edges |= _find_edges_from(parent_node)
+                all_edges |= _find_edges_from(parent_node, seen)
+
+            seen.add(output)
 
             return all_edges
 
     raise ValueError("Bad type")
 
 
-def _load_parameter_names(node: Node) -> Set[str]:
+def _load_parameter_names(node: Node, seen: Set[ComponentOutput]) -> Set[str]:
     match node:
         case EdgeNode() | ConstantNode():
             return set()
         case ParamNode(name=name):
             return set([name])
-        case OperatorNode():
+        case OperatorNode(output) if output in seen:
+            return set()
+        case OperatorNode(output):
             array = node.d_array_inputs
             array_nodes = [
                 n
@@ -141,21 +179,25 @@ def _load_parameter_names(node: Node) -> Set[str]:
             all_parameters = set()
 
             for parent_node in array_nodes:
-                all_parameters |= _load_parameter_names(parent_node)
+                all_parameters |= _load_parameter_names(parent_node, seen)
             for parent_node in node.d_single_inputs.values():
-                all_parameters |= _load_parameter_names(parent_node)
+                all_parameters |= _load_parameter_names(parent_node, seen)
+
+            seen.add(output)
 
             return all_parameters
 
 
 def _extract_array_batch(
-    circuit: CircuitData, array: Sequence[InputBatch]
+    circuit: CircuitData,
+    array: Sequence[InputBatch],
+    cache: Dict[ComponentOutput, Node],
 ) -> FrozenList[NodeBatch]:
     batches: FrozenList[NodeBatch] = FrozenList()
 
     for batch in array:
         batch_dict = {
-            batch_input_name: _traverse_circuit_from(circuit, batch_input)
+            batch_input_name: _traverse_circuit_from(circuit, batch_input, cache)
             for (batch_input_name, batch_input) in batch.d_inputs.items()
         }
         batches.append(NodeBatch(nodes=frozendict(batch_dict)))
@@ -164,8 +206,14 @@ def _extract_array_batch(
     return batches
 
 
-def _traverse_circuit_from(circuit: CircuitData, root: HasOutput) -> Node:
+def _traverse_circuit_from(
+    circuit: CircuitData, root: HasOutput, cache: Dict[ComponentOutput, Node]
+) -> Node:
     root_output = root.output()
+
+    if root_output in cache:
+        return cache[root_output]
+
     root_parent = root_output.parent
 
     if root_parent == "external":
@@ -189,12 +237,14 @@ def _traverse_circuit_from(circuit: CircuitData, root: HasOutput) -> Node:
                 match input:
                     case SingleComponentInput(input=single):
                         single_inputs[input_name] = _traverse_circuit_from(
-                            circuit, single
+                            circuit, single, cache
                         )
                     case ArrayComponentInput(inputs=array):
-                        array_inputs[input_name] = _extract_array_batch(circuit, array)
+                        array_inputs[input_name] = _extract_array_batch(
+                            circuit, array, cache
+                        )
 
-            return OperatorNode(
+            rval = OperatorNode(
                 output=root_output,
                 operator_name=name,
                 single_inputs=frozendict(single_inputs),
@@ -203,6 +253,8 @@ def _traverse_circuit_from(circuit: CircuitData, root: HasOutput) -> Node:
                     "include_param_names", True
                 ),
             )
+            cache[root_output] = rval
+            return rval
         case name:
             raise ValueError(f"Operator name {name} not in known tensor operators")
 
@@ -212,7 +264,7 @@ def _traverse_circuit_from(circuit: CircuitData, root: HasOutput) -> Node:
 
 # TODO attach metadata to more simply pretty-print
 # arithmetic operators
-def _traverse_pretty(node: Node) -> Any:
+def _traverse_pretty(node: Node, cache: Dict[ComponentOutput, Any]) -> Any:
     match node:
         case ConstantNode(val=val):
             return str(val)
@@ -221,19 +273,23 @@ def _traverse_pretty(node: Node) -> Any:
         case EdgeNode(output=out):
             return output_to_name(out)
         case OperatorNode(
+            output,
             operator_name=opname,
             single_inputs=single,
             array_inputs=array,
             param_names=True,
         ):
+            if output in cache:
+                return cache[output]
             single_ops = {
-                s_name: _traverse_pretty(s_node) for (s_name, s_node) in single.items()
+                s_name: _traverse_pretty(s_node, cache)
+                for (s_name, s_node) in single.items()
             }
 
             array_ops = {
                 a_name: [
                     {
-                        b_name: _traverse_pretty(b_node)
+                        b_name: _traverse_pretty(b_node, cache)
                         for (b_name, b_node) in batch.nodes.items()
                     }
                     for batch in a_batches
@@ -241,33 +297,49 @@ def _traverse_pretty(node: Node) -> Any:
                 for (a_name, a_batches) in array.items()
             }
 
+            rval: Any
             if array_ops:
-                return {opname: [single_ops, array_ops]}
+                rval = {opname: [single_ops, array_ops]}
             else:
-                return {opname: single_ops}
+                rval = {opname: single_ops}
+
+            cache[output] = rval
+
+            return rval
         case OperatorNode(
+            output,
             operator_name=opname,
             single_inputs=single,
             array_inputs=array,
             param_names=False,
         ):
-            single_ops_l = [_traverse_pretty(s_node) for s_node in single.values()]
+
+            if output in cache:
+                return cache[output]
+            single_ops_l = [
+                _traverse_pretty(s_node, cache) for s_node in single.values()
+            ]
 
             array_ops_l = [
                 [
-                    [_traverse_pretty(b_node) for b_node in batch.nodes.values()]
+                    [_traverse_pretty(b_node, cache) for b_node in batch.nodes.values()]
                     for batch in a_batches
                 ]
                 for a_batches in array.values()
             ]
 
-            return {opname: single_ops_l + array_ops_l}
+            rval = {opname: single_ops_l + array_ops_l}
+
+            cache[output] = rval
+
+            return rval
 
 
 def _traverse_model(
     node: Node,
     data: Dict[ComponentOutput, CircuitTensor],
     parameters: Dict[str, CircuitParameter],
+    cache: Dict[ComponentOutput, CircuitTensor],
 ) -> CircuitTensor:
     match node:
         case ConstantNode(val=val):
@@ -286,18 +358,24 @@ def _traverse_model(
                 raise ValueError(f"Graph traversal could not find parameter {name}")
 
         case OperatorNode(
-            output=output,
+            output,
+        ) if output in cache:
+            return cache[output]
+
+        case OperatorNode(
+            output,
             operator_name=opname,
         ):
             operator = ALL_OPERATORS[opname]
+
             singles = {
-                s_name: _traverse_model(s_node, data, parameters)
+                s_name: _traverse_model(s_node, data, parameters, cache)
                 for (s_name, s_node) in node.d_single_inputs.items()
             }
             arrays = {
                 b_name: [
                     {
-                        b_id_name: _traverse_model(b_node, data, parameters)
+                        b_id_name: _traverse_model(b_node, data, parameters, cache)
                         for (b_id_name, b_node) in batch.d_nodes.items()
                     }
                     for batch in array
@@ -305,7 +383,9 @@ def _traverse_model(
                 for (b_name, array) in node.d_array_inputs.items()
             }
 
-            return operator.compute(singles, arrays)
+            rval = operator.compute(singles, arrays)
+            cache[output] = rval
+            return rval
 
 
 # TODO - should consider how to create minimal trees
@@ -313,6 +393,8 @@ def _traverse_model(
 # and just condenses already-sampled data down.
 # We should instead try and discover the minimum-sampling graph
 
+# TODO give the graph a less wasteful json representation - this one
+# repeatedly wastes data iterating down the graph
 
 @dataclass
 class Graph(DataClassJsonMixin):
@@ -321,17 +403,17 @@ class Graph(DataClassJsonMixin):
     @staticmethod
     def discover_from_circuit(circuit: CircuitData, root: HasOutput) -> "Graph":
         circuit.validate()
-        node = _traverse_circuit_from(circuit, root)
+        node = _traverse_circuit_from(circuit, root, dict())
         return Graph(root=node)
 
     def find_edges(self) -> List[ComponentOutput]:
-        return sorted(_find_edges_from(self.root), key=output_to_name)
+        return sorted(_find_edges_from(self.root, set()), key=output_to_name)
 
     def find_parameter_names(self) -> List[str]:
-        return sorted(_load_parameter_names(self.root))
+        return sorted(_load_parameter_names(self.root, set()))
 
     def pretty(self) -> Any:
-        return _traverse_pretty(self.root)
+        return _traverse_pretty(self.root, dict())
 
     # TODO will certainly need to include more in the graph?
     # Unless tf and pytorch both do autodiscovery of inputs and variables
@@ -340,7 +422,7 @@ class Graph(DataClassJsonMixin):
         data: Dict[ComponentOutput, CircuitTensor],
         parameters: Dict[str, CircuitParameter],
     ) -> CircuitTensor:
-        return _traverse_model(self.root, data, parameters)
+        return _traverse_model(self.root, data, parameters, dict())
 
     def mark_stored(self, circuit: CircuitData):
         for edge in self.find_edges():
@@ -348,7 +430,7 @@ class Graph(DataClassJsonMixin):
 
     @staticmethod
     def parse_from_dict(json: Dict[str, Any]) -> "Graph":
-        return Graph(root=_node_from(json["root"]))
+        return Graph(root=_node_from(json["root"], dict()))
 
 
 class Model:

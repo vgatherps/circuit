@@ -52,7 +52,7 @@ HEADER = "pressure"
 STRUCT = "TradePressure"
 
 USE_SYMMETRIC = True
-USE_SOFT_LINREG = True
+USE_SOFT_LINREG = False
 
 
 @dataclass
@@ -158,6 +158,11 @@ def generate_depth_circuit_for_market_venue(
     bbo_returns = sided_bbo_returns(book.output("bbo"), decay_source)
 
     inputs: List[HasOutput] = [wmid_returns, fair_returns, bbo_returns]
+
+    if "btc" not in market:
+        btc_market = "btcusdt"
+        btc_lead = circuit.lookup(f"{btc_market}_{venue}_depth_move")
+        inputs.append(btc_lead)
 
     if USE_SYMMETRIC:
 

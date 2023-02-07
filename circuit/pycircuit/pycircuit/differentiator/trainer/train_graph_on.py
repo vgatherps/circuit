@@ -35,7 +35,7 @@ def main():
         raise ValueError(
             f"""Graph and writer config recorded different edges.
         Graph: {graph.find_edges()}
-        Writer: {writer_config.outputs()}
+        Writer: {writer_config.outputs}
         """
         )
 
@@ -52,7 +52,7 @@ def main():
 
     def report(projected, loss):
 
-        print("Training loss: ", float(loss))
+        print("MSE loss: ", float(mse_loss(projected, target)))
         print(
             "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
         )

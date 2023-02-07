@@ -7,6 +7,14 @@
                     "pricesize_weight": 1e-5
                 }
             }
+        },
+        "ethusdt": {
+            "venues": {
+                "binance_futures": {
+                    "book_weight": 0.8,
+                    "pricesize_weight": 1e-5
+                }
+            }
         }
     }
 }
