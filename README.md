@@ -1,6 +1,3 @@
-# What is circuit
-
-Circuit is a dataflow tool meant for high performance event processing, with HFT signal calculation in mind.
 
 ## What is a circuit
 
