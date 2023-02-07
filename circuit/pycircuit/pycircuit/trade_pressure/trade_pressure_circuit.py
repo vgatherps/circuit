@@ -56,7 +56,7 @@ HEADER = "pressure"
 STRUCT = "TradePressure"
 
 USE_SYMMETRIC = True
-USE_SOFT_LINREG = False
+USE_SOFT_LINREG = True
 
 
 DISCOUNTED_RETURNS_CLAMP: Optional[float] = 0.005
