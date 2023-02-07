@@ -55,8 +55,9 @@ from pycircuit.circuit_builder.signals.running_name import get_novel_name
 HEADER = "pressure"
 STRUCT = "TradePressure"
 
-USE_SYMMETRIC = True
+USE_SYMMETRIC = False
 USE_SOFT_LINREG = True
+USE_LINREG=True
 
 
 DISCOUNTED_RETURNS_CLAMP: Optional[float] = 0.005
@@ -68,9 +69,10 @@ class TradePressureOptions:
 
 
 def generate_cascading_soft_combos(
-    circuit: CircuitBuilder, inputs: List[HasOutput], parameter_prefix: str
+    circuit: CircuitBuilder, inputs: List[HasOutput], parameter_prefix: str,
+    use_symmetric=USE_SYMMETRIC, use_soft_linreg=USE_SOFT_LINREG, use_linreg=USE_LINREG
 ) -> Component:
-    if USE_SYMMETRIC:
+    if use_symmetric:
 
         sym_move_params: List[List[HasOutput]] = []
         sym_move_reg_params: List[List[HasOutput]] = []
@@ -86,7 +88,7 @@ def generate_cascading_soft_combos(
             sym_move_params.append(row)
             sym_move_reg_params.append(row_reg)
 
-        move = multi_symmetric_move(
+        symmetric = multi_symmetric_move(
             inputs,
             sym_move_params,
             scale=10000,
@@ -94,9 +96,9 @@ def generate_cascading_soft_combos(
             discounted_clamp=DISCOUNTED_RETURNS_CLAMP,
         )
     else:
-        move = circuit.make_constant("double", "0")
+        symmetric = circuit.make_constant("double", "0")
 
-    if USE_SOFT_LINREG:
+    if use_soft_linreg:
         soft_parameters: List[HasOutput] = [
             circuit.make_parameter(f"{parameter_prefix}_soft_{i}")
             for i in range(0, len(inputs))
@@ -111,14 +113,17 @@ def generate_cascading_soft_combos(
     else:
         softreg = circuit.make_constant("double", "0")
 
-    linreg_params: List[HasOutput] = [
-        circuit.make_parameter(f"{parameter_prefix}_linreg_{i}")
-        for i in range(0, len(inputs))
-    ]
+    if use_linreg:
+        linreg_params: List[HasOutput] = [
+            circuit.make_parameter(f"{parameter_prefix}_linreg_{i}")
+            for i in range(0, len(inputs))
+        ]
 
-    linreg = tree_sum([inputs[i] * linreg_params[i] for i in range(0, len(inputs))])
+        linreg = tree_sum([inputs[i] * linreg_params[i] for i in range(0, len(inputs))])
+    else:
+        linreg = circuit.make_constant("double", "0")
 
-    combined = softreg + move + linreg
+    combined = softreg + symmetric + linreg
     if DISCOUNTED_RETURNS_CLAMP is not None:
         combined = clamp(combined, DISCOUNTED_RETURNS_CLAMP)
 
@@ -200,7 +205,7 @@ def generate_move_for_decay(
 
     rets.append(sided_bbo_returns(bbo, decay_source))
 
-    combined = generate_cascading_soft_combos(circuit, rets, move_name)
+    combined = generate_cascading_soft_combos(circuit, rets, move_name, use_linreg=False)
     circuit.rename_component(combined, move_name)
     return combined
 
@@ -268,7 +273,7 @@ def generate_depth_circuit_for_market_venue(
         moves_per_decay.append(move_for_decay)
 
     combined = generate_cascading_soft_combos(
-        circuit, moves_per_decay, f"{market}_{venue}"
+        circuit, moves_per_decay, f"{market}_{venue}", use_linreg=True, use_symmetric=True,
     )
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined
