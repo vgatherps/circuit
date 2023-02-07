@@ -66,9 +66,9 @@ def generate_triggerable_constant_definition(
     return defin
 
 
-def generate_parameter_definition() -> Definition:
+def generate_parameter_definition(required: bool) -> Definition:
     defin = Definition(
-        class_name=f"DoubleParameter",
+        class_name=f"DoubleParameter<{str(required).lower()}>",
         output_specs=frozendict(
             out=OutputSpec(
                 type_path="Output",

@@ -3,16 +3,70 @@
         "btcusdt": {
             "venues": {
                 "binance_futures": {
-                    "book_weight": 0.8,
-                    "pricesize_weight": 1e-5
+                    "book_fairs": [
+                        {
+                            "scale": 0.0001
+                        },
+                        {
+                            "scale": 0.0005
+                        },
+                        {
+                            "scale": 0.001
+                        }
+                    ],
+                    "trade_pressures": [
+                        {
+                            "pricesize_weight": 1e-5,
+                            "distance_weight": 1e5
+                        },
+                        {
+                            "pricesize_weight": 2e-5,
+                            "distance_weight": 1e5
+                        },
+                        {
+                            "pricesize_weight": 1e-5,
+                            "distance_weight": 2e5
+                        },
+                        {
+                            "pricesize_weight": 2e-5,
+                            "distance_weight": 2e5
+                        }
+                    ]
                 }
             }
         },
         "ethusdt": {
             "venues": {
                 "binance_futures": {
-                    "book_weight": 0.8,
-                    "pricesize_weight": 1e-5
+                    "book_fairs": [
+                        {
+                            "scale": 0.0001
+                        },
+                        {
+                            "scale": 0.0005
+                        },
+                        {
+                            "scale": 0.00001
+                        }
+                    ],
+                    "trade_pressures": [
+                        {
+                            "pricesize_weight": 1e-5,
+                            "distance_weight": 1e5
+                        },
+                        {
+                            "pricesize_weight": 2e-5,
+                            "distance_weight": 1e5
+                        },
+                        {
+                            "pricesize_weight": 1e-5,
+                            "distance_weight": 2e5
+                        },
+                        {
+                            "pricesize_weight": 2e-5,
+                            "distance_weight": 2e5
+                        }
+                    ]
                 }
             }
         }

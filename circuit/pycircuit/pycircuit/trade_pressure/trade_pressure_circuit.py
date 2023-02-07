@@ -1,3 +1,4 @@
+import json
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
@@ -28,9 +29,10 @@ from pycircuit.circuit_builder.circuit import ExternalStruct
 from pycircuit.circuit_builder.circuit import OutputArray
 from pycircuit.circuit_builder.component import HasOutput
 from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum, soft_bounded_sum
+from pycircuit.circuit_builder.signals.minmax import clamp
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
-    TradePressureConfig,
+    BasicSignalConfig,
     TradePressureMarketConfig,
     TradePressureVenueConfig,
 )
@@ -55,6 +57,8 @@ USE_SYMMETRIC = True
 USE_SOFT_LINREG = False
 
 
+DISCOUNTED_RETURNS_CLAMP: Optional[float] = 0.005
+
 @dataclass
 class TradePressureOptions:
     out_dir: str
@@ -75,6 +79,7 @@ def generate_trades_circuit_for_market_venue(
         inputs={
             "trade": circuit.get_external(trades_name, "const Trade *"),
         },
+        params={"us_till_batch_ends": 50, "ns_till_batch_invalidation": 2000000},
     )
 
     raw_venue_pressure = circuit.make_component(
@@ -139,14 +144,21 @@ def generate_depth_circuit_for_market_venue(
     mid = bbo_mid(book.output("bbo"))
     circuit.rename_component(mid, f"{market}_{venue}_mid")
 
-    fair = circuit.make_component(
-        definition_name="book_impulse_tracker",
-        name=f"{market}_{venue}_book_impulse_tracker",
-        inputs={
-            "updates": book.output("updates"),
-            "book": book.output("book"),
-        },
-    )
+    fair_returns: List[HasOutput] = []
+    for (idx, impulse_params) in enumerate(config.book_fairs):
+        fair = circuit.make_component(
+            definition_name="book_impulse_tracker",
+            name=f"{market}_{venue}_book_impulse_tracker_{idx}",
+            inputs={
+                "updates": book.output("updates"),
+                "book": book.output("book"),
+            },
+            params={"scale": impulse_params.scale},
+        )
+        
+        # TODO it should really be the discounted returns that are clamped, not the returns themselves
+        rets = returns_against_ewma(fair, decay_source, 0.01)
+        fair_returns.append(rets)
 
     circuit.add_call_group(
         depth_name,
@@ -154,10 +166,9 @@ def generate_depth_circuit_for_market_venue(
     )
 
     wmid_returns = returns_against_ewma(wmid, decay_source)
-    fair_returns = returns_against_ewma(fair, decay_source)
     bbo_returns = sided_bbo_returns(book.output("bbo"), decay_source)
 
-    inputs: List[HasOutput] = [wmid_returns, fair_returns, bbo_returns]
+    inputs: List[HasOutput] = [wmid_returns, bbo_returns] + fair_returns
 
     if "btc" not in market:
         btc_market = "btcusdt"
@@ -181,7 +192,8 @@ def generate_depth_circuit_for_market_venue(
             sym_move_reg_params.append(row_reg)
 
         move = multi_symmetric_move(
-            inputs, sym_move_params, scale=10000, post_coeffs=sym_move_reg_params
+            inputs, sym_move_params, scale=10000, post_coeffs=sym_move_reg_params,
+            discounted_clamp=DISCOUNTED_RETURNS_CLAMP
         )
     else:
         move = circuit.make_constant("double", "0")
@@ -208,7 +220,10 @@ def generate_depth_circuit_for_market_venue(
 
     linreg = tree_sum([inputs[i] * linreg_params[i] for i in range(0, len(inputs))])
 
+
     combined = softreg + move + linreg
+    if DISCOUNTED_RETURNS_CLAMP is not None:
+        combined=clamp(combined, DISCOUNTED_RETURNS_CLAMP)
 
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined
@@ -245,7 +260,7 @@ def generate_circuit_for_market(
 
 
 def generate_trade_pressure_circuit(
-    circuit: CircuitBuilder, config: TradePressureConfig, decay_source: ComponentOutput
+    circuit: CircuitBuilder, config: BasicSignalConfig, decay_source: ComponentOutput
 ) -> CircuitData:
 
     for (market, market_config) in config.markets.items():
@@ -285,7 +300,7 @@ def main():
     os.mkdir(out_dir)
 
     definitions = Definitions.from_json(definitions_str)
-    trade_pressure = TradePressureConfig.from_json(trade_pressure_str)
+    trade_pressure = BasicSignalConfig.from_json(trade_pressure_str)
     core_config = CoreLoaderConfig.from_json(loader_config_str)
 
     circuit = CircuitBuilder(definitions=definitions.definitions)
@@ -312,6 +327,7 @@ def main():
         definition_name="exp_decay_source",
         name="global_decay_source",
         inputs={},
+        params={"half_life_ns": 1000000000},
     )
 
     with CircuitContextManager(circuit):
@@ -428,6 +444,9 @@ def main():
     )
     with open(f"{out_dir}/{HEADER}.hh", "w") as struct_file:
         struct_file.write(call_clang_format(struct_content))
+
+    with open(f"{out_dir}/params.json", "w") as params_file:
+        json.dump(circuit.parameters(), params_file)
 
     dot_content = generate_full_circuit_dot(circuit)
 

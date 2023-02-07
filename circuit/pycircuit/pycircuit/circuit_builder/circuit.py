@@ -42,6 +42,7 @@ class _PartialComponent(DataClassJsonMixin):
     name: str
     definition: str
     class_generics: Dict[str, str]
+    params: Optional[frozendict[str, Any]]
 
 
 @dataclass(eq=True, frozen=True)
@@ -138,6 +139,7 @@ class CircuitData:
                     name=comp.name,
                     definition=partial.definitions[comp.definition],
                     class_generics=comp.class_generics,
+                    params=comp.params,
                 )
                 for (comp_name, comp) in partial.components.items()
             },
@@ -148,6 +150,13 @@ class CircuitData:
         data.validate()
 
         return data
+
+    def parameters(self) -> Dict[str, frozendict[str, Any]]:
+        return {
+            comp.name: comp.params
+            for comp in self.components.values()
+            if comp.params is not None
+        }
 
     def to_dict(self) -> Dict[str, Any]:
         self.validate()
@@ -166,6 +175,7 @@ class CircuitData:
                     definition=def_to_name[comp.definition],
                     output_options=comp.output_options,
                     class_generics=comp.class_generics,
+                    params=comp.params,
                 )
                 for (comp_name, comp) in self.components.items()
             },
@@ -324,7 +334,9 @@ class CircuitBuilder(CircuitData):
         output_options: Dict[str, OutputOptions] = {},
         generics: Dict[str, str] = {},
         force_insert=False,
+        params: Optional[Dict[str, Any]] = None,
     ) -> "Component":
+
 
         definition = self.definitions[definition_name]
         converted: Dict[str, ComponentInput] = {}
@@ -362,22 +374,24 @@ class CircuitBuilder(CircuitData):
             output_options=output_options.copy(),
             name=name,
             class_generics=generics.copy(),
+            params=frozendict(params) if params is not None else None,
         )
 
         comp.validate(self)
 
         return self._insert_component(comp, force=force_insert)
 
-    def make_parameter(self, name: str) -> "Component":
-        definition = generate_parameter_definition()
+    def make_parameter(self, name: str, required: bool = False) -> "Component":
+        definition = generate_parameter_definition(required)
 
-        self.add_definition("parameter", definition)
+        self.add_definition(f"parameter_req_{required}", definition)
 
         comp = Component(
             name=name,
             definition=definition,
             inputs={},
             output_options={},
+            params=None,
             class_generics={},
         )
 
@@ -402,6 +416,7 @@ class CircuitBuilder(CircuitData):
             inputs={},
             output_options={},
             class_generics={},
+            params=None,
         )
 
         return self._insert_component(comp, force=False)
@@ -430,6 +445,7 @@ class CircuitBuilder(CircuitData):
             inputs={"tick": SingleComponentInput(input=on.output(), input_name="tick")},
             output_options={},
             class_generics={},
+            params=None,
         )
 
         return self._insert_component(comp, force=False)

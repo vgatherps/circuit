@@ -9,11 +9,12 @@
 
 // A constant which is always constructed as part of inline default constructor
 
-// TODO make generic version
+class RootDoubleParameter {
+protected:
+  static void do_init(double &, const nlohmann::json &, bool);
+};
 
-class DoubleParameter {
-
-  static void do_init(double &, const nlohmann::json &);
+template <bool Required> class DoubleParameter : public RootDoubleParameter {
 
 public:
   using Output = double;
@@ -21,6 +22,6 @@ public:
   template <class O>
     requires(HAS_REF_FIELD(O, Output, out))
   static void init(O output, const nlohmann::json &params) {
-    do_init(output.out, params);
+    do_init(output.out, params, Required);
   }
 };

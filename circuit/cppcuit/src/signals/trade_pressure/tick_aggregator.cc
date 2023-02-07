@@ -2,6 +2,7 @@
 #include "math/fast_exp_64.hh"
 
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 namespace {
 
@@ -19,11 +20,13 @@ double score_pricesize(double pricesize, double scale) {
 
 double weight_distance_for(double price, double fair, double weight,
                            Side side) {
-  constexpr double SideAdjustments[] = {0.0, 2.0};
-  double ratio = price / fair;
-  ratio -= SideAdjustments[(int)side];
 
-  return ratio;
+  double ratio = price / fair;
+
+  double bps_aggressive = flip_sign_if_buy(side, 1.0 - ratio);
+
+  // TODO cap this at something reasonable
+  return FastExpE.compute(weight * bps_aggressive);
 }
 
 static RunningImpulseManager impulse_from_price(double price, double fair,
@@ -66,4 +69,9 @@ double SingleTickAggregator::handle_trade(const Trade *trade, double fair) {
                  this->params.pricesize_weight);
 
   return this->running.impulse();
+}
+
+void SingleTickAggregator::do_init(const nlohmann::json &j) {
+  j["pricesize_weight"].get_to(this->params.pricesize_weight);
+  j["distance_weight"].get_to(this->params.distance_weight);
 }

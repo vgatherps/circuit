@@ -24,7 +24,6 @@
 // on the same parameter set!
 
 struct PerMarketParams {
-  double book_weight;
   double pricesize_weight;
   double distance_weight;
 };
@@ -56,6 +55,8 @@ class SingleTickAggregator {
     this->running = RunningImpulseManager{};
   }
   double handle_trade(const Trade *trades, double fair);
+
+  void do_init(const nlohmann::json &j);
 
 public:
   using RunningTickScore = double;
@@ -123,7 +124,6 @@ public:
   OnTradeOutput init(O outputs, const nlohmann::json &) {
     outputs.running = 0.0;
     outputs.tick = 0.0;
-    this->params.pricesize_weight = 0.0001;
 
     return {.tick = false};
   }

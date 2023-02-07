@@ -150,6 +150,7 @@ class ComponentIndex:
     inputs: frozendict[str, ComponentInput]
     definition: Definition
     class_generics: frozendict[str, str]
+    params: Optional[frozendict[str, Any]]
 
 
 @dataclass
@@ -159,6 +160,7 @@ class Component(HasOutput):
     definition: Definition
     name: str
     class_generics: Dict[str, str]
+    params: Optional[frozendict[str, Any]]
 
     def output(self, maybe_which: Optional[str] = None) -> ComponentOutput:
         match (maybe_which, self.definition.default_output):
@@ -279,6 +281,7 @@ class Component(HasOutput):
             inputs=frozendict(self.inputs),
             definition=self.definition,
             class_generics=frozendict(self.class_generics),
+            params=self.params
         )
 
 

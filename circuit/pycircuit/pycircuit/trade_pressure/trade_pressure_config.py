@@ -1,13 +1,24 @@
 from dataclasses import dataclass
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 from dataclasses_json import DataClassJsonMixin
 
 
 @dataclass
-class TradePressureVenueConfig(DataClassJsonMixin):
-    book_weight: float
+class BookFairConfig(DataClassJsonMixin):
+    scale: float
+
+
+@dataclass
+class SingleTrade(DataClassJsonMixin):
     pricesize_weight: float
+    distance_weight: float
+
+
+@dataclass
+class TradePressureVenueConfig(DataClassJsonMixin):
+    book_fairs: List[BookFairConfig]
+    trade_pressures: List[SingleTrade]
 
 
 @dataclass
@@ -16,5 +27,5 @@ class TradePressureMarketConfig(DataClassJsonMixin):
 
 
 @dataclass
-class TradePressureConfig(DataClassJsonMixin):
+class BasicSignalConfig(DataClassJsonMixin):
     markets: Dict[str, TradePressureMarketConfig]

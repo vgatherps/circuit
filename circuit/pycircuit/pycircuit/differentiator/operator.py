@@ -5,8 +5,7 @@ from .tensor import CircuitTensor
 
 import numpy as np
 
-VERBOSE = False
-
+VERBOSE=False
 
 class OperatorFn(ABC):
     @classmethod
@@ -77,5 +76,9 @@ class OperatorFn(ABC):
                 print(f"{iname}: {ival.detach().numpy()}")
             print("returns: ", rval.detach().numpy())
             print()
+
+            import torch
+            if torch.any(torch.isnan(rval)):
+                raise ValueError("NANS DETECTED ABOVE")
 
         return rval

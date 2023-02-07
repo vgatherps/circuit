@@ -27,14 +27,16 @@ are all pointing in different directions, you just get min/max.
 As they point in different directions it becomes a more standard regression
 
 As a dummy demonstration of the whole 'differentiable core' game,
-it's quite good though
+it's quite good though. Gives a ton of parameters and operators
+and mostly "just works"
 """
 
 
 from typing import List, Optional, Tuple
 from pycircuit.circuit_builder.circuit import HasOutput
-from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum, soft_bounded_sum
+from pycircuit.circuit_builder.signals.bounded_sum import soft_bounded_sum
 from pycircuit.circuit_builder.signals.discount_by import discount_by
+from pycircuit.circuit_builder.signals.minmax import clamp
 
 
 # TODO pls test this very much
@@ -45,6 +47,7 @@ def multi_symmetric_move(
     coefficients: List[List[HasOutput]],
     post_coeffs: Optional[List[List[HasOutput]]] = None,
     scale: float = 1.0,
+    discounted_clamp: Optional[float] = None
 ):
     """This computes the following operations on inputs 0..i, S_i with coeffs[0..i, 0..i]:
 
@@ -92,7 +95,11 @@ def multi_symmetric_move(
             B_i = soft_bounded_sum(b_list, b_coeffs, scale=scale)
         D_i = discount_by(vals[idx], B_i)
 
-        return D_i
+        if discounted_clamp is not None:
+            return clamp(D_i, discounted_clamp)
+        else:
+            return D_i
+
 
     D_vec = [d_i_for(idx) for idx in range(len(vals))]
 

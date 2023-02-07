@@ -26,3 +26,16 @@ def min_of(a: HasOutput, b: HasOutput) -> Component:
 
 def max_of(a: HasOutput, b: HasOutput) -> Component:
     return _do_minmax_of(a, b, "max", "MaxComponent")
+
+
+def clamp(a: HasOutput, to: float) -> Component:
+    context = CircuitContextManager.active_circuit()
+    if to <= 0.0:
+        raise ValueError(f"Clamp value of {to} needs to be positive")
+    pos = context.make_constant('double', str(to))
+    neg = context.make_constant('double', str(-to))
+
+    return min_of(
+        pos,
+        max_of(neg, a)
+    )
