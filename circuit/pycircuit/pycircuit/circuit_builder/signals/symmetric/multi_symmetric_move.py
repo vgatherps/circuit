@@ -47,7 +47,7 @@ def multi_symmetric_move(
     coefficients: List[List[HasOutput]],
     post_coeffs: Optional[List[List[HasOutput]]] = None,
     scale: float = 1.0,
-    discounted_clamp: Optional[float] = None
+    discounted_clamp: Optional[float] = None,
 ):
     """This computes the following operations on inputs 0..i, S_i with coeffs[0..i, 0..i]:
 
@@ -99,7 +99,6 @@ def multi_symmetric_move(
             return clamp(D_i, discounted_clamp)
         else:
             return D_i
-
 
     D_vec = [d_i_for(idx) for idx in range(len(vals))]
 

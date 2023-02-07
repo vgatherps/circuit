@@ -281,7 +281,7 @@ class Component(HasOutput):
             inputs=frozendict(self.inputs),
             definition=self.definition,
             class_generics=frozendict(self.class_generics),
-            params=self.params
+            params=self.params,
         )
 
 

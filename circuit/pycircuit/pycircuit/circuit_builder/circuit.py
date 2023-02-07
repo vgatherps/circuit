@@ -337,7 +337,6 @@ class CircuitBuilder(CircuitData):
         params: Optional[Dict[str, Any]] = None,
     ) -> "Component":
 
-
         definition = self.definitions[definition_name]
         converted: Dict[str, ComponentInput] = {}
 

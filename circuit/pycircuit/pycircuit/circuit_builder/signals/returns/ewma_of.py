@@ -28,8 +28,9 @@ def ewma_of(
 
 
 def returns_against_ewma(
-    signal: HasOutput, decay_sources: HasOutput | Sequence[HasOutput],
-    clamp_to: Optional[float] = None
+    signal: HasOutput,
+    decay_sources: HasOutput | Sequence[HasOutput],
+    clamp_to: Optional[float] = None,
 ) -> Component:
     ewma = ewma_of(signal, decay_sources)
 

@@ -30,6 +30,7 @@ from pycircuit.circuit_builder.circuit import OutputArray
 from pycircuit.circuit_builder.component import HasOutput
 from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum, soft_bounded_sum
 from pycircuit.circuit_builder.signals.minmax import clamp
+from pycircuit.circuit_builder.component import Component
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     BasicSignalConfig,
@@ -49,6 +50,7 @@ from pycircuit.circuit_builder.signals.symmetric.multi_symmetric_move import (
     multi_symmetric_move,
 )
 from pycircuit.differentiator.graph import Graph
+from pycircuit.circuit_builder.signals.running_name import get_novel_name
 
 HEADER = "pressure"
 STRUCT = "TradePressure"
@@ -59,9 +61,68 @@ USE_SOFT_LINREG = False
 
 DISCOUNTED_RETURNS_CLAMP: Optional[float] = 0.005
 
+
 @dataclass
 class TradePressureOptions:
     out_dir: str
+
+
+def generate_cascading_soft_combos(
+    circuit: CircuitBuilder, inputs: List[HasOutput], parameter_prefix: str
+) -> Component:
+    if USE_SYMMETRIC:
+
+        sym_move_params: List[List[HasOutput]] = []
+        sym_move_reg_params: List[List[HasOutput]] = []
+
+        for i in range(0, len(inputs)):
+            row: List[HasOutput] = []
+            row_reg: List[HasOutput] = []
+            for j in range(0, len(inputs)):
+                name = f"{parameter_prefix}_symmetric_soft_{i}_{j}"
+                row.append(circuit.make_parameter(name))
+                name = f"{parameter_prefix}_symmetric_reg_{i}_{j}"
+                row_reg.append(circuit.make_parameter(name))
+            sym_move_params.append(row)
+            sym_move_reg_params.append(row_reg)
+
+        move = multi_symmetric_move(
+            inputs,
+            sym_move_params,
+            scale=10000,
+            post_coeffs=sym_move_reg_params,
+            discounted_clamp=DISCOUNTED_RETURNS_CLAMP,
+        )
+    else:
+        move = circuit.make_constant("double", "0")
+
+    if USE_SOFT_LINREG:
+        soft_parameters: List[HasOutput] = [
+            circuit.make_parameter(f"{parameter_prefix}_soft_{i}")
+            for i in range(0, len(inputs))
+        ]
+        soft_linreg_parameters: List[HasOutput] = [
+            circuit.make_parameter(f"{parameter_prefix}_softreg_{i}")
+            for i in range(0, len(inputs))
+        ]
+        softreg = soft_bounded_sum(
+            inputs, soft_parameters, scale=10000, post_coeffs=soft_linreg_parameters
+        )
+    else:
+        softreg = circuit.make_constant("double", "0")
+
+    linreg_params: List[HasOutput] = [
+        circuit.make_parameter(f"{parameter_prefix}_linreg_{i}")
+        for i in range(0, len(inputs))
+    ]
+
+    linreg = tree_sum([inputs[i] * linreg_params[i] for i in range(0, len(inputs))])
+
+    combined = softreg + move + linreg
+    if DISCOUNTED_RETURNS_CLAMP is not None:
+        combined = clamp(combined, DISCOUNTED_RETURNS_CLAMP)
+
+    return combined
 
 
 def generate_trades_circuit_for_market_venue(
@@ -123,14 +184,36 @@ def generate_trades_circuit_for_market_venue(
     return per_market_venue_decaying_ticks_sum, raw_venue_pressure.output("running")
 
 
+def generate_move_for_decay(
+    circuit: CircuitBuilder,
+    market: str,
+    venue: str,
+    bbo: HasOutput,
+    signals: List[HasOutput],
+    decay_source: HasOutput,
+):
+    rets: List[HasOutput] = [
+        returns_against_ewma(signal, decay_source, 0.01) for signal in signals
+    ]
+
+    move_name = get_novel_name(f"{market}_{venue}_decay_depth_move")
+
+    rets.append(sided_bbo_returns(bbo, decay_source))
+
+    combined = generate_cascading_soft_combos(circuit, rets, move_name)
+    circuit.rename_component(combined, move_name)
+    return combined
+
+
 def generate_depth_circuit_for_market_venue(
     circuit: CircuitBuilder,
     market: str,
     venue: str,
     config: TradePressureVenueConfig,
-    decay_source: HasOutput,
+    decay_sources: List[HasOutput],
 ) -> HasOutput:
     depth_name = f"{market}_{venue}_depth"
+
     book = circuit.make_component(
         definition_name="book_updater",
         name=f"{market}_{venue}_book_updater",
@@ -139,12 +222,21 @@ def generate_depth_circuit_for_market_venue(
         },
     )
 
-    wmid = bbo_wmid(book.output("bbo"))
+    circuit.add_call_group(
+        depth_name,
+        CallGroup(struct="DepthUpdate", external_field_mapping={"depth": depth_name}),
+    )
 
-    mid = bbo_mid(book.output("bbo"))
+    bbo = book.output("bbo")
+
+    wmid = bbo_wmid(bbo)
+    circuit.rename_component(wmid, f"{market}_{venue}_wmid")
+
+    mid = bbo_mid(bbo)
     circuit.rename_component(mid, f"{market}_{venue}_mid")
 
-    fair_returns: List[HasOutput] = []
+    signals: List[HasOutput] = [wmid, mid]
+
     for (idx, impulse_params) in enumerate(config.book_fairs):
         fair = circuit.make_component(
             definition_name="book_impulse_tracker",
@@ -155,76 +247,29 @@ def generate_depth_circuit_for_market_venue(
             },
             params={"scale": impulse_params.scale},
         )
-        
-        # TODO it should really be the discounted returns that are clamped, not the returns themselves
-        rets = returns_against_ewma(fair, decay_source, 0.01)
-        fair_returns.append(rets)
 
-    circuit.add_call_group(
-        depth_name,
-        CallGroup(struct="DepthUpdate", external_field_mapping={"depth": depth_name}),
-    )
-
-    wmid_returns = returns_against_ewma(wmid, decay_source)
-    bbo_returns = sided_bbo_returns(book.output("bbo"), decay_source)
-
-    inputs: List[HasOutput] = [wmid_returns, bbo_returns] + fair_returns
+        signals.append(fair)
 
     if "btc" not in market:
         btc_market = "btcusdt"
         btc_lead = circuit.lookup(f"{btc_market}_{venue}_depth_move")
-        inputs.append(btc_lead)
+        signals.append(btc_lead)
 
-    if USE_SYMMETRIC:
-
-        sym_move_params: List[List[HasOutput]] = []
-        sym_move_reg_params: List[List[HasOutput]] = []
-
-        for i in range(0, len(inputs)):
-            row: List[HasOutput] = []
-            row_reg: List[HasOutput] = []
-            for j in range(0, len(inputs)):
-                name = f"{market}_{venue}_symmetric_soft_{i}_{j}"
-                row.append(circuit.make_parameter(name))
-                name = f"{market}_{venue}_symmetric_reg_{i}_{j}"
-                row_reg.append(circuit.make_parameter(name))
-            sym_move_params.append(row)
-            sym_move_reg_params.append(row_reg)
-
-        move = multi_symmetric_move(
-            inputs, sym_move_params, scale=10000, post_coeffs=sym_move_reg_params,
-            discounted_clamp=DISCOUNTED_RETURNS_CLAMP
+    moves_per_decay: List[HasOutput] = []
+    for decay_source in decay_sources:
+        move_for_decay = generate_move_for_decay(
+            circuit=circuit,
+            market=market,
+            venue=venue,
+            bbo=book.output("bbo"),
+            signals=signals,
+            decay_source=decay_source,
         )
-    else:
-        move = circuit.make_constant("double", "0")
+        moves_per_decay.append(move_for_decay)
 
-    if USE_SOFT_LINREG:
-        soft_parameters: List[HasOutput] = [
-            circuit.make_parameter(f"{market}_{venue}_soft_{i}")
-            for i in range(0, len(inputs))
-        ]
-        soft_linreg_parameters: List[HasOutput] = [
-            circuit.make_parameter(f"{market}_{venue}_softreg_{i}")
-            for i in range(0, len(inputs))
-        ]
-        softreg = soft_bounded_sum(
-            inputs, soft_parameters, scale=10000, post_coeffs=soft_linreg_parameters
-        )
-    else:
-        softreg = circuit.make_constant("double", "0")
-
-    linreg_params: List[HasOutput] = [
-        circuit.make_parameter(f"{market}_{venue}_linreg_{i}")
-        for i in range(0, len(inputs))
-    ]
-
-    linreg = tree_sum([inputs[i] * linreg_params[i] for i in range(0, len(inputs))])
-
-
-    combined = softreg + move + linreg
-    if DISCOUNTED_RETURNS_CLAMP is not None:
-        combined=clamp(combined, DISCOUNTED_RETURNS_CLAMP)
-
+    combined = generate_cascading_soft_combos(
+        circuit, moves_per_decay, f"{market}_{venue}"
+    )
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined
 
@@ -233,16 +278,16 @@ def generate_circuit_for_market(
     circuit: CircuitBuilder,
     market: str,
     config: TradePressureMarketConfig,
-    decay_source: ComponentOutput,
+    decay_sources: List[HasOutput],
 ):
     all_running = []
     all_ticks = []
     for (venue, venue_config) in config.venues.items():
         fair = generate_depth_circuit_for_market_venue(
-            circuit, market, venue, venue_config, decay_source
+            circuit, market, venue, venue_config, decay_sources
         )
         tick, running = generate_trades_circuit_for_market_venue(
-            circuit, market, venue, fair, decay_source
+            circuit, market, venue, fair, decay_sources[0]
         )
 
         all_ticks.append(tick)
@@ -260,11 +305,11 @@ def generate_circuit_for_market(
 
 
 def generate_trade_pressure_circuit(
-    circuit: CircuitBuilder, config: BasicSignalConfig, decay_source: ComponentOutput
+    circuit: CircuitBuilder, config: BasicSignalConfig, decay_sources: List[HasOutput]
 ) -> CircuitData:
 
     for (market, market_config) in config.markets.items():
-        generate_circuit_for_market(circuit, market, market_config, decay_source)
+        generate_circuit_for_market(circuit, market, market_config, decay_sources)
 
     return circuit
 
@@ -323,15 +368,21 @@ def main():
         ),
     )
 
-    decay_source = circuit.make_component(
-        definition_name="exp_decay_source",
-        name="global_decay_source",
-        inputs={},
-        params={"half_life_ns": 1000000000},
-    )
+    if not trade_pressure.decay_horizons_ns:
+        raise ValueError("No decay half lives given")
+
+    decay_sources = []
+    for half_life_ns in trade_pressure.decay_horizons_ns:
+        decay_source = circuit.make_component(
+            definition_name="exp_decay_source",
+            name=f"global_decay_source_{half_life_ns}",
+            inputs={},
+            params={"half_life_ns": half_life_ns},
+        )
+        decay_sources.append(decay_source)
 
     with CircuitContextManager(circuit):
-        generate_trade_pressure_circuit(circuit, trade_pressure, decay_source)
+        generate_trade_pressure_circuit(circuit, trade_pressure, decay_sources)
 
     for (market, market_config) in trade_pressure.markets.items():
         for venue in market_config.venues.keys():

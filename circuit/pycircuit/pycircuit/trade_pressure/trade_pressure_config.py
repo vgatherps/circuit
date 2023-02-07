@@ -29,3 +29,4 @@ class TradePressureMarketConfig(DataClassJsonMixin):
 @dataclass
 class BasicSignalConfig(DataClassJsonMixin):
     markets: Dict[str, TradePressureMarketConfig]
+    decay_horizons_ns: List[int]

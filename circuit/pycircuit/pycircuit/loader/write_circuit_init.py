@@ -52,6 +52,8 @@ def generate_circuit_init(
     struct_include = f'#include "{struct_options.struct_header}.hh"'
     default_includes = "\n".join(f"#include <{inc}>" for inc in INCLUDES)
     return f"""
+#pragma clang optimize off
+#pragma gcc optimize off
 {default_includes}
 {struct_include}
     

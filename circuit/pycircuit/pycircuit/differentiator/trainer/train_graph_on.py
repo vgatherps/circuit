@@ -26,7 +26,9 @@ def main():
     args = ArgumentParser(TrainerOptions).parse_args(sys.argv[1:])
 
     # Hacks since book fair is garbage around early day
-    in_data = pd.DataFrame(pd.read_parquet(args.parquet_path).dropna()[1000:].reset_index(drop=True))
+    in_data = pd.DataFrame(
+        pd.read_parquet(args.parquet_path).dropna()[1000:].reset_index(drop=True)
+    )
 
     graph = Graph.from_dict(json.load(open(args.graph_file_path)))
     writer_config = WriterConfig.from_dict(json.load(open(args.writer_config_path)))
@@ -41,9 +43,11 @@ Writer: {writer_config.outputs}
         """
         )
 
-    named_outputs = [
-        output_to_name(output) for output in writer_config.outputs
-    ] + ['target', 'target_future', 'time']
+    named_outputs = [output_to_name(output) for output in writer_config.outputs] + [
+        "target",
+        "target_future",
+        "time",
+    ]
 
     if named_outputs != list(in_data.columns):
         raise ValueError(
@@ -62,14 +66,15 @@ Writer: {named_outputs}
     target = torch.tensor(target_returns * args.scale_by)
 
     linreg_params = [
-        param for name, param in model.parameters().items()
-        if 'linreg' in name
+        param for name, param in model.parameters().items() if "linreg" in name
     ]
     soft_params = [
-        param for name, param in model.parameters().items()
-        if 'linreg' not in name
+        param for name, param in model.parameters().items() if "linreg" not in name
     ]
-    optim = Adam([{"params": linreg_params, 'lr': args.lr/10}, {"params": soft_params}], lr=args.lr)
+    optim = Adam(
+        [{"params": linreg_params, "lr": args.lr / 10}, {"params": soft_params}],
+        lr=args.lr,
+    )
     mse_loss = torch.nn.MSELoss()
 
     def report(projected, loss):
