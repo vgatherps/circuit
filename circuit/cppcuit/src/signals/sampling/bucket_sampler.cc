@@ -11,7 +11,7 @@ void TradeBucketSampler::do_init(const nlohmann::json &params) {
   } catch (...) {
     initial_weight = 10;
     minimum_weight = -10;
-    trade_weight = 0.1;
+    trade_weight = 1;
   }
   current_weight = initial_weight;
 }
