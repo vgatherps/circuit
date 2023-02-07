@@ -46,6 +46,14 @@ def main():
 
     loss = torch.nn.MSELoss()
 
+    module = model.create_module(data)
+
+    print(module)
+
+    module = torch.compile(module)
+
+    print(module)
+
     def report(projected, loss):
         fxp = float(x_param)
         fyp = float(y_param)
@@ -57,7 +65,7 @@ def main():
 
     for _ in range(0, 100):
 
-        projected = model.evaluate_on(data)
+        projected = module()
 
         computed_loss = loss(projected, make_constant(real_results))
 
@@ -66,7 +74,7 @@ def main():
 
         report(projected, computed_loss)
 
-        if computed_loss < 1e-3:
+        if computed_loss < 1e-4:
             break
 
         print()

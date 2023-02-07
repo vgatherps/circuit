@@ -1,5 +1,3 @@
-import torch.nn
-
 from dataclasses import dataclass, field
 from dataclasses_json import DataClassJsonMixin, config
 from typing import Any, Dict, List, Sequence
@@ -19,6 +17,9 @@ from pycircuit.differentiator.tensor import (
     make_parameter,
     make_constant,
 )
+from pycircuit.differentiator.operator import OperatorFn, DagOperator
+from pycircuit.differentiator.tensor import Module
+from pycircuit.differentiator.tensor import make_empty
 
 
 def _node_from(input: Any) -> "Node":
@@ -201,14 +202,18 @@ class Graph(DataClassJsonMixin):
     def pretty(self) -> Any:
         return self._traverse_pretty(self.root, dict())
 
-    # TODO will certainly need to include more in the graph?
-    # Unless tf and pytorch both do autodiscovery of inputs and variables
-    def evaluate_on(
+    def traverse_model_into(
         self,
         data: Dict[ComponentOutput, CircuitTensor],
         parameters: Dict[str, CircuitParameter],
-    ) -> CircuitTensor:
-        return self._traverse_model(self.root, data, parameters, dict())
+    ) -> DagOperator:
+        running_storage: List[CircuitTensor] = []
+        ordered_operators: List[OperatorFn] = []
+        self._traverse_model(
+            self.root, data, parameters, dict(), running_storage, ordered_operators
+        )
+
+        return DagOperator(ordered=ordered_operators, storage=running_storage)
 
     def mark_stored(self, circuit: CircuitData):
         for edge in self.find_edges():
@@ -297,22 +302,25 @@ class Graph(DataClassJsonMixin):
         node_output: ComponentOutput,
         data: Dict[ComponentOutput, CircuitTensor],
         parameters: Dict[str, CircuitParameter],
-        cache: Dict[ComponentOutput, CircuitTensor],
-    ) -> CircuitTensor:
+        cache: Dict[ComponentOutput, int],
+        running_storage: List[CircuitTensor],
+        operator_list: List[OperatorFn],
+    ) -> int:
         node = self.nodes[node_output]
         match node:
             case ConstantNode(val=val):
-                return make_constant(val)
+                value = make_constant(val)
+                running_storage.append(value)
 
             case EdgeNode(output=output):
                 if output in data:
-                    return data[output]
+                    running_storage.append(data[output])
                 else:
                     raise ValueError(f"Graph traversal could not find output {output}")
 
             case ParamNode(name=name):
                 if name in parameters:
-                    return parameters[name]
+                    running_storage.append(parameters[name])
                 else:
                     raise ValueError(f"Graph traversal could not find parameter {name}")
 
@@ -323,14 +331,21 @@ class Graph(DataClassJsonMixin):
                 operator = ALL_OPERATORS[opname]
 
                 singles = {
-                    s_name: self._traverse_model(s_node, data, parameters, cache)
+                    s_name: self._traverse_model(
+                        s_node, data, parameters, cache, running_storage, operator_list
+                    )
                     for (s_name, s_node) in node.single_inputs.items()
                 }
                 arrays = {
                     b_name: [
                         {
                             b_id_name: self._traverse_model(
-                                b_node, data, parameters, cache
+                                b_node,
+                                data,
+                                parameters,
+                                cache,
+                                running_storage,
+                                operator_list,
                             )
                             for (b_id_name, b_node) in batch.nodes.items()
                         }
@@ -339,19 +354,29 @@ class Graph(DataClassJsonMixin):
                     for (b_name, array) in node.array_inputs.items()
                 }
 
-                return operator.compute(singles, arrays)
-        raise ValueError("Bad type in dict")
+                write_into_idx = len(running_storage)
+                operator_list.append(operator(singles, arrays, write_into_idx))
+                running_storage.append(make_empty())
+
+            case _:
+                raise TypeError("Bad node type")
+
+        return len(running_storage) - 1
 
     def _traverse_model(
         self,
         node_output: ComponentOutput,
         data: Dict[ComponentOutput, CircuitTensor],
         parameters: Dict[str, CircuitParameter],
-        cache: Dict[ComponentOutput, CircuitTensor],
-    ) -> CircuitTensor:
+        cache: Dict[ComponentOutput, OperatorFn],
+        running_storage: List[CircuitTensor],
+        operator_list: List[OperatorFn],
+    ) -> OperatorFn:
         if node_output in cache:
             return cache[node_output]
-        rval = self._do_traverse_model(node_output, data, parameters, cache)
+        rval = self._do_traverse_model(
+            node_output, data, parameters, cache, running_storage, operator_list
+        )
         cache[node_output] = rval
         return rval
 
@@ -365,8 +390,8 @@ class Model:
             name: make_parameter(initial_values.get(name)) for name in parameter_names
         }
 
-    def evaluate_on(self, data: Dict[ComponentOutput, CircuitTensor]):
-        return self._graph.evaluate_on(data, self._parameters)
+    def create_module(self, data: Dict[ComponentOutput, CircuitTensor]):
+        return self._graph.traverse_model_into(data, self._parameters)
 
     def parameters(self) -> Dict[str, CircuitParameter]:
         return self._parameters.copy()

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Callable, Dict, List, Set, Type
 from pycircuit.differentiator.operator import OperatorFn
 from pycircuit.differentiator.tensor import CircuitTensor
@@ -6,49 +7,85 @@ from pycircuit.differentiator.tensor import tensor_max, tensor_min
 import torch
 
 
-UnaryOp = Callable[[CircuitTensor], CircuitTensor]
+class AUnaryOp(OperatorFn):
+    @classmethod
+    def single_inputs(cls) -> Set[str]:
+        return {"a"}
+
+    @classmethod
+    def array_inputs(cls) -> Dict[str, Set[str]]:
+        return {}
+
+    @classmethod
+    @abstractmethod
+    def do_op(a: CircuitTensor) -> CircuitTensor:
+        pass
+
+    def do_forward(self, tensors: List[CircuitTensor]):
+        return self.do_op(tensors[self.a_module])
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super(AUnaryOp, self).__init__(single_inputs, array_inputs, fill_idx)
+        self.a_module = single_inputs["a"]
 
 
-def create_unary(name: str, op: UnaryOp) -> Type[OperatorFn]:
-    class ABinaryOp(OperatorFn):
-        @classmethod
-        def name(cls) -> str:
-            return name
+class Exp(AUnaryOp):
+    @classmethod
+    def name(cls) -> str:
+        return "exp"
 
-        @classmethod
-        def single_inputs(cls) -> Set[str]:
-            return {"a"}
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super(Exp, self).__init__(single_inputs, array_inputs, fill_idx)
 
-        @classmethod
-        def array_inputs(cls) -> Dict[str, Set[str]]:
-            return {}
-
-        @classmethod
-        def operate(
-            cls,
-            single_inputs: Dict[str, CircuitTensor],
-            array_inputs: Dict[str, List[Dict[str, CircuitTensor]]],
-        ) -> CircuitTensor:
-            assert not array_inputs
-            return op(single_inputs["a"])
-
-    return ABinaryOp
+    @classmethod
+    def do_op(self, a):
+        return torch.exp(a)
 
 
-def _exp_t(a: CircuitTensor) -> CircuitTensor:
-    return torch.exp(a)
+class Log(AUnaryOp):
+    @classmethod
+    def name(cls) -> str:
+        return "log"
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super(Log, self).__init__(single_inputs, array_inputs, fill_idx)
+
+    @classmethod
+    def do_op(self, a):
+        return torch.log(a)
 
 
-def _log_t(a: CircuitTensor) -> CircuitTensor:
-    return torch.log(a)
+class Abs(AUnaryOp):
+    @classmethod
+    def name(cls) -> str:
+        return "abs"
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super(Abs, self).__init__(single_inputs, array_inputs, fill_idx)
+
+    @classmethod
+    def do_op(self, a):
+        return torch.abs(a)
 
 
-def _abs_t(a: CircuitTensor) -> CircuitTensor:
-    return torch.abs(a)
-
-
-UNARY_OPERATORS = {
-    "exp": create_unary("exp", _exp_t),
-    "log": create_unary("log", _log_t),
-    "abs": create_unary("abs", _abs_t),
-}
+UNARY_OPERATORS: Dict[str, Type[OperatorFn]] = {"exp": Exp, "log": Log, "abs": Abs}

@@ -11,6 +11,10 @@ from torch.optim import SGD, Adam
 from pycircuit.differentiator.trainer.data_writer_config import WriterConfig
 from pycircuit.differentiator.graph import Graph, output_to_name, Model
 
+import sys
+
+sys.setrecursionlimit(5000)
+
 
 @dataclass
 class TrainerOptions:
@@ -23,6 +27,7 @@ class TrainerOptions:
     lr_shrink_by: float = 5
     epochs_per_run: int = 1000
     print_params: bool = False
+    torch_compile: bool = False
 
 
 def main():
@@ -80,6 +85,11 @@ Writer: {named_outputs}
     )
     mse_loss = torch.nn.MSELoss()
 
+    module = model.create_module(inputs)
+
+    if args.torch_compile:
+        module = torch.compile(module)
+
     def report(projected, loss):
 
         print("MSE loss: ", float(mse_loss(projected, target)))
@@ -94,7 +104,7 @@ Writer: {named_outputs}
     for idx in range(0, args.lr_shrinkings):
         for idx in range(0, args.epochs_per_run):
 
-            projected = model.evaluate_on(inputs) * args.scale_by
+            projected = module() * args.scale_by
 
             computed_loss = mse_loss(projected, target)
 

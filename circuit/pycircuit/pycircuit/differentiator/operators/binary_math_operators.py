@@ -1,79 +1,231 @@
-from typing import Callable, Dict, List, Set, Type
+from abc import abstractmethod
+from typing import Dict, List, Set, Type
 from pycircuit.differentiator.operator import OperatorFn
-from pycircuit.differentiator.tensor import CircuitTensor
-from pycircuit.differentiator.tensor import tensor_max, tensor_min
+from pycircuit.differentiator.tensor import (
+    tensor_max,
+    tensor_min,
+    CircuitTensor,
+)
 
 
-BinaryOp = Callable[[CircuitTensor, CircuitTensor], CircuitTensor]
+class BinaryOp(OperatorFn):
+    @classmethod
+    def single_inputs(cls) -> Set[str]:
+        return {"a", "b"}
+
+    @classmethod
+    def array_inputs(cls) -> Dict[str, Set[str]]:
+        return {}
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        OperatorFn.__init__(self, single_inputs, array_inputs, fill_idx)
+        assert not array_inputs
+        self.a_module = single_inputs["a"]
+        self.b_module = single_inputs["b"]
+
+    @classmethod
+    @abstractmethod
+    def do_op(cls, a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
+        pass
+
+    def do_forward(self, tensors: List[CircuitTensor]) -> CircuitTensor:
+        return self.do_op(tensors[self.a_module], tensors[self.b_module])
 
 
-def create_binary(name: str, op: BinaryOp) -> Type[OperatorFn]:
-    class ABinaryOp(OperatorFn):
-        @classmethod
-        def name(cls) -> str:
-            return name
+class Add(BinaryOp):
+    @classmethod
+    def name():
+        return "add"
 
-        @classmethod
-        def single_inputs(cls) -> Set[str]:
-            return {"a", "b"}
+    @classmethod
+    def do_op(self, a, b) -> CircuitTensor:
+        return a + b
 
-        @classmethod
-        def array_inputs(cls) -> Dict[str, Set[str]]:
-            return {}
-
-        @classmethod
-        def operate(
-            cls,
-            single_inputs: Dict[str, CircuitTensor],
-            array_inputs: Dict[str, List[Dict[str, CircuitTensor]]],
-        ) -> CircuitTensor:
-            assert not array_inputs
-            return op(single_inputs["a"], single_inputs["b"])
-
-    return ABinaryOp
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _add_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a + b
+class Sub(BinaryOp):
+    @classmethod
+    def name():
+        return "sub"
+
+    @classmethod
+    def do_op(siwclslf, a, b) -> CircuitTensor:
+        return a - b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _sub_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a - b
+class Mul(BinaryOp):
+    @classmethod
+    def name():
+        return "mul"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return a * b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _mul_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a * b
+class Div(BinaryOp):
+    @classmethod
+    def name():
+        return "div"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return a / b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _div_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a / b
+class Lt(BinaryOp):
+    @classmethod
+    def name():
+        return "lt"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return a < b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _lt_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a < b
+class Le(BinaryOp):
+    @classmethod
+    def name():
+        return "le"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return a <= b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _le_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a <= b
+class Gt(BinaryOp):
+    @classmethod
+    def name():
+        return "gt"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return a > b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _gt_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a > b
+class Ge(BinaryOp):
+    @classmethod
+    def name():
+        return "ge"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return a >= b
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-def _ge_t(a: CircuitTensor, b: CircuitTensor) -> CircuitTensor:
-    return a >= b
+class Min(BinaryOp):
+    @classmethod
+    def name():
+        return "min"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return tensor_min(a, b)
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
 
-BINARY_OPERATORS = {
-    "add": create_binary("add", _add_t),
-    "sub": create_binary("sub", _sub_t),
-    "mul": create_binary("mul", _mul_t),
-    "div": create_binary("div", _div_t),
-    "lt": create_binary("lt", _lt_t),
-    "le": create_binary("le", _le_t),
-    "gt": create_binary("gt", _gt_t),
-    "ge": create_binary("ge", _ge_t),
-    "min": create_binary("min", tensor_min),
-    "max": create_binary("max", tensor_max),
+class Max(BinaryOp):
+    @classmethod
+    def name():
+        return "max"
+
+    @classmethod
+    def do_op(cls, a, b) -> CircuitTensor:
+        return tensor_max(a, b)
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
+
+
+BINARY_OPERATORS: Dict[str, Type[OperatorFn]] = {
+    "add": Add,
+    "sub": Sub,
+    "mul": Mul,
+    "div": Div,
+    "lt": Lt,
+    "le": Le,
+    "gt": Gt,
+    "ge": Ge,
+    "min": Min,
+    "max": Max,
 }

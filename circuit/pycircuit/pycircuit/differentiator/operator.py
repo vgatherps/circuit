@@ -2,13 +2,14 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Set
 
 from .tensor import CircuitTensor
+import torch
 
 import numpy as np
 
 VERBOSE = False
 
 
-class OperatorFn(ABC):
+class OperatorFn(ABC, torch.nn.Module):
     @classmethod
     @abstractmethod
     def name(cls) -> str:
@@ -24,23 +25,27 @@ class OperatorFn(ABC):
     def array_inputs(cls) -> Dict[str, Set[str]]:
         pass
 
-    @classmethod
     @abstractmethod
-    def operate(
-        cls,
-        single_inputs: Dict[str, CircuitTensor],
-        array_inputs: Dict[str, List[Dict[str, CircuitTensor]]],
-    ) -> CircuitTensor:
+    def do_forward(self, tensors: List[CircuitTensor]):
         pass
 
-    @classmethod
-    def compute(
-        cls,
-        single_inputs: Dict[str, CircuitTensor],
-        array_inputs: Dict[str, List[Dict[str, CircuitTensor]]],
+    def forward(self, tensors: List[CircuitTensor]):
+        rval = self.do_forward(tensors)
+        tensors[self.fill_idx] = rval
+        return rval
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
     ) -> CircuitTensor:
-        expected_single = cls.single_inputs()
-        expected_array_dict = cls.array_inputs()
+        super(OperatorFn, self).__init__()
+
+        self.fill_idx = fill_idx
+
+        expected_single = self.single_inputs()
+        expected_array_dict = self.array_inputs()
         expected_array = set(expected_array_dict.keys())
 
         has_single = set(single_inputs.keys())
@@ -48,13 +53,13 @@ class OperatorFn(ABC):
 
         if expected_single != has_single:
             raise ValueError(
-                f"Tensor operator {cls.name()} got single inputs {has_single} "
+                f"Tensor operator {self.name()} got single inputs {has_single} "
                 f"but expected {expected_single}"
             )
 
         if expected_array != has_array:
             raise ValueError(
-                f"Tensor operator {cls.name()} got array inputs {has_array} "
+                f"Tensor operator {self.name()} got array inputs {has_array} "
                 f"but expected {expected_array}"
             )
 
@@ -68,19 +73,18 @@ class OperatorFn(ABC):
                         f"but expected {batch}"
                     )
 
-        rval = cls.operate(single_inputs, array_inputs)
 
-        if VERBOSE:
-            print()
-            print("operator: ", cls.name())
-            for (iname, ival) in single_inputs.items():
-                print(f"{iname}: {ival.detach().numpy()}")
-            print("returns: ", rval.detach().numpy())
-            print()
+class DagOperator(torch.nn.Module):
+    def __init__(self, storage: List[CircuitTensor], ordered: List[OperatorFn]):
+        super(DagOperator, self).__init__()
 
-            import torch
+        self.storage = storage
+        self.ordered = ordered
 
-            if torch.any(torch.isnan(rval)):
-                raise ValueError("NANS DETECTED ABOVE")
+    def forward(self):
 
-        return rval
+        for operator in self.ordered:
+            last_returned = operator.forward(self.storage)
+
+        assert last_returned is self.storage[-1]
+        return last_returned

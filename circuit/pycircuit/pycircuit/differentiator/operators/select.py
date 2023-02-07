@@ -18,16 +18,19 @@ class Select(OperatorFn):
     def array_inputs(cls) -> Dict[str, Set[str]]:
         return {}
 
-    @classmethod
-    def operate(
-        cls,
-        single_inputs: Dict[str, CircuitTensor],
-        array_inputs: Dict[str, List[Dict[str, CircuitTensor]]],
-    ) -> CircuitTensor:
-        assert not array_inputs
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super().__init__(single_inputs, array_inputs, fill_idx)
 
+        self.a_module = single_inputs["a"]
+        self.b_module = single_inputs["b"]
+        self.select_a = single_inputs["select_a"]
+
+    def do_forward(self, tensors: List[CircuitTensor]):
         return torch.where(
-            single_inputs["select_a"],
-            single_inputs["a"],
-            single_inputs["b"],
+            tensors[self.select_a], tensors[self.a_module], tensors[self.b_module]
         )
