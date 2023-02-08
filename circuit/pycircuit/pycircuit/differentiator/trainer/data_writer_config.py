@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from dataclasses_json import DataClassJsonMixin
-from typing import List
+from typing import List, Set
 
 from pycircuit.circuit_builder.component import ComponentOutput
 

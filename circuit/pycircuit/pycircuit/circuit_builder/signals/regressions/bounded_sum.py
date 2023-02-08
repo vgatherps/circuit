@@ -1,9 +1,10 @@
 from typing import List, Optional
 from pycircuit.circuit_builder.circuit import HasOutput
-from pycircuit.circuit_builder.circuit_context import CircuitContextManager
-from .minmax import max_of, min_of
-from .tree_sum import tree_max, tree_min, tree_sum
-from .unary_arithmetic import cexp, cabs
+from pycircuit.circuit_builder.signals.constant import make_double
+from pycircuit.circuit_builder.signals.regressions.linreg import LinReg
+from ..minmax import max_of, min_of
+from ..tree_sum import tree_max, tree_min, tree_sum
+from ..unary_arithmetic import cexp, cabs
 
 # TODO consider if this should be replaced be some sort of more standard operator
 # i.e. some sort of scaled sigmoid or softmax selector.
@@ -28,9 +29,7 @@ def bounded_sum(vals: List[HasOutput], factors: List[HasOutput]):
     if len(vals) == 0:
         raise ValueError("Values list has zero length")
 
-    factored = [val * factor for (val, factor) in zip(vals, factors)]
-
-    sum_of = tree_sum(factored)
+    sum_of = LinReg(factors).regress(vals)
 
     raw_max = tree_max(vals)
     raw_min = tree_min(vals)
@@ -66,9 +65,7 @@ def soft_bounded_sum(
     if len(vals) == 0:
         raise ValueError("Values list has zero length")
 
-    circuit = CircuitContextManager.active_circuit()
-
-    cscale = circuit.make_constant("double", str(scale))
+    cscale = make_double(scale)
 
     exp_for_max = [
         cexp(factors[i] * (cscale * cabs(vals[i]))) for i in range(0, len(vals))

@@ -1,18 +1,16 @@
+from asyncio import all_tasks
 import json
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
-    TIME_TYPE,
     CallGroup,
     CircuitBuilder,
     CircuitData,
-    ComponentOutput,
 )
-from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.circuit_context import CircuitContextManager
 from pycircuit.circuit_builder.definition import Definitions
 from pycircuit.loader.loader_config import CoreLoaderConfig
@@ -28,9 +26,16 @@ from pycircuit.loader.write_timer_call import (
 from pycircuit.circuit_builder.circuit import ExternalStruct
 from pycircuit.circuit_builder.circuit import OutputArray
 from pycircuit.circuit_builder.component import HasOutput
-from pycircuit.circuit_builder.signals.bounded_sum import bounded_sum, soft_bounded_sum
+from pycircuit.circuit_builder.signals.regressions.bounded_sum import soft_bounded_sum
 from pycircuit.circuit_builder.signals.minmax import clamp
 from pycircuit.circuit_builder.component import Component
+from pycircuit.circuit_builder.signals.regressions.activations import (
+    relu,
+    sigmoid,
+)
+from pycircuit.circuit_builder.signals.regressions.mlp import Layer, mlp
+from pycircuit.circuit_builder.signals.constant import make_double
+from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     BasicSignalConfig,
@@ -140,6 +145,7 @@ def generate_trades_circuit_for_market_venue(
     venue: str,
     fair: HasOutput,
     decay_source: HasOutput,
+    config: TradePressureVenueConfig,
 ) -> Tuple[HasOutput, HasOutput]:
     trades_name = f"{market}_{venue}_trades"
 
@@ -160,12 +166,12 @@ def generate_trades_circuit_for_market_venue(
             "fair": fair,
             "tick": tick_detector.output(),
         },
+        params={
+            "pricesize_weight": config.trade_pressures[0].pricesize_weight,
+            "distance_weight": config.trade_pressures[0].distance_weight,
+        },
     )
 
-    circuit.add_call_group(
-        trades_name,
-        CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
-    )
 
     triggered_tick_decay = circuit.make_triggerable_constant(
         "double", raw_venue_pressure.output("tick"), "0.98"
@@ -173,7 +179,7 @@ def generate_trades_circuit_for_market_venue(
 
     per_market_venue_decaying_ticks_sum = circuit.make_component(
         definition_name="running_sum",
-        name=f"{market}_{venue}_decaying_tick_sum",
+        name=get_novel_name(f"{market}_{venue}_decaying_tick_sum"),
         inputs={
             "tick": raw_venue_pressure.output("tick"),
             "decay": OutputArray(
@@ -283,7 +289,7 @@ def generate_depth_circuit_for_market_venue(
         moves_per_decay,
         f"{market}_{venue}",
         use_linreg=True,
-        use_symmetric=True,
+        use_symmetric=False,
     )
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined
@@ -295,28 +301,127 @@ def generate_circuit_for_market(
     config: TradePressureMarketConfig,
     decay_sources: List[HasOutput],
 ):
-    all_running = []
-    all_ticks = []
+
+    all_fair_returns = []
     for (venue, venue_config) in config.venues.items():
-        fair = generate_depth_circuit_for_market_venue(
+        fair_returns = generate_depth_circuit_for_market_venue(
             circuit, market, venue, venue_config, decay_sources
         )
-        tick, running = generate_trades_circuit_for_market_venue(
-            circuit, market, venue, fair, decay_sources[0]
+        all_fair_returns.append(fair_returns)
+
+    if len(all_fair_returns) > 1:
+        fairs_comb = generate_cascading_soft_combos(
+            circuit,
+            all_fair_returns,
+            use_soft_linreg=True,
+            use_linreg=True,
+            use_symmetric=False,
+        )
+    else:
+        fairs_comb = all_fair_returns[0]
+
+    all_trade_pressures = []
+
+    for (venue, venue_config) in config.venues.items():
+
+        trades_name = f"{market}_{venue}_trades"
+        circuit.get_external(trades_name, "const Trade *"),
+        circuit.add_call_group(
+            trades_name,
+            CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
         )
 
-        all_ticks.append(tick)
-        all_running.append(running)
+    for (decay_idx, decay_source) in enumerate(decay_sources):
+        all_running = []
+        all_ticks = []
+        for (venue, venue_config) in config.venues.items():
+            # Have to be able to get parameters in there at first
+            wmid = circuit.lookup(f"{market}_{venue}_wmid")
+            tick, running = generate_trades_circuit_for_market_venue(
+                circuit, market, venue, wmid, decay_source, venue_config
+            )
 
-    per_market_running_sum = tree_sum(all_running)
+            all_ticks.append(tick)
+            all_running.append(running)
 
-    # todo tick_decay_source as well
+        per_market_running_sum = tree_sum(all_running)
 
-    per_market_ticks_sum = ephemeral_sum(circuit, all_ticks)
+        # todo tick_decay_source as well
 
-    total_pressure = per_market_running_sum + per_market_ticks_sum
-    total_pressure.force_stored()
-    circuit.rename_component(total_pressure, f"{market}_sum_tick_running")
+        per_market_ticks_sum = tree_sum(all_ticks)
+
+        total_pressure = per_market_running_sum + per_market_ticks_sum
+        # I'm 99% sure there's a bug in trying to store assume_default outputs
+        # This will try and propagate to currently
+        # They don't get reset in storage after getting modified
+
+        # There's also nothing interesting to backpropagate between here and all the ticks
+        total_pressure.block_propagation()
+
+        circuit.rename_component(
+            total_pressure, f"{market}_sum_tick_running_{decay_idx}"
+        )
+
+        all_trade_pressures.append(total_pressure)
+    # This makes little mathematical sense BUT let's generate some parameters
+    # for the differentiator
+    networked_pressure = mlp(
+        all_trade_pressures,
+        [
+            Layer.parameter_layer(
+                6,
+                len(decay_sources),
+                prefix=f"{market}_trade_mlp_relu",
+                activation=relu,
+            ),
+            Layer.parameter_layer(
+                3, 6, prefix=f"{market}_trade_mlp_sigmoid", activation=sigmoid
+            ),
+        ],
+    )
+
+    tp_wacky_resnet = generate_cascading_soft_combos(
+        circuit,
+        networked_pressure + all_trade_pressures,
+        f"{market}_networked_trade_pressure",
+        use_symmetric=False,
+        use_soft_linreg=True,
+        use_linreg=True,
+    )
+
+    # project down to some pesudo-returns sort of space
+    # really need to have better built in parameter scaling
+    # stuff for the differentiator
+    tp_wacky_resnet = tp_wacky_resnet * make_double(1e-4)
+
+    circuit.rename_component(tp_wacky_resnet, f"{market}_trade_pressure")
+
+    signals = [fairs_comb, total_pressure]
+
+    if "btc" not in market:
+        btc_signal = circuit.lookup("btcusdt_overall_pred")
+        signals.append(btc_signal)
+
+    # if I *really* wanted to generated parameters, could
+    # do another fancy combination
+    #
+    # In theory, these signals are somewhat orthogonal
+    # so all the fancy discounting doesn't buy anything
+    #
+    # It might also horribly mess up scaling
+
+    market_pred = generate_cascading_soft_combos(
+        circuit,
+        signals,
+        f"{market}_final",
+        use_symmetric=False,
+        use_soft_linreg=False,
+        use_linreg=True,
+    )
+
+    circuit.rename_component(market_pred, f"{market}_overall_pred")
+
+    return market_pred
 
 
 def generate_trade_pressure_circuit(
@@ -399,34 +504,65 @@ def main():
     with CircuitContextManager(circuit):
         generate_trade_pressure_circuit(circuit, trade_pressure, decay_sources)
 
+    # SO much duplicate code here
+
+    def write_simmable(
+        market: str,
+        venue: str,
+        track: HasOutput,
+        block: Set[ComponentOutput],
+        postfix: str,
+    ):
+        market_venue_graph = Graph.discover_from_circuit(
+            circuit, track, block_propagating=block
+        )
+
+        market_venue_graph.mark_stored(circuit)
+
+        with open(f"{out_dir}/{market}_{venue}_{postfix}_graph.json", "w") as write_to:
+            write_to.write(market_venue_graph.to_json())
+
+        target = circuit.components[f"{market}_{venue}_mid"]
+        sampler = circuit.components[f"{market}_{venue}_bucket_sampler"]
+
+        target.force_stored()
+        sampler.force_stored()
+
+        sample_config = WriterConfig(
+            outputs=market_venue_graph.find_edges(),
+            target_output=target.output(),
+            sample_on=sampler.output(),
+            ms_future=1000 * 2,
+        )
+
+        with open(
+            f"{out_dir}/{market}_{venue}_{postfix}_writer_config.json", "w"
+        ) as write_to:
+            write_to.write(sample_config.to_json())
+
     for (market, market_config) in trade_pressure.markets.items():
         for venue in market_config.venues.keys():
-            market_venue_graph = Graph.discover_from_circuit(
-                circuit, circuit.components[f"{market}_{venue}_depth_move"]
-            )
+            market_tp = circuit.components[f"{market}_trade_pressure"].output()
+            market_move = circuit.components[f"{market}_{venue}_depth_move"].output()
+            market_overall = circuit.components[f"{market}_overall_pred"].output()
 
-            market_venue_graph.mark_stored(circuit)
+            # In a real-world trading setup, you'd need to do this incrementally
+            # and have most new signals track the overall prediction instead of their own
+            # Since the value isn't
+            #   "Who can have a standalone better prediction"
+            # it's
+            #   "Who can overall increase the value of the feature set"
+            #
+            # However I don't have the parameterization set up that well to do so
+            # You could have more debate about whether this gradient propagation would
+            # should go all the way up the tree per round,
+            # or just do whatever increases local performance the best
+            write_simmable(market, venue, market_tp, {market_move}, "trade_pressure")
+            write_simmable(market, venue, market_move, {market_tp}, "depth")
+            write_simmable(market, venue, market_overall, {}, "overall")
 
-            with open(f"{out_dir}/{market}_{venue}_depth_graph.json", "w") as write_to:
-                write_to.write(market_venue_graph.to_json())
-
-            target = circuit.components[f"{market}_{venue}_mid"]
-            sampler = circuit.components[f"{market}_{venue}_bucket_sampler"]
-
-            target.force_stored()
-            sampler.force_stored()
-
-            sample_config = WriterConfig(
-                outputs=market_venue_graph.find_edges(),
-                target_output=target.output(),
-                sample_on=sampler.output(),
-                ms_future=1000 * 2,
-            )
-
-            with open(
-                f"{out_dir}/{market}_{venue}_writer_config.json", "w"
-            ) as write_to:
-                write_to.write(sample_config.to_json())
+            # HACKS since I know I only have one lol
+            break
 
     # This could be much better abstracted...
     cc_names = []

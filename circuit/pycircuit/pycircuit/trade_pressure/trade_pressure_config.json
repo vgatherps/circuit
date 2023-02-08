@@ -17,19 +17,19 @@
                     "trade_pressures": [
                         {
                             "pricesize_weight": 1e-5,
-                            "distance_weight": 1e5
+                            "distance_weight": 1e4
                         },
                         {
                             "pricesize_weight": 2e-5,
-                            "distance_weight": 1e5
+                            "distance_weight": 1e4
                         },
                         {
                             "pricesize_weight": 1e-5,
-                            "distance_weight": 2e5
+                            "distance_weight": 2e4
                         },
                         {
                             "pricesize_weight": 2e-5,
-                            "distance_weight": 2e5
+                            "distance_weight": 2e4
                         }
                     ]
                 }
@@ -52,19 +52,19 @@
                     "trade_pressures": [
                         {
                             "pricesize_weight": 1e-5,
-                            "distance_weight": 1e5
+                            "distance_weight": 1e4
                         },
                         {
                             "pricesize_weight": 2e-5,
-                            "distance_weight": 1e5
+                            "distance_weight": 1e4
                         },
                         {
                             "pricesize_weight": 1e-5,
-                            "distance_weight": 2e5
+                            "distance_weight": 2e4
                         },
                         {
                             "pricesize_weight": 2e-5,
-                            "distance_weight": 2e5
+                            "distance_weight": 2e4
                         }
                     ]
                 }

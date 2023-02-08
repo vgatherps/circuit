@@ -179,6 +179,15 @@ struct DoLog {
   }
 };
 
+struct DoNeg {
+  template <class A>
+    requires requires(A a) { -a; }
+  static auto call(A a) {
+    return -a;
+  }
+};
+
 template <class A> using ExpComponent = CoreUnary<A, DoExp>;
 template <class A> using AbsComponent = CoreUnary<A, DoAbs>;
+template <class A> using NegComponent = CoreUnary<A, DoNeg>;
 template <class A> using LogComponent = CoreUnary<A, DoLog>;

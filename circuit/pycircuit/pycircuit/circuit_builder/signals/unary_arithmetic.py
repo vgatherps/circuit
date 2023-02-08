@@ -49,3 +49,4 @@ def _make_unary_component(
 
 cexp = _make_unary_component("exp", "ExpComponent")
 cabs = _make_unary_component("abs", "AbsComponent")
+cneg = _make_unary_component("neg", "NegComponent")

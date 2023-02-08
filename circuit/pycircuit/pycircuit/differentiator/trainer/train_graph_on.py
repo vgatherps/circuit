@@ -38,6 +38,8 @@ def main():
         pd.read_parquet(args.parquet_path).dropna()[1000:].reset_index(drop=True)
     )
 
+    print(in_data)
+
     graph = Graph.from_dict(json.load(open(args.graph_file_path)))
     writer_config = WriterConfig.from_dict(json.load(open(args.writer_config_path)))
 

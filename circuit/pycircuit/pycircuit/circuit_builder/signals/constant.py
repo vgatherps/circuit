@@ -7,10 +7,18 @@ from pycircuit.circuit_builder.definition import (
     InitSpec,
 )
 from pycircuit.circuit_builder.definition import BasicInput
+from pycircuit.circuit_builder.component import HasOutput
 
 
 def clean_float_name(f_name: str) -> str:
     return f_name.replace(".", "_").replace("-", "_")
+
+
+def make_double(val: float) -> HasOutput:
+    from pycircuit.circuit_builder.circuit_context import CircuitContextManager
+
+    circuit = CircuitContextManager.active_circuit()
+    return circuit.make_constant("double", str(val))
 
 
 def generate_constant_definition(constant_type: str, constructor: str) -> Definition:

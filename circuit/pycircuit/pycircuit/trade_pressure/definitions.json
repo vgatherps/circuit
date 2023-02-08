@@ -14,7 +14,7 @@
                 "tick": {
                     "ephemeral": true,
                     "type_path": "NewTickScore",
-                    "always_valid": true,
+                    "assume_invalid": true,
                     "assume_default": true,
                     "default_constructor": " = 0.0"
                 }

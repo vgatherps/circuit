@@ -34,7 +34,7 @@ and mostly "just works"
 
 from typing import List, Optional, Tuple
 from pycircuit.circuit_builder.circuit import HasOutput
-from pycircuit.circuit_builder.signals.bounded_sum import soft_bounded_sum
+from pycircuit.circuit_builder.signals.regressions.bounded_sum import soft_bounded_sum
 from pycircuit.circuit_builder.signals.discount_by import discount_by
 from pycircuit.circuit_builder.signals.minmax import clamp
 

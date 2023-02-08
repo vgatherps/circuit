@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from dataclasses_json import DataClassJsonMixin, config
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Set
 from pycircuit.circuit_builder.circuit import CircuitData
 from pycircuit.circuit_builder.component import (
     HasOutput,
@@ -92,12 +92,13 @@ def _extract_array_batch(
     circuit: CircuitData,
     array: Sequence[InputBatch],
     cache: Dict[ComponentOutput, Node],
+    block_propagating: Set[ComponentOutput],
 ) -> List[NodeBatch]:
     batches = [NodeBatch(nodes=batch.d_inputs.copy()) for batch in array]
 
     for batch in batches:
         for output in batch.nodes.values():
-            _traverse_circuit_from(circuit, output, cache)
+            _traverse_circuit_from(circuit, output, cache, block_propagating)
 
     return batches
 
@@ -106,6 +107,7 @@ def _do_traverse_circuit_from(
     circuit: CircuitData,
     root_output: ComponentOutput,
     cache: Dict[ComponentOutput, Node],
+    block_propagating: Set[ComponentOutput],
 ) -> Node:
 
     root_parent = root_output.parent
@@ -113,7 +115,13 @@ def _do_traverse_circuit_from(
     if root_parent == "external":
         return EdgeNode(output=root_output)
 
+    if root_output in block_propagating:
+        return EdgeNode(output=root_output)
+
     component = circuit.components[root_parent]
+
+    if component.options(root_output.output_name).block_propagation:
+        return EdgeNode(output=root_output)
 
     op_name = component.definition.differentiable_operator_name
     match op_name:
@@ -131,10 +139,12 @@ def _do_traverse_circuit_from(
                 match input:
                     case SingleComponentInput(input=single):
                         single_inputs[input_name] = single
-                        _traverse_circuit_from(circuit, single, cache)
+                        _traverse_circuit_from(
+                            circuit, single, cache, block_propagating
+                        )
                     case ArrayComponentInput(inputs=array):
                         array_inputs[input_name] = _extract_array_batch(
-                            circuit, array, cache
+                            circuit, array, cache, block_propagating
                         )
 
             rval = OperatorNode(
@@ -155,10 +165,11 @@ def _traverse_circuit_from(
     circuit: CircuitData,
     root_output: ComponentOutput,
     cache: Dict[ComponentOutput, Node],
+    block_propagating: Set[ComponentOutput],
 ):
     if root_output in cache:
         return cache[root_output]
-    rval = _do_traverse_circuit_from(circuit, root_output, cache)
+    rval = _do_traverse_circuit_from(circuit, root_output, cache, block_propagating)
     cache[root_output] = rval
     return rval
 
@@ -178,10 +189,14 @@ class Graph(DataClassJsonMixin):
     root: ComponentOutput
 
     @staticmethod
-    def discover_from_circuit(circuit: CircuitData, root: HasOutput) -> "Graph":
+    def discover_from_circuit(
+        circuit: CircuitData,
+        root: HasOutput,
+        block_propagating: Set[ComponentOutput] = set(),
+    ) -> "Graph":
         circuit.validate()
         node_map: Dict[ComponentOutput, Node] = {}
-        _traverse_circuit_from(circuit, root.output(), node_map)
+        _traverse_circuit_from(circuit, root.output(), node_map, block_propagating)
         return Graph(root=root.output(), nodes=node_map)
 
     def find_edges(self) -> List[ComponentOutput]:

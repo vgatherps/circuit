@@ -121,9 +121,11 @@ public:
 
   template <class O>
     requires(HasTickRunning<O>)
-  OnTradeOutput init(O outputs, const nlohmann::json &) {
+  OnTradeOutput init(O outputs, const nlohmann::json &j) {
     outputs.running = 0.0;
     outputs.tick = 0.0;
+
+    do_init(j);
 
     return {.tick = false};
   }

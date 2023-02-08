@@ -1,12 +1,12 @@
 #include "signals/trade_pressure/tick_aggregator.hh"
 #include "math/fast_exp_64.hh"
 
-#include <iostream>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 
 namespace {
 
-double score_pricesize(double pricesize, double scale) {
+double score_pricesize(double pricesize, double scale, Side side) {
   assert(pricesize >= 0.0);
   assert(scale >= 0.0);
 
@@ -15,7 +15,7 @@ double score_pricesize(double pricesize, double scale) {
   assert(exp_ps <= 1.0);
   assert(exp_ps >= 0.0);
 
-  return 1.0 - exp_ps;
+  return flip_sign_if_buy(side, exp_ps - 1.0);
 }
 
 double weight_distance_for(double price, double fair, double weight,
@@ -23,10 +23,16 @@ double weight_distance_for(double price, double fair, double weight,
 
   double ratio = price / fair;
 
-  double bps_aggressive = flip_sign_if_buy(side, 1.0 - ratio);
+  double bps_passive = flip_sign_if_buy(side, ratio - (double)1.0);
+
+  double weighted_bps = weight * bps_passive;
+
+  weighted_bps = std::max(-3.0, weighted_bps);
 
   // TODO cap this at something reasonable
-  return FastExpE.compute(weight * bps_aggressive);
+  double rval = FastExpE.compute(weighted_bps);
+
+  return rval;
 }
 
 static RunningImpulseManager impulse_from_price(double price, double fair,
@@ -38,10 +44,11 @@ static RunningImpulseManager impulse_from_price(double price, double fair,
 }
 
 static void update_impulse(RunningImpulseManager &m, double price, double size,
-                           double pricesize_scale) {
+                           double pricesize_scale, Side side) {
 
   m.current_pricesize += price * size;
-  m.current_impulse = score_pricesize(m.current_pricesize, pricesize_scale);
+  m.current_impulse =
+      score_pricesize(m.current_pricesize, pricesize_scale, side);
 }
 
 static void update_price(RunningImpulseManager &m, double price, double fair,
@@ -66,7 +73,7 @@ double SingleTickAggregator::handle_trade(const Trade *trade, double fair) {
   update_price(this->running, trade->price(), fair,
                this->params.distance_weight, side);
   update_impulse(this->running, trade->price(), trade->size(),
-                 this->params.pricesize_weight);
+                 this->params.pricesize_weight, side);
 
   return this->running.impulse();
 }

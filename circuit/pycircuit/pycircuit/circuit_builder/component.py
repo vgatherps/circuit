@@ -52,6 +52,11 @@ class HasOutput(ABC):
     def __truediv__(self, other: "HasOutput") -> "Component":
         return self._make_math_component(other, "div", "DivComponent")
 
+    def __neg__(self, other) -> "Component":
+        from pycircuit.circuit_builder.signals.unary_arithmetic import cneg
+
+        return cneg(self)
+
     def __lt__(self, other: "HasOutput") -> "Component":
         return self._make_math_component(other, "lt", "LtComponent")
 
@@ -139,10 +144,14 @@ ComponentInput = SingleComponentInput | ArrayComponentInput
 
 @dataclass
 class OutputOptions(DataClassJsonMixin):
-    force_stored: bool
+    force_stored: bool = False
+    block_propagation: bool = False
 
     def strongest_of(self, other: "OutputOptions") -> "OutputOptions":
-        return OutputOptions(force_stored=self.force_stored or other.force_stored)
+        return OutputOptions(
+            force_stored=self.force_stored or other.force_stored,
+            block_propagation=self.block_propagation or other.block_propagation,
+        )
 
 
 @dataclass(eq=True, frozen=True)
@@ -185,6 +194,11 @@ class Component(HasOutput):
                 )
 
         raise ValueError("Unreachable")
+
+    def options(self, maybe_which: Optional[str] = None) -> OutputOptions:
+        output_name = self.output(maybe_which=maybe_which).output_name
+
+        return self.output_options.get(output_name, OutputOptions())
 
     def validate(self, _circuit: Any):
 
@@ -269,11 +283,25 @@ class Component(HasOutput):
 
     def force_stored(self, output: str | None = None):
         real_output = self.output(output)
+
         if real_output.output_name not in self.output_options:
-            self.output_options[real_output.output_name] = OutputOptions(True)
+            self.output_options[real_output.output_name] = OutputOptions(
+                force_stored=True
+            )
         else:
             self.output_options[real_output.output_name] = dataclasses.replace(
                 self.output_options[real_output.output_name], force_stored=True
+            )
+
+    def block_propagation(self, output: str | None = None):
+        real_output = self.output(output)
+        if real_output.output_name not in self.output_options:
+            self.output_options[real_output.output_name] = OutputOptions(
+                block_propagation=True
+            )
+        else:
+            self.output_options[real_output.output_name] = dataclasses.replace(
+                self.output_options[real_output.output_name], block_propagation=True
             )
 
     def index(self) -> ComponentIndex:

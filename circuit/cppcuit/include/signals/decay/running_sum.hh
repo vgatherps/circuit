@@ -19,6 +19,7 @@ public:
     if (!input.tick.valid()) [[likely]] {
       return;
     }
+    double old_running = output.running_sum;
     output.running_sum += *input.tick;
   }
 
@@ -27,7 +28,8 @@ public:
              HAS_REF_FIELD(O, double, running_sum))
   static void decay(A input, O output) {
     if (input.decay.valid()) [[likely]] {
-      output.running_sum *= input.decay;
+      double old_running = output.running_sum;
+      output.running_sum *= *input.decay;
     }
   }
 
