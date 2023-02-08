@@ -87,5 +87,22 @@ class Abs(AUnaryOp):
     def do_op(self, a):
         return torch.abs(a)
 
+class Neg(AUnaryOp):
+    @classmethod
+    def name(cls) -> str:
+        return "neg"
 
-UNARY_OPERATORS: Dict[str, Type[OperatorFn]] = {"exp": Exp, "log": Log, "abs": Abs}
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super(Neg, self).__init__(single_inputs, array_inputs, fill_idx)
+
+    @classmethod
+    def do_op(self, a):
+        return -a
+
+
+UNARY_OPERATORS: Dict[str, Type[OperatorFn]] = {"exp": Exp, "log": Log, "abs": Abs, "neg": Neg}

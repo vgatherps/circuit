@@ -58,7 +58,7 @@ class Layer:
         if self._bias is not None:
             rval = rval + self._bias
 
-        return rval
+        return rval.apply(self._activation)
 
 
 def mlp(vals: List[HasOutput], layers: List[Layer]) -> List[HasOutput]:

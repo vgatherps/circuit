@@ -32,9 +32,7 @@ class OperatorFn(ABC, torch.nn.Module):
     def forward(self, tensors: List[CircuitTensor]):
         rval = self.do_forward(tensors)
         if VERBOSE:
-            inputs = {
-                name: tensors[idx] for (name, idx) in self.single_mapping.items()
-            }
+            inputs = {name: tensors[idx] for (name, idx) in self.single_mapping.items()}
             print(f"Operator {self.name()} returns {rval.detach().numpy()}")
             print("Taking:")
             for (name, input) in inputs.items():

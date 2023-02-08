@@ -31,11 +31,11 @@ from pycircuit.circuit_builder.signals.minmax import clamp
 from pycircuit.circuit_builder.component import Component
 from pycircuit.circuit_builder.signals.regressions.activations import (
     relu,
-    sigmoid,
 )
 from pycircuit.circuit_builder.signals.regressions.mlp import Layer, mlp
 from pycircuit.circuit_builder.signals.constant import make_double
 from pycircuit.circuit_builder.component import ComponentOutput
+from pycircuit.circuit_builder.signals.regressions.activations import tanh
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     BasicSignalConfig,
@@ -172,7 +172,6 @@ def generate_trades_circuit_for_market_venue(
             "distance_weight": config.trade_pressures[0].distance_weight,
         },
     )
-
 
     triggered_tick_decay = circuit.make_triggerable_constant(
         "double", raw_venue_pressure.output("tick"), "0.98"
@@ -331,7 +330,9 @@ def generate_circuit_for_market(
         circuit.get_external(trades_name, "const Trade *"),
         circuit.add_call_group(
             trades_name,
-            CallGroup(struct="TradeUpdate", external_field_mapping={"trade": trades_name}),
+            CallGroup(
+                struct="TradeUpdate", external_field_mapping={"trade": trades_name}
+            ),
         )
 
     for (decay_idx, decay_source) in enumerate(decay_sources):
@@ -354,31 +355,44 @@ def generate_circuit_for_market(
         per_market_ticks_sum = tree_sum(all_ticks)
 
         total_pressure = per_market_running_sum + per_market_ticks_sum
-        # I'm 99% sure there's a bug in trying to store assume_default outputs
-        # This will try and propagate to currently
-        # They don't get reset in storage after getting modified
-
-        # There's also nothing interesting to backpropagate between here and all the ticks
-        total_pressure.block_propagation()
 
         circuit.rename_component(
             total_pressure, f"{market}_sum_tick_running_{decay_idx}"
         )
 
-        all_trade_pressures.append(total_pressure)
+        # Regularize this to some degree, seeing occasional large bursts and getting
+        # some nans from things like e^100
+
+        scale_1 = circuit.make_parameter(
+            f"{market}_sum_tick_running_{decay_idx}_regularizer_1"
+        )
+        scale_2 = circuit.make_parameter(
+            f"{market}_sum_tick_running_{decay_idx}_regularizer_2"
+        )
+
+        regularized_pressure = tanh(scale_1 * total_pressure) * scale_2
+
+        circuit.rename_component(
+            regularized_pressure, f"{market}_sum_tick_running_regularized_{decay_idx}"
+        )
+
+        all_trade_pressures.append(regularized_pressure)
     # This makes little mathematical sense BUT let's generate some parameters
     # for the differentiator
     networked_pressure = mlp(
         all_trade_pressures,
         [
             Layer.parameter_layer(
-                6,
+                3 * len(decay_sources),
                 len(decay_sources),
                 prefix=f"{market}_trade_mlp_relu",
                 activation=relu,
             ),
             Layer.parameter_layer(
-                3, 6, prefix=f"{market}_trade_mlp_sigmoid", activation=sigmoid
+                len(decay_sources),
+                3 * len(decay_sources),
+                prefix=f"{market}_trade_mlp_tanh",
+                activation=tanh,
             ),
         ],
     )
@@ -390,13 +404,13 @@ def generate_circuit_for_market(
         use_symmetric=False,
         use_soft_linreg=True,
         use_linreg=True,
-        scale=1
+        scale=1,
     )
 
     # project down to some pesudo-returns sort of space
     # really need to have better built in parameter scaling
     # stuff for the differentiator
-    tp_wacky_resnet = tp_wacky_resnet * make_double(1e-5)
+    tp_wacky_resnet = tp_wacky_resnet * make_double(1e-2)
 
     circuit.rename_component(tp_wacky_resnet, f"{market}_trade_pressure")
 

@@ -102,6 +102,23 @@ Writer: {named_outputs}
         # TODO when a nan is discovered, set verbose for operators
         # and retrace data only operating on that single index
 
+        if torch.isnan(loss):
+            from pycircuit.differentiator import operator
+
+            operator.VERBOSE = True
+
+            projected_nan = torch.isnan(projected)
+
+            first_true = index(projected_nan, True)
+
+            adjusted_data = {name: data[first_true] for (name, data) in inputs.items()}
+
+            adjusted_module = model.create_module(adjusted_data)
+
+            adjusted_module()
+
+            operator.VERBOSE = False
+
         if args.print_params:
             for (p_name, param) in model.parameters().items():
                 print(f"{p_name}: {float(param)}, {float(param.grad)}")
@@ -127,6 +144,29 @@ Writer: {named_outputs}
             param_goup["lr"] /= args.lr_shrink_by
 
     report(projected, computed_loss)
+
+
+def index(tensor: torch.Tensor, value, ith_match: int = 0) -> torch.Tensor:
+    """
+    Returns generalized index (i.e. location/coordinate) of the first occurence of value
+    in Tensor. For flat tensors (i.e. arrays/lists) it returns the indices of the occurrences
+    of the value you are looking for. Otherwise, it returns the "index" as a coordinate.
+    If there are multiple occurences then you need to choose which one you want with ith_index.
+    e.g. ith_index=0 gives first occurence.
+
+    Reference: https://stackoverflow.com/a/67175757/1601580
+    :return:
+    """
+    # bool tensor of where value occurred
+    places_where_value_occurs = tensor == value
+    # get matches as a "coordinate list" where occurence happened
+    matches = (tensor == value).nonzero()  # [number_of_matches, tensor_dimension]
+    if matches.size(0) == 0:  # no matches
+        return -1
+    else:
+        # get index/coordinate of the occurence you want (e.g. 1st occurence ith_match=0)
+        index = matches[ith_match]
+        return index
 
 
 if __name__ == "__main__":

@@ -12,9 +12,18 @@ def id(input: HasOutput) -> HasOutput:
 linear = id
 
 
+# TODO give there their own components and dedicated torch operations
+
+
 def sigmoid(input: HasOutput) -> Component:
     one = make_double(1)
     return one / (one + cexp(-input))
+
+
+def tanh(input: HasOutput) -> Component:
+    the_sigmoid = sigmoid(input)
+
+    return make_double(2) * the_sigmoid - make_double(1)
 
 
 def relu(input: HasOutput) -> Component:

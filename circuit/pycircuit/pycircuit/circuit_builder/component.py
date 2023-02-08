@@ -52,7 +52,7 @@ class HasOutput(ABC):
     def __truediv__(self, other: "HasOutput") -> "Component":
         return self._make_math_component(other, "div", "DivComponent")
 
-    def __neg__(self, other) -> "Component":
+    def __neg__(self) -> "Component":
         from pycircuit.circuit_builder.signals.unary_arithmetic import cneg
 
         return cneg(self)
