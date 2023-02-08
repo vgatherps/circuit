@@ -39,7 +39,7 @@ class BinaryOp(OperatorFn):
 
 class Add(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "add"
 
     @classmethod
@@ -57,7 +57,7 @@ class Add(BinaryOp):
 
 class Sub(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "sub"
 
     @classmethod
@@ -75,7 +75,7 @@ class Sub(BinaryOp):
 
 class Mul(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "mul"
 
     @classmethod
@@ -93,7 +93,7 @@ class Mul(BinaryOp):
 
 class Div(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "div"
 
     @classmethod
@@ -111,7 +111,7 @@ class Div(BinaryOp):
 
 class Lt(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "lt"
 
     @classmethod
@@ -129,7 +129,7 @@ class Lt(BinaryOp):
 
 class Le(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "le"
 
     @classmethod
@@ -147,7 +147,7 @@ class Le(BinaryOp):
 
 class Gt(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "gt"
 
     @classmethod
@@ -165,7 +165,7 @@ class Gt(BinaryOp):
 
 class Ge(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "ge"
 
     @classmethod
@@ -183,7 +183,7 @@ class Ge(BinaryOp):
 
 class Min(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "min"
 
     @classmethod
@@ -201,7 +201,7 @@ class Min(BinaryOp):
 
 class Max(BinaryOp):
     @classmethod
-    def name():
+    def name(cls):
         return "max"
 
     @classmethod

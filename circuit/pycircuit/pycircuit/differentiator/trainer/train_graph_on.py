@@ -99,6 +99,9 @@ Writer: {named_outputs}
             "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
         )
 
+        # TODO when a nan is discovered, set verbose for operators
+        # and retrace data only operating on that single index
+
         if args.print_params:
             for (p_name, param) in model.parameters().items():
                 print(f"{p_name}: {float(param)}, {float(param.grad)}")
@@ -113,7 +116,7 @@ Writer: {named_outputs}
             optim.zero_grad()
             computed_loss.backward()
 
-            if idx % 100 == 1:
+            if idx % 100 == 1 or idx == 0:
                 report(projected, computed_loss)
                 print()
                 print()

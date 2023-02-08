@@ -31,6 +31,16 @@ class OperatorFn(ABC, torch.nn.Module):
 
     def forward(self, tensors: List[CircuitTensor]):
         rval = self.do_forward(tensors)
+        if VERBOSE:
+            inputs = {
+                name: tensors[idx] for (name, idx) in self.single_mapping.items()
+            }
+            print(f"Operator {self.name()} returns {rval.detach().numpy()}")
+            print("Taking:")
+            for (name, input) in inputs.items():
+                print(f"Input {name}: {input.detach().numpy()}")
+            print()
+            print()
         tensors[self.fill_idx] = rval
         return rval
 
@@ -43,6 +53,9 @@ class OperatorFn(ABC, torch.nn.Module):
         super(OperatorFn, self).__init__()
 
         self.fill_idx = fill_idx
+
+        self.single_mapping = single_inputs
+        self.array_mapping = array_inputs
 
         expected_single = self.single_inputs()
         expected_array_dict = self.array_inputs()

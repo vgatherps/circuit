@@ -77,6 +77,7 @@ def generate_cascading_soft_combos(
     circuit: CircuitBuilder,
     inputs: List[HasOutput],
     parameter_prefix: str,
+    scale,
     use_symmetric=USE_SYMMETRIC,
     use_soft_linreg=USE_SOFT_LINREG,
     use_linreg=USE_LINREG,
@@ -100,7 +101,7 @@ def generate_cascading_soft_combos(
         symmetric = multi_symmetric_move(
             inputs,
             sym_move_params,
-            scale=10000,
+            scale=scale,
             post_coeffs=sym_move_reg_params,
             discounted_clamp=DISCOUNTED_RETURNS_CLAMP,
         )
@@ -117,7 +118,7 @@ def generate_cascading_soft_combos(
             for i in range(0, len(inputs))
         ]
         softreg = soft_bounded_sum(
-            inputs, soft_parameters, scale=10000, post_coeffs=soft_linreg_parameters
+            inputs, soft_parameters, scale=scale, post_coeffs=soft_linreg_parameters
         )
     else:
         softreg = circuit.make_constant("double", "0")
@@ -216,7 +217,7 @@ def generate_move_for_decay(
     rets.append(sided_bbo_returns(bbo, decay_source))
 
     combined = generate_cascading_soft_combos(
-        circuit, rets, move_name, use_linreg=False
+        circuit, rets, move_name, scale=10000, use_linreg=False
     )
     circuit.rename_component(combined, move_name)
     return combined
@@ -288,6 +289,7 @@ def generate_depth_circuit_for_market_venue(
         circuit,
         moves_per_decay,
         f"{market}_{venue}",
+        scale=10000,
         use_linreg=True,
         use_symmetric=False,
     )
@@ -313,6 +315,7 @@ def generate_circuit_for_market(
         fairs_comb = generate_cascading_soft_combos(
             circuit,
             all_fair_returns,
+            scale=10000,
             use_soft_linreg=True,
             use_linreg=True,
             use_symmetric=False,
@@ -387,12 +390,13 @@ def generate_circuit_for_market(
         use_symmetric=False,
         use_soft_linreg=True,
         use_linreg=True,
+        scale=1
     )
 
     # project down to some pesudo-returns sort of space
     # really need to have better built in parameter scaling
     # stuff for the differentiator
-    tp_wacky_resnet = tp_wacky_resnet * make_double(1e-4)
+    tp_wacky_resnet = tp_wacky_resnet * make_double(1e-5)
 
     circuit.rename_component(tp_wacky_resnet, f"{market}_trade_pressure")
 
@@ -414,6 +418,7 @@ def generate_circuit_for_market(
         circuit,
         signals,
         f"{market}_final",
+        scale=1,
         use_symmetric=False,
         use_soft_linreg=False,
         use_linreg=True,
@@ -532,7 +537,7 @@ def main():
             outputs=market_venue_graph.find_edges(),
             target_output=target.output(),
             sample_on=sampler.output(),
-            ms_future=1000 * 2,
+            ms_future=1000 * 5,
         )
 
         with open(
