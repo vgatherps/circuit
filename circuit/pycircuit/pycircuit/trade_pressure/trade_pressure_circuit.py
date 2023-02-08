@@ -57,7 +57,7 @@ STRUCT = "TradePressure"
 
 USE_SYMMETRIC = False
 USE_SOFT_LINREG = True
-USE_LINREG=True
+USE_LINREG = True
 
 
 DISCOUNTED_RETURNS_CLAMP: Optional[float] = 0.005
@@ -69,8 +69,12 @@ class TradePressureOptions:
 
 
 def generate_cascading_soft_combos(
-    circuit: CircuitBuilder, inputs: List[HasOutput], parameter_prefix: str,
-    use_symmetric=USE_SYMMETRIC, use_soft_linreg=USE_SOFT_LINREG, use_linreg=USE_LINREG
+    circuit: CircuitBuilder,
+    inputs: List[HasOutput],
+    parameter_prefix: str,
+    use_symmetric=USE_SYMMETRIC,
+    use_soft_linreg=USE_SOFT_LINREG,
+    use_linreg=USE_LINREG,
 ) -> Component:
     if use_symmetric:
 
@@ -205,7 +209,9 @@ def generate_move_for_decay(
 
     rets.append(sided_bbo_returns(bbo, decay_source))
 
-    combined = generate_cascading_soft_combos(circuit, rets, move_name, use_linreg=False)
+    combined = generate_cascading_soft_combos(
+        circuit, rets, move_name, use_linreg=False
+    )
     circuit.rename_component(combined, move_name)
     return combined
 
@@ -273,7 +279,11 @@ def generate_depth_circuit_for_market_venue(
         moves_per_decay.append(move_for_decay)
 
     combined = generate_cascading_soft_combos(
-        circuit, moves_per_decay, f"{market}_{venue}", use_linreg=True, use_symmetric=True,
+        circuit,
+        moves_per_decay,
+        f"{market}_{venue}",
+        use_linreg=True,
+        use_symmetric=True,
     )
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined

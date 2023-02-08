@@ -19,6 +19,9 @@ class TrainerOptions:
     parquet_path: str
     scale_by: float = 10000
     lr: float = 0.01
+    lr_shrinkings: int = 1
+    lr_shrink_by: float = 5
+    epochs_per_run: int = 1000
     print_params: bool = False
 
 
@@ -88,21 +91,25 @@ Writer: {named_outputs}
             for (p_name, param) in model.parameters().items():
                 print(f"{p_name}: {float(param)}, {float(param.grad)}")
 
-    for idx in range(0, 10000):
+    for idx in range(0, args.lr_shrinkings):
+        for idx in range(0, args.epochs_per_run):
 
-        projected = model.evaluate_on(inputs) * args.scale_by
+            projected = model.evaluate_on(inputs) * args.scale_by
 
-        computed_loss = mse_loss(projected, target)
+            computed_loss = mse_loss(projected, target)
 
-        optim.zero_grad()
-        computed_loss.backward()
+            optim.zero_grad()
+            computed_loss.backward()
 
-        if idx % 100 == 1:
-            report(projected, computed_loss)
-            print()
-            print()
+            if idx % 100 == 1:
+                report(projected, computed_loss)
+                print()
+                print()
 
-        optim.step()
+            optim.step()
+
+        for param_goup in optim.param_groups:
+            param_goup["lr"] /= args.lr_shrink_by
 
     report(projected, computed_loss)
 
