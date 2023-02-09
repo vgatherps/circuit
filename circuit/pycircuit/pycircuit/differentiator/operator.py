@@ -4,8 +4,6 @@ from typing import Dict, List, Set
 from .tensor import CircuitTensor
 import torch
 
-import numpy as np
-
 VERBOSE = False
 
 

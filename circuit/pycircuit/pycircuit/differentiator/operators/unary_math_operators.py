@@ -87,6 +87,7 @@ class Abs(AUnaryOp):
     def do_op(self, a):
         return torch.abs(a)
 
+
 class Neg(AUnaryOp):
     @classmethod
     def name(cls) -> str:
@@ -105,4 +106,9 @@ class Neg(AUnaryOp):
         return -a
 
 
-UNARY_OPERATORS: Dict[str, Type[OperatorFn]] = {"exp": Exp, "log": Log, "abs": Abs, "neg": Neg}
+UNARY_OPERATORS: Dict[str, Type[OperatorFn]] = {
+    "exp": Exp,
+    "log": Log,
+    "abs": Abs,
+    "neg": Neg,
+}

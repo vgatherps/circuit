@@ -284,9 +284,39 @@ def generate_depth_circuit_for_market_venue(
         )
         moves_per_decay.append(move_for_decay)
 
+    # This doesn't make much sense but might as well add some parameters
+
+    scale_returns_up = make_double(10000)
+
+    moves_mlp = mlp(
+        [move * scale_returns_up for move in moves_per_decay],
+        [
+            Layer.parameter_layer(
+                2 * len(moves_per_decay),
+                len(moves_per_decay),
+                activation=tanh,
+                prefix=f"{market}_{venue}_move_tanh_scaleup",
+            ),
+            Layer.parameter_layer(
+                2 * len(moves_per_decay),
+                2 * len(moves_per_decay),
+                activation=relu,
+                prefix=f"{market}_{venue}_move_relu",
+            ),
+            Layer.parameter_layer(
+                len(moves_per_decay),
+                2 * len(moves_per_decay),
+                activation=tanh,
+                prefix=f"{market}_{venue}_move_tanh_scaledown",
+            ),
+        ],
+    )
+
+    moves_mlp = [m / scale_returns_up for m in moves_mlp]
+
     combined = generate_cascading_soft_combos(
         circuit,
-        moves_per_decay,
+        moves_per_decay + moves_mlp,
         f"{market}_{venue}",
         scale=10000,
         use_linreg=True,
@@ -360,61 +390,26 @@ def generate_circuit_for_market(
             total_pressure, f"{market}_sum_tick_running_{decay_idx}"
         )
 
-        # Regularize this to some degree, seeing occasional large bursts and getting
-        # some nans from things like e^100
+        all_trade_pressures.append(total_pressure)
 
-        scale_1 = circuit.make_parameter(
-            f"{market}_sum_tick_running_{decay_idx}_regularizer_1"
-        )
-        scale_2 = circuit.make_parameter(
-            f"{market}_sum_tick_running_{decay_idx}_regularizer_2"
-        )
-
-        regularized_pressure = tanh(scale_1 * total_pressure) * scale_2
-
-        circuit.rename_component(
-            regularized_pressure, f"{market}_sum_tick_running_regularized_{decay_idx}"
-        )
-
-        all_trade_pressures.append(regularized_pressure)
-    # This makes little mathematical sense BUT let's generate some parameters
-    # for the differentiator
-    networked_pressure = mlp(
-        all_trade_pressures,
-        [
-            Layer.parameter_layer(
-                3 * len(decay_sources),
-                len(decay_sources),
-                prefix=f"{market}_trade_mlp_relu",
-                activation=relu,
-            ),
-            Layer.parameter_layer(
-                len(decay_sources),
-                3 * len(decay_sources),
-                prefix=f"{market}_trade_mlp_tanh",
-                activation=tanh,
-            ),
-        ],
-    )
-
-    tp_wacky_resnet = generate_cascading_soft_combos(
+    tp_softreg = generate_cascading_soft_combos(
         circuit,
-        networked_pressure + all_trade_pressures,
+        all_trade_pressures,
         f"{market}_networked_trade_pressure",
         use_symmetric=False,
         use_soft_linreg=True,
         use_linreg=True,
-        scale=1,
+        scale=0.1,
     )
 
     # project down to some pesudo-returns sort of space
     # really need to have better built in parameter scaling
     # stuff for the differentiator
-    tp_wacky_resnet = tp_wacky_resnet * make_double(1e-2)
+    tp_softreg = tp_softreg * make_double(1e-4)
 
-    circuit.rename_component(tp_wacky_resnet, f"{market}_trade_pressure")
+    circuit.rename_component(tp_softreg, f"{market}_trade_pressure")
 
-    signals = [fairs_comb, total_pressure]
+    signals = [fairs_comb, tp_softreg]
 
     if "btc" not in market:
         btc_signal = circuit.lookup("btcusdt_overall_pred")

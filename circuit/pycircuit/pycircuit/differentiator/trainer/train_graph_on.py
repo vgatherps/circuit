@@ -92,17 +92,8 @@ Writer: {named_outputs}
     if args.torch_compile:
         module = torch.compile(module)
 
-    def report(projected, loss):
-
-        print("MSE loss: ", float(mse_loss(projected, target)))
-        print(
-            "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
-        )
-
-        # TODO when a nan is discovered, set verbose for operators
-        # and retrace data only operating on that single index
-
-        if torch.isnan(loss):
+    def detect_nan(projected, loss):
+        if torch.isnan(loss) or torch.any(torch.isnan(projected)):
             from pycircuit.differentiator import operator
 
             operator.VERBOSE = True
@@ -119,6 +110,15 @@ Writer: {named_outputs}
 
             operator.VERBOSE = False
 
+            raise ValueError("Nan encountered")
+
+    def report(projected, loss):
+
+        print("MSE loss: ", float(mse_loss(projected, target)))
+        print(
+            "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
+        )
+
         if args.print_params:
             for (p_name, param) in model.parameters().items():
                 print(f"{p_name}: {float(param)}, {float(param.grad)}")
@@ -129,6 +129,8 @@ Writer: {named_outputs}
             projected = module() * args.scale_by
 
             computed_loss = mse_loss(projected, target)
+
+            detect_nan(projected, computed_loss)
 
             optim.zero_grad()
             computed_loss.backward()
