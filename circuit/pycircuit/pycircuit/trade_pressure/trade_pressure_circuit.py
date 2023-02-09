@@ -551,7 +551,7 @@ def main():
             outputs=market_venue_graph.find_edges(),
             target_output=target.output(),
             sample_on=sampler.output(),
-            ms_future=1000 * 5,
+            ms_future=1000 * 2,
         )
 
         with open(
