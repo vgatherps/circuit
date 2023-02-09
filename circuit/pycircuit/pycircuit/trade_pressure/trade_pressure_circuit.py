@@ -36,6 +36,7 @@ from pycircuit.circuit_builder.signals.regressions.mlp import Layer, mlp
 from pycircuit.circuit_builder.signals.constant import make_double
 from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.signals.regressions.activations import tanh
+from pycircuit.circuit_builder.signals.summary.make_summary import Normalizer
 from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
 from pycircuit.trade_pressure.trade_pressure_config import (
     BasicSignalConfig,
@@ -65,9 +66,6 @@ USE_SOFT_LINREG = True
 USE_LINREG = True
 
 
-DISCOUNTED_RETURNS_CLAMP: Optional[float] = 0.005
-
-
 @dataclass
 class TradePressureOptions:
     out_dir: str
@@ -77,11 +75,25 @@ def generate_cascading_soft_combos(
     circuit: CircuitBuilder,
     inputs: List[HasOutput],
     parameter_prefix: str,
-    scale,
     use_symmetric=USE_SYMMETRIC,
     use_soft_linreg=USE_SOFT_LINREG,
     use_linreg=USE_LINREG,
+    normalize: bool | Normalizer = True,
+    denormalize: bool = True,
 ) -> Component:
+
+    match normalize:
+        case True as do_normalize:
+            do_normalize = normalize
+            normalizer = Normalizer(inputs[0])
+        case False as do_normalize:
+            pass
+        case Normalizer():
+            do_normalize = True
+
+    if do_normalize:
+        inputs = [normalizer.normalize(input) for input in inputs]
+
     if use_symmetric:
 
         sym_move_params: List[List[HasOutput]] = []
@@ -101,9 +113,7 @@ def generate_cascading_soft_combos(
         symmetric = multi_symmetric_move(
             inputs,
             sym_move_params,
-            scale=scale,
             post_coeffs=sym_move_reg_params,
-            discounted_clamp=DISCOUNTED_RETURNS_CLAMP,
         )
     else:
         symmetric = circuit.make_constant("double", "0")
@@ -118,7 +128,7 @@ def generate_cascading_soft_combos(
             for i in range(0, len(inputs))
         ]
         softreg = soft_bounded_sum(
-            inputs, soft_parameters, scale=scale, post_coeffs=soft_linreg_parameters
+            inputs, soft_parameters, post_coeffs=soft_linreg_parameters
         )
     else:
         softreg = circuit.make_constant("double", "0")
@@ -134,8 +144,9 @@ def generate_cascading_soft_combos(
         linreg = circuit.make_constant("double", "0")
 
     combined = softreg + symmetric + linreg
-    if DISCOUNTED_RETURNS_CLAMP is not None:
-        combined = clamp(combined, DISCOUNTED_RETURNS_CLAMP)
+
+    if do_normalize and denormalize:
+        combined = normalizer.denormalize(combined)
 
     return combined
 
@@ -207,17 +218,20 @@ def generate_move_for_decay(
     signals: List[HasOutput],
     decay_source: HasOutput,
 ):
+
     rets: List[HasOutput] = [
         returns_against_ewma(signal, decay_source, 0.01) for signal in signals
     ]
 
     move_name = get_novel_name(f"{market}_{venue}_decay_depth_move")
-
     rets.append(sided_bbo_returns(bbo, decay_source))
 
+    # Do not denormalise, as we just pipe this further into more stuff
     combined = generate_cascading_soft_combos(
-        circuit, rets, move_name, scale=10000, use_linreg=False
+        circuit, rets, move_name, use_linreg=True, denormalize=False
     )
+
+    print(type(combined))
     circuit.rename_component(combined, move_name)
     return combined
 
@@ -286,10 +300,8 @@ def generate_depth_circuit_for_market_venue(
 
     # This doesn't make much sense but might as well add some parameters
 
-    scale_returns_up = make_double(10000)
-
     moves_mlp = mlp(
-        [move * scale_returns_up for move in moves_per_decay],
+        moves_per_decay,
         [
             Layer.parameter_layer(
                 2 * len(moves_per_decay),
@@ -312,16 +324,17 @@ def generate_depth_circuit_for_market_venue(
         ],
     )
 
-    moves_mlp = [m / scale_returns_up for m in moves_mlp]
-
     combined = generate_cascading_soft_combos(
         circuit,
         moves_per_decay + moves_mlp,
         f"{market}_{venue}",
-        scale=10000,
         use_linreg=True,
         use_symmetric=False,
+        normalize=False,
     )
+
+    # TODO denormalise lol
+
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined
 
@@ -340,19 +353,21 @@ def generate_circuit_for_market(
         )
         all_fair_returns.append(fair_returns)
 
+    fairs_comb: HasOutput
     if len(all_fair_returns) > 1:
         fairs_comb = generate_cascading_soft_combos(
             circuit,
             all_fair_returns,
-            scale=10000,
+            parameter_prefix=f"{market}_all_fairs_combination",
             use_soft_linreg=True,
             use_linreg=True,
             use_symmetric=False,
+            normalize=False,
         )
     else:
         fairs_comb = all_fair_returns[0]
 
-    all_trade_pressures = []
+    all_trade_pressures: List[HasOutput] = []
 
     for (venue, venue_config) in config.venues.items():
 
@@ -399,13 +414,13 @@ def generate_circuit_for_market(
         use_symmetric=False,
         use_soft_linreg=True,
         use_linreg=True,
-        scale=0.1,
+        normalize=True,
+        denormalize=False,
     )
 
     # project down to some pesudo-returns sort of space
     # really need to have better built in parameter scaling
     # stuff for the differentiator
-    tp_softreg = tp_softreg * make_double(1e-4)
 
     circuit.rename_component(tp_softreg, f"{market}_trade_pressure")
 
@@ -423,19 +438,25 @@ def generate_circuit_for_market(
     #
     # It might also horribly mess up scaling
 
-    market_pred = generate_cascading_soft_combos(
+    normalised_market_pred = generate_cascading_soft_combos(
         circuit,
         signals,
         f"{market}_final",
-        scale=1,
         use_symmetric=False,
         use_soft_linreg=False,
         use_linreg=True,
+        normalize=False,
     )
 
-    circuit.rename_component(market_pred, f"{market}_overall_pred")
+    prescaled_market_pred = normalised_market_pred * make_double(1e-4)
 
-    return market_pred
+    scaled_market_pred = prescaled_market_pred * circuit.make_parameter(
+        f"{market}_final_scale"
+    )
+
+    circuit.rename_component(scaled_market_pred, f"{market}_overall_pred")
+
+    return scaled_market_pred
 
 
 def generate_trade_pressure_circuit(

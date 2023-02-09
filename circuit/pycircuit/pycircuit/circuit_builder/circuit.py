@@ -25,6 +25,7 @@ from pycircuit.circuit_builder.component import ComponentIndex
 from .signals.constant import (
     generate_constant_definition,
     generate_parameter_definition,
+    generate_summary_definition,
     generate_triggerable_constant_definition,
 )
 
@@ -380,7 +381,9 @@ class CircuitBuilder(CircuitData):
 
         return self._insert_component(comp, force=force_insert)
 
-    def make_parameter(self, name: str, required: bool = False) -> "Component":
+    def make_parameter(
+        self, name: str, required: bool = False, force=True
+    ) -> "Component":
         definition = generate_parameter_definition(required)
 
         self.add_definition(f"parameter_req_{required}", definition)
@@ -394,7 +397,26 @@ class CircuitBuilder(CircuitData):
             class_generics={},
         )
 
-        return self._insert_component(comp, force=True)
+        return self._insert_component(comp, force=force)
+
+    def summarize(self, input: HasOutput, summary: str) -> "Component":
+        definition = generate_summary_definition(summary)
+
+        self.add_definition(f"parameter_summary_{summary}", definition)
+
+        out = input.output()
+        name = f"{out.parent}::{out.output_name}::{summary}"
+
+        comp = Component(
+            name=name,
+            definition=definition,
+            inputs={"in": out},
+            output_options={},
+            params=None,
+            class_generics={},
+        )
+
+        return self._insert_component(comp, force=False)
 
     def make_constant(self, type: str, constructor: Optional[str]) -> "Component":
         if constructor is not None:
@@ -465,6 +487,7 @@ class CircuitBuilder(CircuitData):
             if other_component is component:
                 continue
             for input in other_component.inputs.values():
+                print(input)
                 for parent in input.parents():
                     if parent == component.name:
                         raise ValueError(

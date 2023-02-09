@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 from frozendict import frozendict
 from pycircuit.circuit_builder.definition import (
     CallSpec,
     Definition,
+    InputMetadata,
     OutputSpec,
     InitSpec,
 )
@@ -74,7 +75,7 @@ def generate_triggerable_constant_definition(
     return defin
 
 
-def generate_parameter_definition(required: bool) -> Definition:
+def _do_generate_parameter_definition(required: bool, op_name: str) -> Definition:
     defin = Definition(
         class_name=f"DoubleParameter<{str(required).lower()}>",
         output_specs=frozendict(
@@ -83,14 +84,24 @@ def generate_parameter_definition(required: bool) -> Definition:
                 always_valid=True,
             )
         ),
-        inputs=frozendict(),
+        inputs=frozendict(
+            {"in": BasicInput(meta=InputMetadata(optional=True, allow_unused=True))}
+        ),
         static_call=True,
         header="signals/parameter.hh",
         init_spec=InitSpec(
             init_call="init",
             takes_params=True,
         ),
-        differentiable_operator_name="parameter",
+        differentiable_operator_name=op_name,
     )
     defin.validate()
     return defin
+
+
+def generate_parameter_definition(required: bool) -> Definition:
+    return _do_generate_parameter_definition(required, "parameter")
+
+
+def generate_summary_definition(summary: str) -> Definition:
+    return _do_generate_parameter_definition(False, summary)
