@@ -8,6 +8,8 @@ import torch
 import torchmetrics.functional
 from torch.optim import SGD, Adam
 
+import time
+
 from pycircuit.differentiator.trainer.data_writer_config import WriterConfig
 from pycircuit.differentiator.graph import Graph, output_to_name, Model
 
@@ -90,7 +92,11 @@ Writer: {named_outputs}
     module = model.create_module(inputs)
 
     if args.torch_compile:
+        print("Compiling graph...")
         module = torch.compile(module)
+        print("Compiled graph, performing first evaluation")
+        module()
+        print("Moving to real operation")
 
     def detect_nan(projected, loss):
         if torch.isnan(loss) or torch.any(torch.isnan(projected)):
@@ -118,15 +124,22 @@ Writer: {named_outputs}
         print(
             "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
         )
+        print("proj: ", projected)
+        print("target: ", target)
 
         if args.print_params:
             for (p_name, param) in model.parameters().items():
                 print(f"{p_name}: {float(param)}, {float(param.grad)}")
 
+    timings = []
     for idx in range(0, args.lr_shrinkings):
         for idx in range(0, args.epochs_per_run):
 
+            start = time.time()
             projected = module() * args.scale_by
+            end = time.time()
+
+            timings.append(max(end - start, 0))
 
             computed_loss = mse_loss(projected, target)
 
@@ -136,6 +149,11 @@ Writer: {named_outputs}
             computed_loss.backward()
 
             if idx % 100 == 1 or idx == 0:
+                print(
+                    f"Epoch took {sum(timings)} total and "
+                    f"averaged {sum(timings)/ len(timings)} seconds per eval"
+                )
+                timings = []
                 report(projected, computed_loss)
                 print()
                 print()

@@ -45,7 +45,7 @@ class OperatorFn(ABC, torch.nn.Module):
         single_inputs: Dict[str, int],
         array_inputs: Dict[str, List[Dict[str, int]]],
         fill_idx: int,
-    ) -> CircuitTensor:
+    ):
         super(OperatorFn, self).__init__()
 
         self.fill_idx = fill_idx

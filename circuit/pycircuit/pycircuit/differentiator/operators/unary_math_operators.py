@@ -18,7 +18,7 @@ class AUnaryOp(OperatorFn):
 
     @classmethod
     @abstractmethod
-    def do_op(a: CircuitTensor) -> CircuitTensor:
+    def do_op(cls, a: CircuitTensor) -> CircuitTensor:
         pass
 
     def do_forward(self, tensors: List[CircuitTensor]):

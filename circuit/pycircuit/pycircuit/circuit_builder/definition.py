@@ -12,6 +12,7 @@ from frozendict import frozendict
 @dataclass(eq=True, frozen=True)
 class InputMetadata:
     always_valid: bool = False
+    allow_unused: bool = False
     optional: bool = False
 
 
@@ -57,8 +58,11 @@ def decode_input(input: Any) -> InputType:
 
     always_valid = bool(input.pop("always_valid", False))
     optional = bool(input.pop("optional", False))
+    allow_unused = bool(input.pop("allow_unused", False))
 
-    meta = InputMetadata(always_valid=always_valid, optional=optional)
+    meta = InputMetadata(
+        always_valid=always_valid, optional=optional, allow_unused=allow_unused
+    )
 
     match input:
         case {"input_type": "single", **kwargs} | {**kwargs} if not kwargs:
@@ -506,10 +510,12 @@ class Definition(DataClassJsonMixin):
         # We know that every used input is in all_inputs from the validation
         # So we can just check for equality to ensure nothing is lost
         unused_inputs = all_my_inputs.difference(all_used_inputs)
+        unused_inputs = {
+            unused
+            for unused in unused_inputs
+            if not self.inputs[unused].meta.allow_unused
+        }
         if unused_inputs:
-            import pprint
-
-            pprint.pprint(self.to_dict())
             raise ValueError(
                 f"Definition {self.class_name} has unused inputs " f"{unused_inputs}"
             )
