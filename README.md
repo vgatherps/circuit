@@ -50,10 +50,12 @@ The commands (as run on my computer) are:
 
 * Generate circuit, run from the upper pycircuit directory:
   * python3 -m pycircuit.trade_pressure.trade_pressure_circuit --out-dir ../cppcuit/codegen/trade_pressure
-* Run a simulation, run from a build directory called build within cppcuit
-  * ./bin/trade_printer/local_trade_printer --circuit_config ../config/circuit.json --stream_config ../config/streams.json --data_dir ../../data_loader/data/ --sampler_config ../../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_writer_config.json --sampler_output ./dump.parquet
+* Run a simulation, run from a build directory called build within cppcuit to dump parameters used by depth signal training
+  * ./bin/trade_printer/local_trade_printer --circuit_config ../codegen/trade_pressure/params.json --stream_config ../config/streams.json --data_dir ../../data_loader/data/ --sampler_config ../../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_depth_writer_config.json --sampler_output ./dumpbtcdepth.parquet
 * Run the trainer, back from upper pycircuit:
-  * python -m pycircuit.differentiator.trainer.train_graph_on --graph-file-path ../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_depth_graph.json --writer-config ../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_writer_config.json --parquet-path ../cppcuit/build/dump.parquet --lr=0.01
+  * python -m pycircuit.differentiator.trainer.train_graph_on --graph-file-path ../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_depth_graph.json --writer-config ../cppcuit/codegen/trade_pressure/btcusdt_binance_futures_depth_writer_config.json --parquet-path ../cppcuit/build/dumpbtcdepth.parquet --lr=0.1 --lr-shrink-by=2 --epochs-per-run=1500 --print-params --torch-compile
+  * --torch-compile uses a new/experimental pytorch feature, this works on my linux desktop but fails to link libomp on my laptop.
+  * It may or may not be a performance improvement - it has a very high up front cost and is slower on my desktop...
 
 ## Auxilary commands
 

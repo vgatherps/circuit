@@ -151,9 +151,9 @@ class CircuitData:
 
         return data
 
-    def parameters(self) -> Dict[str, frozendict[str, Any]]:
+    def parameters(self) -> Dict[str, dict[str, Any]]:
         return {
-            comp.name: comp.params
+            comp.name: {**comp.params}
             for comp in self.components.values()
             if comp.params is not None
         }
