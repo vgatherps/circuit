@@ -1,9 +1,8 @@
-from asyncio import all_tasks
 import json
 import sys
 from dataclasses import dataclass
 from shutil import rmtree
-from typing import List, Optional, Set, Tuple
+from typing import List, Set, Tuple
 
 from argparse_dataclass import ArgumentParser
 from pycircuit.circuit_builder.circuit import (
@@ -27,7 +26,6 @@ from pycircuit.circuit_builder.circuit import ExternalStruct
 from pycircuit.circuit_builder.circuit import OutputArray
 from pycircuit.circuit_builder.component import HasOutput
 from pycircuit.circuit_builder.signals.regressions.bounded_sum import soft_bounded_sum
-from pycircuit.circuit_builder.signals.minmax import clamp
 from pycircuit.circuit_builder.component import Component
 from pycircuit.circuit_builder.signals.regressions.activations import (
     relu,
@@ -36,8 +34,7 @@ from pycircuit.circuit_builder.signals.regressions.mlp import Layer, mlp
 from pycircuit.circuit_builder.signals.constant import make_double
 from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.signals.regressions.activations import tanh
-from pycircuit.circuit_builder.signals.summary.make_summary import Normalizer
-from pycircuit.trade_pressure.ephemeral_sum import ephemeral_sum
+from pycircuit.circuit_builder.signals.normalizer import Normalizer
 from pycircuit.trade_pressure.trade_pressure_config import (
     BasicSignalConfig,
     TradePressureMarketConfig,
