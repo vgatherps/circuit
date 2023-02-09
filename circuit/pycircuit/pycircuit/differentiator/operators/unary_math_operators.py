@@ -22,7 +22,14 @@ class AUnaryOp(OperatorFn):
         pass
 
     def do_forward(self, tensors: List[CircuitTensor]):
-        return self.do_op(tensors[self.a_module])
+        rval = self.do_op(tensors[self.a_module])
+        import torch
+
+        if torch.any(torch.isnan(rval)):
+            print(
+                f"{self.name()} on {tensors[self.a_module]} gave nan {rval}"
+            )
+        return rval
 
     def __init__(
         self,

@@ -62,7 +62,6 @@ USE_SYMMETRIC = False
 USE_SOFT_LINREG = True
 USE_LINREG = True
 
-FEATURE_SCALEDOWN = 1e-4
 
 @dataclass
 class TradePressureOptions:

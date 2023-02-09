@@ -42,7 +42,6 @@ class BinaryOp(OperatorFn):
             print(
                 f"{self.name} on {tensors[self.a_module]} and {tensors[self.b_module]} gave nan {rval}"
             )
-            raise ValueError()
 
         return rval
 

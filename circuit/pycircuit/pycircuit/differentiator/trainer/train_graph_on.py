@@ -30,6 +30,7 @@ class TrainerOptions:
     epochs_per_run: int = 1000
     print_params: bool = False
     torch_compile: bool = False
+    train_frac: float = 0.8
 
 
 def main():
@@ -37,15 +38,11 @@ def main():
 
     # Hacks since book fair is garbage around early day
     in_data = pd.DataFrame(
-        pd.read_parquet(args.parquet_path).dropna()[1000:].reset_index(drop=True)
+        pd.read_parquet(args.parquet_path).dropna()[1000:]
     )
-
-    print(in_data)
 
     graph = Graph.from_dict(json.load(open(args.graph_file_path)))
     writer_config = WriterConfig.from_dict(json.load(open(args.writer_config_path)))
-
-    target_returns = (in_data["target_future"] - in_data["target"]) / in_data["target"]
 
     if graph.find_edges() != writer_config.outputs:
         raise ValueError(
@@ -69,13 +66,28 @@ Writer: {named_outputs}
         """
         )
 
-    model = Model(graph)
-    inputs = {
-        output: torch.tensor(in_data[output_to_name(output)])
+    split_at = int(len(in_data) * args.train_frac)
+    train_data = in_data.iloc[:split_at]
+    test_data = in_data.drop(train_data.index)
+    train_target_returns = (train_data["target_future"] - train_data["target"]) / train_data["target"]
+    test_target_returns = (test_data["target_future"] - test_data["target"]) / test_data["target"]
+
+    in_data = None
+
+    train_inputs = {
+        output: torch.tensor(train_data[output_to_name(output)].astype('float64').to_numpy())
         for output in writer_config.outputs
     }
 
-    target = torch.tensor(target_returns * args.scale_by)
+    test_inputs = {
+        output: torch.tensor(test_data[output_to_name(output)].astype('float64').to_numpy())
+        for output in writer_config.outputs
+    }
+
+    train_target = torch.tensor(train_target_returns.astype('float64').to_numpy() * args.scale_by)
+    test_target = torch.tensor(test_target_returns.astype('float64').to_numpy() * args.scale_by)
+
+    model = Model(graph)
 
     linreg_params = [
         param for name, param in model.parameters().items() if "linreg" in name
@@ -89,14 +101,8 @@ Writer: {named_outputs}
     )
     mse_loss = torch.nn.MSELoss()
 
-    module = model.create_module(inputs)
-
-    if args.torch_compile:
-        print("Compiling graph...")
-        module = torch.compile(module)
-        print("Compiled graph, performing first evaluation")
-        module()
-        print("Moving to real operation")
+    module = model.create_module(train_inputs)
+    test_module = model.create_module(test_inputs)
 
     def detect_nan(projected, loss):
         if torch.isnan(loss) or torch.any(torch.isnan(projected)):
@@ -108,7 +114,7 @@ Writer: {named_outputs}
 
             first_true = index(projected_nan, True)
 
-            adjusted_data = {name: data[first_true] for (name, data) in inputs.items()}
+            adjusted_data = {name: data[first_true] for (name, data) in train_inputs.items()}
 
             adjusted_module = model.create_module(adjusted_data)
 
@@ -118,14 +124,19 @@ Writer: {named_outputs}
 
             raise ValueError("Nan encountered")
 
+    @torch.no_grad()
     def report(projected, loss):
+        
+        test_projected = test_module() * args.scale_by
 
-        print("MSE loss: ", float(mse_loss(projected, target)))
+        print("Train MSE loss: ", float(mse_loss(projected, train_target)))
+        print("Test MSE loss: ", float(mse_loss(test_projected, test_target)))
         print(
-            "Computed r^2: ", float(torchmetrics.functional.r2_score(projected, target))
+            "Train r^2: ", float(torchmetrics.functional.r2_score(projected, train_target))
         )
-        print("proj: ", projected)
-        print("target: ", target)
+        print(
+            "Test r^2: ", float(torchmetrics.functional.r2_score(test_projected, test_target))
+        )
 
         if args.print_params:
             for (p_name, param) in model.parameters().items():
@@ -135,30 +146,34 @@ Writer: {named_outputs}
     for idx in range(0, args.lr_shrinkings):
         for idx in range(0, args.epochs_per_run):
 
+            for (name, param) in module._parameters.items():
+                test_module._parameters[name] = param
+
             start = time.time()
             projected = module() * args.scale_by
             end = time.time()
 
             timings.append(max(end - start, 0))
 
-            computed_loss = mse_loss(projected, target)
+            computed_loss = mse_loss(projected, train_target)
 
             detect_nan(projected, computed_loss)
 
             optim.zero_grad()
             computed_loss.backward()
+            optim.step()
 
             if idx % 100 == 1 or idx == 0:
-                print(
-                    f"Epoch took {sum(timings)} total and "
-                    f"averaged {sum(timings)/ len(timings)} seconds per eval"
-                )
-                timings = []
-                report(projected, computed_loss)
-                print()
-                print()
+                with torch.no_grad():
+                    print(
+                        f"Epoch took {sum(timings)} total and "
+                        f"averaged {sum(timings)/ len(timings)} seconds per eval"
+                    )
+                    timings = []
+                    report(projected, computed_loss)
+                    print()
+                    print()
 
-            optim.step()
 
         for param_goup in optim.param_groups:
             param_goup["lr"] /= args.lr_shrink_by
