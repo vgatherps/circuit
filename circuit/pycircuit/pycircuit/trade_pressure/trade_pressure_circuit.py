@@ -68,6 +68,32 @@ class TradePressureOptions:
     out_dir: str
 
 
+def pointless_mlp(inputs: List[HasOutput], prefix: str) -> List[HasOutput]:
+    return mlp(
+        inputs,
+        [
+            Layer.parameter_layer(
+                2 * len(inputs),
+                len(inputs),
+                activation=tanh,
+                prefix=f"{prefix}_tanh_scaleup",
+            ),
+            Layer.parameter_layer(
+                2 * len(inputs),
+                2 * len(inputs),
+                activation=relu,
+                prefix=f"{prefix}_relu",
+            ),
+            Layer.parameter_layer(
+                len(inputs),
+                2 * len(inputs),
+                activation=tanh,
+                prefix=f"{prefix}_tanh_scaledown",
+            ),
+        ],
+    )
+
+
 def generate_cascading_soft_combos(
     circuit: CircuitBuilder,
     inputs: List[HasOutput],
@@ -225,7 +251,7 @@ def generate_move_for_decay(
 
     # Do not denormalise, as we just pipe this further into more stuff
     combined = generate_cascading_soft_combos(
-        circuit, rets, move_name, use_linreg=True, denormalize=False
+        circuit, rets, move_name, use_linreg=True, denormalize=False, use_symmetric=True
     )
 
     circuit.rename_component(combined, move_name)
@@ -296,29 +322,7 @@ def generate_depth_circuit_for_market_venue(
 
     # This doesn't make much sense but might as well add some parameters
 
-    moves_mlp = mlp(
-        moves_per_decay,
-        [
-            Layer.parameter_layer(
-                2 * len(moves_per_decay),
-                len(moves_per_decay),
-                activation=tanh,
-                prefix=f"{market}_{venue}_move_tanh_scaleup",
-            ),
-            Layer.parameter_layer(
-                2 * len(moves_per_decay),
-                2 * len(moves_per_decay),
-                activation=relu,
-                prefix=f"{market}_{venue}_move_relu",
-            ),
-            Layer.parameter_layer(
-                len(moves_per_decay),
-                2 * len(moves_per_decay),
-                activation=tanh,
-                prefix=f"{market}_{venue}_move_tanh_scaledown",
-            ),
-        ],
-    )
+    moves_mlp = pointless_mlp(moves_per_decay, f"{market}_{venue}_move")
 
     combined = generate_cascading_soft_combos(
         circuit,
@@ -403,15 +407,19 @@ def generate_circuit_for_market(
 
         all_trade_pressures.append(total_pressure)
 
+    normalizer = Normalizer(all_trade_pressures[0])
+
+    normalized_tp = [normalizer.normalize(tp) for tp in all_trade_pressures]
+
+    tp_mlp = pointless_mlp(normalized_tp, f"{market}_trade_pressure")
     tp_softreg = generate_cascading_soft_combos(
         circuit,
-        all_trade_pressures,
+        normalized_tp + tp_mlp,
         f"{market}_networked_trade_pressure",
         use_symmetric=False,
         use_soft_linreg=True,
         use_linreg=True,
-        normalize=True,
-        denormalize=False,
+        normalize=False,
     )
 
     # project down to some pesudo-returns sort of space
@@ -444,15 +452,11 @@ def generate_circuit_for_market(
         normalize=False,
     )
 
-    prescaled_market_pred = normalised_market_pred * make_double(1e-4)
 
-    scaled_market_pred = prescaled_market_pred * circuit.make_parameter(
-        f"{market}_final_scale"
-    )
+    circuit.rename_component(normalised_market_pred, f"{market}_overall_pred")
 
-    circuit.rename_component(scaled_market_pred, f"{market}_overall_pred")
-
-    return scaled_market_pred
+    # TODO re-insert normalization parameters from target
+    return normalised_market_pred
 
 
 def generate_trade_pressure_circuit(

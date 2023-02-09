@@ -23,7 +23,7 @@ class TrainerOptions:
     graph_file_path: str
     writer_config_path: str
     parquet_path: str
-    scale_by: float = 10000
+    scale_by: float = 1
     lr: float = 0.01
     lr_shrinkings: int = 1
     lr_shrink_by: float = 5
@@ -31,6 +31,7 @@ class TrainerOptions:
     print_params: bool = False
     torch_compile: bool = False
     train_frac: float = 0.8
+    normalize_target: bool = True
 
 
 def main():
@@ -87,16 +88,24 @@ Writer: {named_outputs}
     train_target = torch.tensor(train_target_returns.astype('float64').to_numpy() * args.scale_by)
     test_target = torch.tensor(test_target_returns.astype('float64').to_numpy() * args.scale_by)
 
+    if args.normalize_target:
+        train_mean = train_target_returns.mean()
+        train_std = train_target_returns.std()
+
+        print(f"Normalizing target with mean {train_mean} and std {train_std}")
+    else:
+        train_mean = 0.0
+        train_std = 1.0
+
+    train_target = (train_target - train_mean) / train_std
+    test_target = (test_target - train_mean) / train_std
+
     model = Model(graph)
 
-    linreg_params = [
-        param for name, param in model.parameters().items() if "linreg" in name
-    ]
-    soft_params = [
-        param for name, param in model.parameters().items() if "linreg" not in name
-    ]
+
+
     optim = Adam(
-        [{"params": linreg_params, "lr": args.lr / 10}, {"params": soft_params}],
+        model.parameters_list(),
         lr=args.lr,
     )
     mse_loss = torch.nn.MSELoss()
@@ -179,6 +188,7 @@ Writer: {named_outputs}
             param_goup["lr"] /= args.lr_shrink_by
 
     report(projected, computed_loss)
+
 
 
 def index(tensor: torch.Tensor, value, ith_match: int = 0) -> torch.Tensor:
