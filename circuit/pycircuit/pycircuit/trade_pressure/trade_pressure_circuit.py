@@ -303,10 +303,7 @@ def generate_depth_circuit_for_market_venue(
 
         signals.append(fair)
 
-    if "btc" not in market:
-        btc_market = "btcusdt"
-        btc_lead = circuit.lookup(f"{btc_market}_{venue}_depth_move")
-        signals.append(btc_lead)
+
 
     moves_per_decay: List[HasOutput] = []
     for decay_source in decay_sources:
@@ -324,16 +321,21 @@ def generate_depth_circuit_for_market_venue(
 
     moves_mlp = pointless_mlp(moves_per_decay, f"{market}_{venue}_move")
 
+    move_set = moves_per_decay + moves_mlp
+    if "btc" not in market or False:
+        btc_market = "btcusdt"
+        btc_lead = circuit.lookup(f"{btc_market}_{venue}_depth_move")
+        move_set.append(btc_lead)
+
     combined = generate_cascading_soft_combos(
         circuit,
-        moves_per_decay + moves_mlp,
+        move_set,
         f"{market}_{venue}",
         use_linreg=True,
         use_symmetric=False,
         normalize=False,
+        use_soft_linreg=True
     )
-
-    # TODO denormalise lol
 
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
     return combined

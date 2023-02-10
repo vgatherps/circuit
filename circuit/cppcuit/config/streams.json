@@ -10,6 +10,16 @@
             "category": "depth",
             "symbol": "btcusdt",
             "exchange": "binance_futures"
+        },
+        {
+            "category": "single_trades",
+            "symbol": "ethusdt",
+            "exchange": "binance_futures"
+        },
+        {
+            "category": "depth",
+            "symbol": "ethusdt",
+            "exchange": "binance_futures"
         }
     ]
 }
