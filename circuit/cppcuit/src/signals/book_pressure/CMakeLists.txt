@@ -1,1 +1,1 @@
-target_sources(cppcuit_lib PRIVATE linear_impulse.cc book_impulse_tracker.cc book_updater.cc)
+target_sources(cppcuit_lib PRIVATE sided_book_impulse_tracker.cc linear_impulse.cc book_impulse_tracker.cc book_updater.cc book_aggregator.cc)
