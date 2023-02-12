@@ -93,7 +93,67 @@ public:
       return;
     }
 
+    auto current_inferred_size = inferred_size();
+    marked_for_deletion_at = delete_time;
+
+    auto size_to_cancel_first = current_inferred_size;
+
+    auto total_size_to_remove = total_size_removal();
+
+    // If we have a level that is now too small for the trades that we have
+    // buffered, we have to regenerate synthetic adds and cancels again
+    auto surplus_traded = total_size_to_remove - diff_size;
+    assert(total_size_remove >= surplus_traded);
+
+    auto new_inferred_size = inferred_size();
     validate();
+  }
+
+  void account_for_surplus_trades_at(double surplus_traded,
+                                     double size_to_cancel_first,
+                                     std::vector<LevelEvent> &events) {
+    if (surplus_traded > 0.0) {
+      // First, cancel off the volume BEFORE the add, since we know it's early
+      // and part of the diff
+      auto should_cancel_later = surplus_traded;
+      if (size_to_cancel_first > 0.0) {
+        auto remains = std::max(surplus_traded - size_to_cancel_first, 0.0);
+        auto can_cancel = std::min(surplus_traded, size_to_cancel_first);
+
+        assert(can_cancel > 0.0);
+
+        events.push_back(Cancel{.size = can_cancel});
+
+        should_cancel_later = remains;
+      };
+      events.push_back(Add{.size = surplus_traded});
+
+      // We then re-cancel volume that we've seen afterwards since it has to
+      // come after the adds
+      if (should_cancel_later > 0.0) {
+        events.push_back(Cancel{
+            .size = should_cancel_later,
+        });
+      }
+
+      for (auto &trade : expected_trades) {
+
+        if (surplus_traded <= 0.0) {
+          break;
+        }
+        auto possible_add = trade.trade_sz - trade.implied_add;
+        assert(possible_add >= 0.0);
+        auto new_surplus = surplus_traded - possible_add;
+        trade.implied_add += std::min(possible_add, surplus_traded);
+        surplus_traded = new_surplus;
+      }
+
+      // PROVE we can never have a surplus in excess of traded volume
+      // This is because the surplus is bounded from above by the total size
+      // to remove and the total size to remove is equal to the total take
+      // volume on the books
+      assert(surplus_traded <= 0.0);
+    }
   }
 };
 
