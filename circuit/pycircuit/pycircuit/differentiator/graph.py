@@ -370,7 +370,9 @@ class Graph(DataClassJsonMixin):
                 }
 
                 write_into_idx = len(running_storage)
-                operator_list.append(operator(singles, arrays, write_into_idx))
+                oper = operator(singles, arrays, write_into_idx)
+                oper.set_output(node_output)
+                operator_list.append(oper)
                 running_storage.append(make_empty())
 
             case _:

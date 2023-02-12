@@ -1,11 +1,10 @@
-
-
 from typing import Dict, List, Type
 from pycircuit.differentiator.operators.unary_math_operators import AUnaryOp
 
 import torch
 
 from pycircuit.differentiator.operator import OperatorFn
+
 
 class Mean(AUnaryOp):
     @classmethod
@@ -23,6 +22,7 @@ class Mean(AUnaryOp):
     @classmethod
     def do_op(self, a):
         return torch.mean(a)
+
 
 class Std(AUnaryOp):
     @classmethod

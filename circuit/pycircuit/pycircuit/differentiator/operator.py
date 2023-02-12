@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Set
 
+from pycircuit.circuit_builder.component import ComponentOutput
+
 from .tensor import CircuitTensor
 import torch
 
@@ -27,11 +29,23 @@ class OperatorFn(ABC, torch.nn.Module):
     def do_forward(self, tensors: List[CircuitTensor]):
         pass
 
+    # need to refactor this to not have hacks
+
+    def set_output(self, output: ComponentOutput):
+        self.output = output
+
     def forward(self, tensors: List[CircuitTensor]):
         rval = self.do_forward(tensors)
         if VERBOSE:
             inputs = {name: tensors[idx] for (name, idx) in self.single_mapping.items()}
-            print(f"Operator {self.name()} returns {rval.detach().numpy()}")
+            if self.output is not None:
+                print(
+                    f"Operator {self.name()} "
+                    f"output {self.output.parent}::{self.output.output_name} "
+                    f"returns {rval.detach().numpy()}"
+                )
+            else:
+                print(f"Operator {self.name()} returns {rval.detach().numpy()}")
             print("Taking:")
             for (name, input) in inputs.items():
                 print(f"Input {name}: {input.detach().numpy()}")
@@ -49,6 +63,8 @@ class OperatorFn(ABC, torch.nn.Module):
         super(OperatorFn, self).__init__()
 
         self.fill_idx = fill_idx
+
+        self.output = None
 
         self.single_mapping = single_inputs
         self.array_mapping = array_inputs

@@ -29,8 +29,10 @@ def topologically_sort(
 
     # 1. do a lazy, conservative, topological sort
 
+    rounds = 0
     did_work = True
     while (len(conservatively_called) < len(components)) and did_work:
+        rounds += 1
         did_work = False
         for component in components:
             if component.name in conservatively_called:

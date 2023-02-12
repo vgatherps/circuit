@@ -38,9 +38,7 @@ def main():
     args = ArgumentParser(TrainerOptions).parse_args(sys.argv[1:])
 
     # Hacks since book fair is garbage around early day
-    in_data = pd.DataFrame(
-        pd.read_parquet(args.parquet_path).dropna()[1000:]
-    )
+    in_data = pd.DataFrame(pd.read_parquet(args.parquet_path).dropna()[1000:])
 
     graph = Graph.from_dict(json.load(open(args.graph_file_path)))
     writer_config = WriterConfig.from_dict(json.load(open(args.writer_config_path)))
@@ -70,23 +68,35 @@ Writer: {named_outputs}
     split_at = int(len(in_data) * args.train_frac)
     train_data = in_data.iloc[:split_at]
     test_data = in_data.drop(train_data.index)
-    train_target_returns = (train_data["target_future"] - train_data["target"]) / train_data["target"]
-    test_target_returns = (test_data["target_future"] - test_data["target"]) / test_data["target"]
+    train_target_returns = (
+        train_data["target_future"] - train_data["target"]
+    ) / train_data["target"]
+    test_target_returns = (
+        test_data["target_future"] - test_data["target"]
+    ) / test_data["target"]
 
     in_data = None
 
     train_inputs = {
-        output: torch.tensor(train_data[output_to_name(output)].astype('float64').to_numpy())
+        output: torch.tensor(
+            train_data[output_to_name(output)].astype("float64").to_numpy()
+        )
         for output in writer_config.outputs
     }
 
     test_inputs = {
-        output: torch.tensor(test_data[output_to_name(output)].astype('float64').to_numpy())
+        output: torch.tensor(
+            test_data[output_to_name(output)].astype("float64").to_numpy()
+        )
         for output in writer_config.outputs
     }
 
-    train_target = torch.tensor(train_target_returns.astype('float64').to_numpy() * args.scale_by)
-    test_target = torch.tensor(test_target_returns.astype('float64').to_numpy() * args.scale_by)
+    train_target = torch.tensor(
+        train_target_returns.astype("float64").to_numpy() * args.scale_by
+    )
+    test_target = torch.tensor(
+        test_target_returns.astype("float64").to_numpy() * args.scale_by
+    )
 
     if args.normalize_target:
         train_mean = train_target_returns.mean()
@@ -101,8 +111,6 @@ Writer: {named_outputs}
     test_target = (test_target - train_mean) / train_std
 
     model = Model(graph)
-
-
 
     optim = Adam(
         model.parameters_list(),
@@ -123,7 +131,9 @@ Writer: {named_outputs}
 
             first_true = index(projected_nan, True)
 
-            adjusted_data = {name: data[first_true] for (name, data) in train_inputs.items()}
+            adjusted_data = {
+                name: data[first_true] for (name, data) in train_inputs.items()
+            }
 
             adjusted_module = model.create_module(adjusted_data)
 
@@ -135,16 +145,18 @@ Writer: {named_outputs}
 
     @torch.no_grad()
     def report(projected, loss):
-        
+
         test_projected = test_module() * args.scale_by
 
         print("Train MSE loss: ", float(mse_loss(projected, train_target)))
         print("Test MSE loss: ", float(mse_loss(test_projected, test_target)))
         print(
-            "Train r^2: ", float(torchmetrics.functional.r2_score(projected, train_target))
+            "Train r^2: ",
+            float(torchmetrics.functional.r2_score(projected, train_target)),
         )
         print(
-            "Test r^2: ", float(torchmetrics.functional.r2_score(test_projected, test_target))
+            "Test r^2: ",
+            float(torchmetrics.functional.r2_score(test_projected, test_target)),
         )
 
         if args.print_params:
@@ -183,12 +195,10 @@ Writer: {named_outputs}
                     print()
                     print()
 
-
         for param_goup in optim.param_groups:
             param_goup["lr"] /= args.lr_shrink_by
 
     report(projected, computed_loss)
-
 
 
 def index(tensor: torch.Tensor, value, ith_match: int = 0) -> torch.Tensor:

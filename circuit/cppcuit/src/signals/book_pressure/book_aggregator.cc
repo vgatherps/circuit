@@ -1,5 +1,6 @@
 #include "signals/book_pressure/book_aggregator.hh"
 
+#include <iostream>
 #include <nlohmann/json.hpp>
 
 namespace detail {
@@ -33,7 +34,7 @@ void BookAggregatorBase::refill_from_book(const PlainBook &book, std::size_t n,
       bids++;
       for (std::size_t i = 1; i < n && bids != bids_end; i++) {
         double total_size = bids->second;
-        double total_pricesize = bids->first;
+        double total_pricesize = bids->first * bids->second;
         double starting_price = bids->first;
         double ending_price = starting_price * (1.0 - ratio_per_group);
 
@@ -63,7 +64,7 @@ void BookAggregatorBase::refill_from_book(const PlainBook &book, std::size_t n,
       asks++;
       for (std::size_t i = 1; i < n && asks != asks_end; i++) {
         double total_size = asks->second;
-        double total_pricesize = asks->first;
+        double total_pricesize = asks->first * asks->second;
         double starting_price = asks->first;
         double ending_price = starting_price * (1.0 + ratio_per_group);
 

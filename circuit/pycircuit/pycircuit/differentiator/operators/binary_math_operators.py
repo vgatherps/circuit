@@ -34,16 +34,7 @@ class BinaryOp(OperatorFn):
         pass
 
     def do_forward(self, tensors: List[CircuitTensor]) -> CircuitTensor:
-        rval = self.do_op(tensors[self.a_module], tensors[self.b_module])
-
-        import torch
-
-        if torch.any(torch.isnan(rval)):
-            print(
-                f"{self.name} on {tensors[self.a_module]} and {tensors[self.b_module]} gave nan {rval}"
-            )
-
-        return rval
+        return self.do_op(tensors[self.a_module], tensors[self.b_module])
 
 
 class Add(BinaryOp):

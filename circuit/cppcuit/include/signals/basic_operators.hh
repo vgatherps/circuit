@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <tuple>
 #include <type_traits>
 
@@ -7,46 +8,24 @@
 #include "cppcuit/side.hh"
 #include "cppcuit/signal_requirements.hh"
 
-template <class A, class B>
-  requires(std::is_copy_constructible_v<A> && std::is_copy_constructible_v<B>)
-class Join2 {
-public:
-  // Probably want to do this by taking advantage of the call itself?
-  struct Input {
-    optional_reference<const A> a;
-    optional_reference<const B> b;
-  };
-
-  using Output = std::tuple<A, B>;
-
-  template <class O>
-    requires HAS_REF_FIELD(O, Output, out)
-  static bool call(Input inputs, O o) {
-    if (inputs.a.valid() && inputs.b.valid()) {
-      out.out = {*inputs.a, *inputs.b};
-      return true;
-    } else {
-      return false;
-    }
-  }
-};
-
-template <class A, std::size_t Idx>
+template <std::size_t Idx, class A>
   requires(std::is_copy_assignable_v<A>)
-class StaticIndex {
+class StaticIndex;
+
+template <std::size_t Idx, class A, std::size_t N>
+  requires(std::is_copy_assignable_v<A>)
+class StaticIndex<Idx, std::array<A, N>> {
 
 public:
   using Output = A;
+  using Arr = std::array<A, N>;
 
-  template <class I, class O, std::size_t N>
-    requires(
-        requires(I in) {
-          { in.a.valid() } -> std::is_same_v<bool>
-        } && requires(I in, A &a) { a = std::tuple_element<Idx>(*in.a) } &&
-        HAS_REF_FIELD(O, Output, out))
-  static bool call(I inputs, O o) {
+  template <class I, class O>
+    requires(HAS_OPT_REF(I, Arr, a) && (Idx < N) &&
+             HAS_REF_FIELD(O, Output, out))
+  static bool call(I inputs, O out) {
     if (inputs.a.valid()) {
-      out.out = std::tuple_element<Idx>(*inputs.a);
+      out.out = std::get<Idx>(*inputs.a);
       return true;
     } else {
       return false;

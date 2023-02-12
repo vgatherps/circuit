@@ -31,7 +31,16 @@
                             "pricesize_weight": 2e-5,
                             "distance_weight": 2e4
                         }
-                    ]
+                    ],
+                    "static_book_fair_config": {
+                        "aggregation_returns": [
+                            0.00005,
+                            0.0001,
+                            0.0002
+                        ],
+                        "n_scales": 3,
+                        "levels": 4
+                    }
                 }
             }
         },
@@ -66,7 +75,16 @@
                             "pricesize_weight": 2e-5,
                             "distance_weight": 2e4
                         }
-                    ]
+                    ],
+                    "static_book_fair_config": {
+                        "aggregation_returns": [
+                            0.00005,
+                            0.0001,
+                            0.0002
+                        ],
+                        "n_scales": 3,
+                        "levels": 4
+                    }
                 }
             }
         }
