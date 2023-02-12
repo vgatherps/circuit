@@ -8,6 +8,8 @@
 #include "math/fast_exp_64.hh"
 #include "math/fast_log_64.hh"
 
+#include <algorithm>
+
 template <class A, class B, class Op>
   requires requires(A a, B b) { Op::call(a, b); }
 class CoreArithmetic {
@@ -165,9 +167,9 @@ struct DoAbs {
 
 struct DoExp {
   template <class A>
-    requires requires(A a) { FastExpE.compute(a); }
+    requires requires(A a) { FastExpE.compute(-a); }
   static auto call(A a) {
-    return FastExpE.compute(a);
+    return FastExpE.compute(-a);
   }
 };
 
@@ -175,7 +177,7 @@ struct DoLog {
   template <class A>
     requires requires(A a) { fast_ln(a); }
   static auto call(A a) {
-    return fast_ln_64(a);
+    return fast_ln(a);
   }
 };
 
@@ -187,7 +189,16 @@ struct DoNeg {
   }
 };
 
+struct DoSqrt {
+  template <class A>
+    requires requires(A a) { std::sqrt(a); }
+  static auto call(A a) {
+    return std::sqrt(a);
+  }
+};
+
 template <class A> using ExpComponent = CoreUnary<A, DoExp>;
 template <class A> using AbsComponent = CoreUnary<A, DoAbs>;
 template <class A> using NegComponent = CoreUnary<A, DoNeg>;
 template <class A> using LogComponent = CoreUnary<A, DoLog>;
+template <class A> using SqrtComponent = CoreUnary<A, DoSqrt>;

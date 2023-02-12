@@ -76,6 +76,26 @@ class HasOutput(ABC):
             )
         return self._make_math_component(other, "eq", "eqComponent")
 
+    def __getitem__(self, index: int) -> "Component":
+        from .circuit_context import CircuitContextManager
+        from .signals.index import generate_static_index_definition
+        from .signals.running_name import get_novel_name
+
+        context = CircuitContextManager.active_circuit()
+
+        definition = generate_static_index_definition(index)
+
+        def_name = f"static_index_{index}"
+
+        context.add_definition(def_name, definition)
+
+        return context.make_component(
+            definition_name=def_name,
+            name=get_novel_name(def_name),
+            inputs={"a": self},
+            generics={'N': str(index)}
+        )
+
 
 @dataclass(frozen=True, eq=True)
 class ComponentOutput(DataClassJsonMixin, HasOutput):

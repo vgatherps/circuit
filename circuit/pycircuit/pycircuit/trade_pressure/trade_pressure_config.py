@@ -16,8 +16,16 @@ class SingleTrade(DataClassJsonMixin):
 
 
 @dataclass
+class StaticBookFairConfig:
+    aggregation_returns: List[float]
+    n_scales: int
+    levels: int
+
+
+@dataclass
 class TradePressureVenueConfig(DataClassJsonMixin):
     book_fairs: List[BookFairConfig]
+    static_book_fair_config: StaticBookFairConfig
     trade_pressures: List[SingleTrade]
 
 

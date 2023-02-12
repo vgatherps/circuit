@@ -35,6 +35,10 @@ from pycircuit.circuit_builder.signals.constant import make_double
 from pycircuit.circuit_builder.component import ComponentOutput
 from pycircuit.circuit_builder.signals.regressions.activations import tanh
 from pycircuit.circuit_builder.signals.normalizer import Normalizer
+from pycircuit.circuit_builder.signals.book.static_book_fair import (
+    make_static_book_fair,
+)
+from pycircuit.trade_pressure.trade_pressure_config import StaticBookFairConfig
 from pycircuit.trade_pressure.trade_pressure_config import (
     BasicSignalConfig,
     TradePressureMarketConfig,
@@ -233,6 +237,56 @@ def generate_trades_circuit_for_market_venue(
     return per_market_venue_decaying_ticks_sum, raw_venue_pressure.output("running")
 
 
+def generate_static_book_aggregation(
+    circuit: CircuitBuilder,
+    market: str,
+    venue: str,
+    book: HasOutput,
+    mid: HasOutput,
+    static_fairs: StaticBookFairConfig,
+):
+    all_static_fairs = []
+
+    for aggregation in static_fairs.aggregation_returns:
+        aggregated = circuit.make_component(
+            "book_aggregator",
+            name=get_novel_name(f"{market}_{venue}_book_aggregation"),
+            inputs={"book": book},
+            params={"ratio_per_group": aggregation},
+            generics={"N": str(static_fairs.levels)},
+        )
+
+        for i in range(static_fairs.n_scales):
+
+            fair = make_static_book_fair(
+                aggregated,
+                mid,
+                static_fairs.levels,
+                prefix=get_novel_name(f"{market}_{venue}_static_fair_{i}_"),
+            )
+
+            all_static_fairs.append(fair)
+
+    returns_to_mid = [(fair - mid) / mid for fair in all_static_fairs]
+
+    # yet again 100000 params for the sake of stressing graph thing
+    # theoretically calculating best adjusted mid returns given others...
+    mid_projected = generate_cascading_soft_combos(
+        circuit,
+        returns_to_mid,
+        f"{market}_{venue}_projected_static_difference",
+        use_symmetric=True,
+        use_soft_linreg=True,
+        use_linreg=True,
+        normalize=True,
+        denormalize=True,
+    )
+
+    circuit.rename_component(mid_projected, f"{market}_{venue}_static_fair_projection")
+
+    return (mid_projected * mid) + mid
+
+
 def generate_move_for_decay(
     circuit: CircuitBuilder,
     market: str,
@@ -267,7 +321,7 @@ def generate_depth_circuit_for_market_venue(
 ) -> HasOutput:
     depth_name = f"{market}_{venue}_depth"
 
-    book = circuit.make_component(
+    book_manager = circuit.make_component(
         definition_name="book_updater",
         name=f"{market}_{venue}_book_updater",
         inputs={
@@ -280,7 +334,7 @@ def generate_depth_circuit_for_market_venue(
         CallGroup(struct="DepthUpdate", external_field_mapping={"depth": depth_name}),
     )
 
-    bbo = book.output("bbo")
+    bbo = book_manager.output("bbo")
 
     wmid = bbo_wmid(bbo)
     circuit.rename_component(wmid, f"{market}_{venue}_wmid")
@@ -290,20 +344,29 @@ def generate_depth_circuit_for_market_venue(
 
     signals: List[HasOutput] = [wmid, mid]
 
+    # referenced later
+    # should one day make this not such spaghetti
+    generate_static_book_aggregation(
+        circuit,
+        market,
+        venue,
+        book_manager.output("book"),
+        wmid,
+        config.static_book_fair_config,
+    )
+
     for (idx, impulse_params) in enumerate(config.book_fairs):
         fair = circuit.make_component(
             definition_name="book_impulse_tracker",
             name=f"{market}_{venue}_book_impulse_tracker_{idx}",
             inputs={
-                "updates": book.output("updates"),
-                "book": book.output("book"),
+                "updates": book_manager.output("updates"),
+                "book": book_manager.output("book"),
             },
             params={"scale": impulse_params.scale},
         )
 
         signals.append(fair)
-
-
 
     moves_per_decay: List[HasOutput] = []
     for decay_source in decay_sources:
@@ -311,7 +374,7 @@ def generate_depth_circuit_for_market_venue(
             circuit=circuit,
             market=market,
             venue=venue,
-            bbo=book.output("bbo"),
+            bbo=book_manager.output("bbo"),
             signals=signals,
             decay_source=decay_source,
         )
@@ -334,7 +397,7 @@ def generate_depth_circuit_for_market_venue(
         use_linreg=True,
         use_symmetric=False,
         normalize=False,
-        use_soft_linreg=True
+        use_soft_linreg=True,
     )
 
     circuit.rename_component(combined, f"{market}_{venue}_depth_move")
@@ -453,7 +516,6 @@ def generate_circuit_for_market(
         use_linreg=True,
         normalize=False,
     )
-
 
     circuit.rename_component(normalised_market_pred, f"{market}_overall_pred")
 
@@ -581,6 +643,9 @@ def main():
         for venue in market_config.venues.keys():
             market_tp = circuit.components[f"{market}_trade_pressure"].output()
             market_move = circuit.components[f"{market}_{venue}_depth_move"].output()
+            market_static = circuit.components[
+                f"{market}_{venue}_static_fair_projection"
+            ].output()
             market_overall = circuit.components[f"{market}_overall_pred"].output()
 
             # In a real-world trading setup, you'd need to do this incrementally
@@ -597,6 +662,7 @@ def main():
             write_simmable(market, venue, market_tp, {market_move}, "trade_pressure")
             write_simmable(market, venue, market_move, {market_tp}, "depth")
             write_simmable(market, venue, market_overall, {}, "overall")
+            write_simmable(market, venue, market_static, {}, "static_fair")
 
             # HACKS since I know I only have one lol
             break

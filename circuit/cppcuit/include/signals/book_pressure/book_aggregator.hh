@@ -57,8 +57,7 @@ public:
     };
   }
 
-  template <class O, class M>
-  bool init(O output, M metadata, const nlohmann::json &params) {
+  template <class O> OutputsValid init(O output, const nlohmann::json &params) {
     this->do_init(params);
     return OutputsValid{.bid_prices = false,
                         .bid_sizes = false,

@@ -26,9 +26,7 @@ class AUnaryOp(OperatorFn):
         import torch
 
         if torch.any(torch.isnan(rval)):
-            print(
-                f"{self.name()} on {tensors[self.a_module]} gave nan {rval}"
-            )
+            print(f"{self.name()} on {tensors[self.a_module]} gave nan {rval}")
         return rval
 
     def __init__(
@@ -77,6 +75,24 @@ class Log(AUnaryOp):
         return torch.log(a)
 
 
+class Sqrt(AUnaryOp):
+    @classmethod
+    def name(cls) -> str:
+        return "sqrt"
+
+    def __init__(
+        self,
+        single_inputs: Dict[str, int],
+        array_inputs: Dict[str, List[Dict[str, int]]],
+        fill_idx: int,
+    ):
+        super(Sqrt, self).__init__(single_inputs, array_inputs, fill_idx)
+
+    @classmethod
+    def do_op(self, a):
+        return torch.sqrt(a)
+
+
 class Abs(AUnaryOp):
     @classmethod
     def name(cls) -> str:
@@ -118,4 +134,5 @@ UNARY_OPERATORS: Dict[str, Type[OperatorFn]] = {
     "log": Log,
     "abs": Abs,
     "neg": Neg,
+    "sqrt": Sqrt,
 }

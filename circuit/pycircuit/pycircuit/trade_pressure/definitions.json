@@ -197,7 +197,8 @@
                 },
                 "updates": {
                     "type_path": "UpdatedLevelsType",
-                    "assume_invalid": true
+                    "assume_invalid": true,
+                    "__note": "Not ephemeral to we keep the allocation"
                 }
             },
             "class_name": "BookUpdater",
@@ -216,6 +217,56 @@
                     ]
                 }
             ]
+        },
+        "book_aggregator": {
+            "inputs": {
+                "book": {}
+            },
+            "output_specs": {
+                "bid_prices": {
+                    "type_path": "OutputT",
+                    "assume_invalid": true,
+                    "ephemeral": true
+                },
+                "bid_sizes": {
+                    "type_path": "OutputT",
+                    "assume_invalid": true,
+                    "ephemeral": true
+                },
+                "ask_prices": {
+                    "type_path": "OutputT",
+                    "assume_invalid": true,
+                    "ephemeral": true
+                },
+                "ask_sizes": {
+                    "type_path": "OutputT",
+                    "assume_invalid": true,
+                    "ephemeral": true
+                }
+            },
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true
+            },
+            "class_name": "BookAggregator",
+            "header": "signals/book_pressure/book_aggregator.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "book"
+                    ],
+                    "callback": "on_book_updates",
+                    "outputs": [
+                        "bid_prices",
+                        "bid_sizes",
+                        "ask_prices",
+                        "ask_sizes"
+                    ]
+                }
+            ],
+            "class_generics": {
+                "N": 0
+            }
         },
         "book_impulse_tracker": {
             "inputs": {

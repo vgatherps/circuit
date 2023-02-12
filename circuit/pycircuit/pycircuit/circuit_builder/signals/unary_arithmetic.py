@@ -47,6 +47,8 @@ def _make_unary_component(
     return actual
 
 
+clog = _make_unary_component("log", "LogComponent")
 cexp = _make_unary_component("exp", "ExpComponent")
+csqrt = _make_unary_component("sqrt", "SqrtComponent")
 cabs = _make_unary_component("abs", "AbsComponent")
 cneg = _make_unary_component("neg", "NegComponent")
