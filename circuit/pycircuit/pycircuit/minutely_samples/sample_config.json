@@ -1,0 +1,9 @@
+{
+    "markets": {
+        "binance_futures": [
+            "btcusdt",
+            "ethusdt",
+            "solusdt"
+        ]
+    }
+}

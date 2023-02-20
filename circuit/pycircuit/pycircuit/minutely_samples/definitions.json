@@ -1,0 +1,250 @@
+{
+    "definitions": {
+        "tick_aggregator": {
+            "inputs": {
+                "trade": {},
+                "tick": {},
+                "fair": {}
+            },
+            "output_specs": {
+                "running": {
+                    "type_path": "RunningTickScore",
+                    "always_valid": true
+                },
+                "tick": {
+                    "ephemeral": true,
+                    "type_path": "NewTickScore",
+                    "always_valid": true,
+                    "assume_default": true,
+                    "default_constructor": " = 0.0"
+                }
+            },
+            "class_name": "SingleTickAggregator",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true
+            },
+            "header": "signals/trade_pressure/tick_aggregator.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "trade"
+                    ],
+                    "observes": [
+                        "fair"
+                    ],
+                    "callback": "on_trade",
+                    "outputs": [
+                        "running"
+                    ]
+                },
+                {
+                    "written_set": [
+                        "tick"
+                    ],
+                    "observes": [],
+                    "callback": "on_tick",
+                    "outputs": [
+                        "running",
+                        "tick"
+                    ]
+                },
+                {
+                    "written_set": [
+                        "trade",
+                        "tick"
+                    ],
+                    "observes": [
+                        "fair"
+                    ],
+                    "callback": "on_ticked_trade",
+                    "outputs": [
+                        "running",
+                        "tick"
+                    ]
+                }
+            ]
+        },
+        "tick_detector": {
+            "inputs": {
+                "trade": {},
+                "time": {}
+            },
+            "output_specs": {
+                "tick": {
+                    "ephemeral": true,
+                    "type_path": "TickOutput",
+                    "assume_invalid": true
+                }
+            },
+            "class_name": "TickCompletionDetector",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true
+            },
+            "header": "signals/trade_pressure/tick_detector.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "trade"
+                    ],
+                    "observes": [
+                        "time"
+                    ],
+                    "callback": "on_trade",
+                    "outputs": [
+                        "tick"
+                    ],
+                    "metadata": [
+                        "timer"
+                    ]
+                }
+            ],
+            "timer_callset": {
+                "written_set": [],
+                "observes": [
+                    "time"
+                ],
+                "callback": "invalidate",
+                "outputs": [
+                    "tick"
+                ],
+                "metadata": [
+                    "timer"
+                ]
+            }
+        },
+        "decaying_sum": {
+            "inputs": {
+                "tick": {},
+                "time": {}
+            },
+            "output_specs": {
+                "running_sum": {
+                    "ephemeral": false,
+                    "type_path": "RunningTickScore",
+                    "always_valid": true
+                }
+            },
+            "class_name": "DecayingSum",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true
+            },
+            "header": "signals/trade_pressure/decaying_sum.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "tick"
+                    ],
+                    "observes": [
+                        "time"
+                    ],
+                    "callback": "on_tick",
+                    "outputs": [
+                        "running_sum"
+                    ],
+                    "metadata": [
+                        "timer"
+                    ]
+                }
+            ],
+            "timer_callset": {
+                "written_set": [],
+                "observes": [
+                    "time"
+                ],
+                "callback": "decay",
+                "outputs": [
+                    "running_sum"
+                ],
+                "metadata": [
+                    "timer"
+                ]
+            }
+        },
+        "book_updater": {
+            "inputs": {
+                "depth": {}
+            },
+            "output_specs": {
+                "bbo": {
+                    "type_path": "BBOType"
+                },
+                "book": {
+                    "type_path": "PlainBookType"
+                },
+                "updates": {
+                    "type_path": "UpdatedLevelsType",
+                    "assume_invalid": true
+                }
+            },
+            "class_name": "BookUpdater",
+            "static_call": true,
+            "header": "signals/book_pressure/book_updater.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "depth"
+                    ],
+                    "callback": "on_depth",
+                    "outputs": [
+                        "bbo",
+                        "book",
+                        "updates"
+                    ]
+                }
+            ]
+        },
+        "book_impulse_tracker": {
+            "inputs": {
+                "updates": {},
+                "book": {},
+                "time": {}
+            },
+            "output_specs": {
+                "fair": {
+                    "type_path": "FairPrice"
+                }
+            },
+            "class_name": "BookImpulseTracker",
+            "static_call": false,
+            "init_spec": {
+                "init_call": "init",
+                "takes_params": true,
+                "metadata": [
+                    "timer"
+                ]
+            },
+            "header": "signals/book_pressure/book_impulse_tracker.hh",
+            "callsets": [
+                {
+                    "written_set": [
+                        "updates"
+                    ],
+                    "observes": [
+                        "book"
+                    ],
+                    "callback": "on_book_updates",
+                    "outputs": [
+                        "fair"
+                    ]
+                }
+            ],
+            "timer_callset": {
+                "written_set": [],
+                "observes": [
+                    "time",
+                    "book"
+                ],
+                "callback": "recompute",
+                "metadata": [
+                    "timer"
+                ]
+            }
+        }
+    }
+}
